@@ -191,7 +191,7 @@
   .chat-row-user .chat-bubble-meta{flex-direction:row-reverse;}
   .chat-bubble-name{font-weight:700;color:var(--text);font-size:11px;}
   .chat-bubble-time{font-size:10px;color:var(--muted);}
-  .chat-bubble{padding:11px 15px;border-radius:14px;font-size:12.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word;}
+  .chat-bubble{padding:12px 16px;border-radius:14px;font-size:14px;line-height:1.8;white-space:pre-wrap;word-break:break-word;}
   .chat-bubble-ai{background:var(--surface);border:1px solid var(--border);border-top-left-radius:4px;color:var(--text);}
   .chat-bubble-user{background:var(--dim1);border:1px solid var(--accent1)33;border-top-right-radius:4px;color:var(--accent1);}
   .chat-bubble strong{font-weight:700;color:var(--text);}
@@ -629,15 +629,16 @@
   .svg-diagram-body{padding:12px;overflow-x:auto;}
   .svg-diagram-body svg{max-width:100%;height:auto;display:block;margin:0 auto;}
   /* ── Message formatting ─────────────────────────── */
-  .reply-field{background:var(--dim1);border:1.5px solid var(--accent1)66;border-radius:8px;padding:9px 13px;margin:4px 0 0;font-size:12.5px;color:var(--text);font-style:normal;min-height:40px;outline:none;cursor:text;transition:border-color .15s;resize:none;width:100%;box-sizing:border-box;font-family:'DM Sans',sans-serif;line-height:1.5;}
-  .reply-field:focus,.reply-field:focus-within{border-color:var(--accent1);box-shadow:0 0 0 2px var(--accent1)22;}
+  .reply-field{background:var(--surface);border:2px solid var(--accent2)88;border-radius:10px;padding:11px 15px;margin:8px 0 0;font-size:13px;color:var(--text);font-style:normal;min-height:44px;outline:none;cursor:text;transition:border-color .15s;resize:none;width:100%;box-sizing:border-box;font-family:'DM Sans',sans-serif;line-height:1.5;}
+  .reply-field:focus,.reply-field:focus-within{border-color:var(--accent2);box-shadow:0 0 0 3px var(--accent2)33;}
   .reply-field[data-placeholder]:empty:before{content:attr(data-placeholder);color:var(--muted);font-style:italic;pointer-events:none;}
-  .reply-field-wrap{position:relative;margin:6px 0 10px;border-radius:8px;}
+  .reply-field-wrap{position:relative;margin:8px 0 12px;border-radius:10px;}
+  .reply-field-wrap::before{content:'✏️ Tu respuesta';display:block;font-size:10px;font-weight:800;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
   .reply-send-btn{position:absolute;right:6px;bottom:6px;background:var(--accent1);color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;opacity:0;transition:opacity .15s;}
   .reply-field-wrap:focus-within .reply-send-btn{opacity:1;}
-  .reply-send-btn{opacity:.6 !important;}
-  .msg-h2{font-size:13.5px;font-weight:700;color:var(--text);margin:10px 0 4px;padding-bottom:4px;border-bottom:1px solid var(--border);}
-  .msg-h3{font-size:12.5px;font-weight:700;color:var(--accent1);margin:8px 0 3px;}
+  .reply-send-btn{opacity:1 !important;background:var(--accent2);color:#000;font-weight:800;}
+  .msg-h2{font-size:15px;font-weight:800;color:var(--accent2);margin:14px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--accent2)44;}
+  .msg-h3{font-size:14px;font-weight:800;color:var(--accent1);margin:10px 0 4px;}
   .msg-hr{border:none;border-top:1px solid var(--border);margin:8px 0;}
   .msg-bullet{display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;}
   .msg-dot{width:6px;height:6px;border-radius:50%;background:var(--accent2);flex-shrink:0;margin-top:5px;}
@@ -3198,6 +3199,7 @@ async function _supaLoadPerfil() {
     await _loadPlatformKey();
     await _supaLoadCursos();
     await _supaLoadAlumnos();
+    await _supaLoadRags();
     await _supaLoadAgentes();
     await _supaLoadBanco();
     await _supaLoadNivel();
@@ -6063,7 +6065,8 @@ async function sendChat(){
     document.getElementById(lid).outerHTML = makeBubbleAI(formatMsg(reply), undefined, _provBadge);
   setTimeout(checkNiveles, 500);
   } catch(e){
-    document.getElementById(lid).outerHTML = makeBubbleAI('<span style="color:var(--accent3)">' + (e.message||'Error al conectar con la IA.') + ' <button onclick="openApiKeyModal()" style="font-size:10px;background:var(--dim3);border:1px solid var(--accent3)44;color:var(--accent3);border-radius:4px;padding:1px 6px;cursor:pointer;font-family:DM Sans,sans-serif;margin-left:6px">Configurar API Key</button></span>');
+    var _isLocalErr = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    document.getElementById(lid).outerHTML = makeBubbleAI('<span style="color:var(--accent3)">' + (e.message||'Error al conectar con la IA.') + (_isLocalErr ? ' <button onclick="openApiKeyModal()" style="font-size:10px;background:var(--dim3);border:1px solid var(--accent3)44;color:var(--accent3);border-radius:4px;padding:1px 6px;cursor:pointer;font-family:DM Sans,sans-serif;margin-left:6px">Configurar API Key</button>' : '') + '</span>');
   }
   area.scrollTop=area.scrollHeight;
 }
@@ -6104,6 +6107,10 @@ function clearApiKey() {
   renderApiKeyStatus();
 }
 function openApiKeyModal() {
+  // On Vercel, never show the modal — key comes from Supabase
+  if (!(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return; // silently do nothing
+  }
   document.getElementById('apiKeyInput').value = getApiKey();
   var gkEl = document.getElementById('geminiKeyInput');
   if (gkEl) gkEl.value = getGeminiKey();
@@ -14352,6 +14359,8 @@ function saveRag() {
   AUDIT.log('RAG_SAVED', nivel + ' — ' + nombre + ' (' + currentRole + ')', 'info');
 
   RAG_STORE.set(rags);
+  // Sync to Supabase
+  rags.forEach(function(r) { _supaSaveRag(r).catch(function(){}); });
   closeRagModal();
   renderRagList();
   updateRagCount();
@@ -31048,6 +31057,57 @@ async function _supaSaveAlumnosBatch(alumnos) {
     await _supa.from('alumnos').upsert(rows);
     console.log('[Supabase] Alumnos guardados:', rows.length);
   } catch(e) { console.warn('[Supabase] Error saving alumnos batch:', e.message); }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// SUPABASE SYNC — RAGs
+// ══════════════════════════════════════════════════════════════
+
+async function _supaLoadRags() {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    var { data } = await _supa.from('rags').select('*')
+      .eq('colegio_id', _supaPerfil.colegio_id);
+    if (data && data.length) {
+      var existing = RAG_STORE.get();
+      var existingIds = new Set(existing.map(function(r){ return r.id; }));
+      data.forEach(function(r) {
+        if (!existingIds.has(r.id)) {
+          existing.push({
+            id: r.id, nombre: r.nombre, desc: r.descripcion||'',
+            nivel: r.nivel||'colegio', chunks: r.chunks||[],
+            createdAt: r.created_at,
+          });
+        }
+      });
+      RAG_STORE.set(existing);
+      console.log('[Supabase] RAGs cargados:', data.length);
+    }
+  } catch(e) { console.warn('[Supabase] Error RAGs:', e.message); }
+}
+
+async function _supaSaveRag(rag) {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    await _supa.from('rags').upsert({
+      id:          rag.id,
+      nombre:      rag.nombre,
+      descripcion: rag.desc||'',
+      nivel:       rag.nivel||'colegio',
+      chunks:      rag.chunks||[],
+      colegio_id:  _supaPerfil.colegio_id,
+      user_id:     _supaUser.id,
+    });
+    console.log('[Supabase] RAG guardado:', rag.nombre);
+  } catch(e) { console.warn('[Supabase] Error saving RAG:', e.message); }
+}
+
+async function _supaDeleteRag(ragId) {
+  if (!_supaUser) return;
+  try {
+    await _supa.from('rags').delete().eq('id', ragId);
+  } catch(e) {}
 }
 
 
