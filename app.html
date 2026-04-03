@@ -30685,7 +30685,6 @@ function gcCargaMasiva() {
 
 async function gcProcesarArchivo(file) {
   if (!file) return;
-  var statusEl = document.getElementById('gcCargaStatus');
   function setStatus(msg) {
     var el = document.getElementById('gcCargaStatus');
     if (el) el.innerHTML = msg;
@@ -30694,11 +30693,10 @@ async function gcProcesarArchivo(file) {
 
   try {
     var cursoForzado = document.getElementById('gcCargaCurso')?.value || '';
-
-    // Parse Excel/CSV directly using SheetJS if available
     var rows = [];
     var cols = [];
 
+    // Parse Excel
     if (file.name.match(/\.xlsx?$/i) && typeof XLSX !== 'undefined') {
       var ab = await new Promise(function(resolve, reject) {
         var r = new FileReader();
@@ -30709,7 +30707,7 @@ async function gcProcesarArchivo(file) {
       var wb = XLSX.read(ab, { type: 'array' });
       var ws = wb.Sheets[wb.SheetNames[0]];
       var data = XLSX.utils.sheet_to_json(ws, { header: 1 });
-      if (data.length < 2) { setStatus('❌ Archivo vacío o sin datos'); return; }
+      if (data.length < 2) { setStatus('❌ Archivo vacío'); return; }
       cols = data[0].map(function(c){ return String(c||'').trim(); });
       rows = data.slice(1).map(function(row) {
         var obj = {};
@@ -30727,43 +30725,54 @@ async function gcProcesarArchivo(file) {
         return obj;
       });
     } else {
-      setStatus('❌ Formato no soportado. Usa Excel (.xlsx) o CSV');
-      return;
+      setStatus('❌ Formato no soportado. Usa Excel o CSV'); return;
     }
 
     if (!rows.length) { setStatus('❌ Sin filas de datos'); return; }
 
-    // Detect name column
+    // Detect name column — prefer NOMBRE_COMPLETO
     var nameCol = cols.find(function(c){ return /nombre_completo|nombre.completo/i.test(c); }) ||
                   cols.find(function(c){ return /^nombre$/i.test(c); }) ||
                   cols.find(function(c){ return /alumno|estudiante/i.test(c); }) ||
                   cols[0];
 
     // Detect curso column
-    var cursoCol = cols.find(function(c){ return /^curso$|^grado$|^nivel$/i.test(c); });
+    var cursoCol = cols.find(function(c){ return /^curso$|^grado$|^nivel$|^clase$/i.test(c); });
     var cursoFromFile = cursoCol && rows[0] ? String(rows[0][cursoCol]||'').trim() : '';
-
     var curso = cursoForzado || cursoFromFile || '';
 
-    // Case-insensitive match against existing CURSOS
+    // Case-insensitive match
     if (curso) {
       var match = CURSOS.find(function(c){ return c.toLowerCase() === curso.toLowerCase(); });
       if (match) curso = match;
-      else { CURSOS.push(curso); if (typeof _saveCursosCustom === 'function') _saveCursosCustom(); }
+      else {
+        CURSOS.push(curso);
+        if (typeof _saveCursosCustom === 'function') _saveCursosCustom();
+        if (typeof _supaSaveCurso === 'function') _supaSaveCurso(curso).catch(function(){});
+      }
     }
 
-    // Register students
-    var existentes = new Set(DB.alumnos.map(function(a){ return a.nombre.toLowerCase().trim(); }));
-    var nuevos = 0;
-    rows.forEach(function(row, idx) {
+    // DEDUPLICAR por nombre — un alumno puede aparecer múltiples veces en el Excel
+    var seenNames = new Set();
+    var uniqueRows = rows.filter(function(row) {
       var nombre = String(row[nameCol]||'').trim();
-      if (!nombre || nombre.length < 3) return;
-      if (/^(nombre|alumno|estudiante|total|promedio)$/i.test(nombre)) return;
+      if (!nombre || nombre.length < 3) return false;
+      if (/^(nombre|alumno|estudiante|total|promedio)$/i.test(nombre)) return false;
+      if (seenNames.has(nombre.toLowerCase())) return false;
+      seenNames.add(nombre.toLowerCase());
+      return true;
+    });
+
+    // Register only new students
+    var existentes = new Set(DB.alumnos.map(function(a){ return a.nombre.toLowerCase().trim(); }));
+    var nuevosAlumnos = [];
+    uniqueRows.forEach(function(row, idx) {
+      var nombre = String(row[nameCol]||'').trim();
       if (existentes.has(nombre.toLowerCase())) return;
       var parts = nombre.split(/\s+/);
       var avatar = ((parts[0]||'')[0]||'').toUpperCase() + ((parts[1]||'')[0]||'').toUpperCase();
       var nee = row['NEE'] || row['nee'] || '';
-      DB.alumnos.push({
+      var alumno = {
         id: 'gc_' + Date.now() + '_' + idx,
         nombre: nombre,
         rut: row['RUT'] || row['rut'] || '',
@@ -30775,26 +30784,35 @@ async function gcProcesarArchivo(file) {
         establecimiento: DB.directores[0]?.establecimiento || '',
         nee: (nee && nee.toString().toLowerCase() === 'si') ? 'Por determinar' : '',
         neeT: '',
-      });
+      };
+      DB.alumnos.push(alumno);
       existentes.add(nombre.toLowerCase());
-      nuevos++;
+      nuevosAlumnos.push(alumno);
     });
 
     saveToStorage();
-    // Save new alumnos to Supabase
-    var newAlumnos = DB.alumnos.filter(function(a){ return a.esp === curso && a.id.startsWith('gc_'); });
-    if (newAlumnos.length) _supaSaveAlumnosBatch(newAlumnos).catch(function(){});
+
+    // Save to Supabase
+    if (nuevosAlumnos.length && typeof _supaSaveAlumnosBatch === 'function') {
+      _supaSaveAlumnosBatch(nuevosAlumnos).catch(function(){});
+    }
+
     if (typeof renderCourseFilter === 'function') renderCourseFilter();
     if (typeof renderCtxAlumnos === 'function') renderCtxAlumnos();
 
-    setStatus('<span style="color:var(--accent2)">✅ ' + nuevos + ' alumno(s) registrado(s)' + (curso ? ' en ' + curso : '') + '</span>');
+    setStatus('<span style="color:var(--accent2)">✅ ' + nuevosAlumnos.length + ' alumno(s) registrado(s)' +
+      (uniqueRows.length > nuevosAlumnos.length ? ' (' + (uniqueRows.length - nuevosAlumnos.length) + ' ya existían)' : '') +
+      (curso ? ' en ' + curso : '') + '</span>');
+
     setTimeout(function(){ renderGestionCursos(); }, 500);
 
   } catch(e) {
-    setStatus('❌ Error: ' + e.message);
+    var el = document.getElementById('gcCargaStatus');
+    if (el) el.innerHTML = '❌ Error: ' + e.message;
     console.error('gcProcesarArchivo error:', e);
   }
 }
+
 
 
 // ── Asignar docente a curso ───────────────────────────────────
