@@ -6494,7 +6494,9 @@ async function callGemini(payload) {
       if (rk) { localStorage.setItem('liax_gemini_key', rk); window._cachedGeminiKey = rk; key = rk; }
     } catch(e) {}
   }
-  if (!key) throw new Error('Gemini key no configurada — ve a ⚙️ Configurar IAs');
+  var _isVercelGemini = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  if (!key && !_isVercelGemini) throw new Error('Gemini key no configurada — ve a ⚙️ Configurar IAs');
+  if (!key) key = 'proxy'; // Vercel proxy has the key
 
   // Determine model — use payload.model if it's a Gemini ID, else default
   var geminiModel = 'gemini-1.5-flash'; // default
@@ -6567,10 +6569,26 @@ async function callGemini(payload) {
 
   let res;
   try {
-    res = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/' + geminiModel + ':generateContent?key=' + key,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-    );
+    var isLocalGemini = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocalGemini && key) {
+      // Direct call on localhost
+      res = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/' + geminiModel + ':generateContent?key=' + key,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      );
+    } else {
+      // On Vercel: route through proxy with model in payload
+      res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({}, body, {
+          model: geminiModel,
+          messages: payload.messages,
+          system: payload.system,
+          max_tokens: payload.max_tokens,
+        }))
+      });
+    }
   } catch(e) {
     throw new Error('No se pudo conectar con Gemini. Verifica tu conexión.');
   }
