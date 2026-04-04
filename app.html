@@ -3625,12 +3625,15 @@ function showPanel(id) {
   if(tkBar) tkBar.style.display=(currentRole==="superadmin"||currentRole==="sostenedor")?"flex":"none";
 
   // If agent is open, show the panel in a floating drawer OVER the chat
+  // Exception: 'agentes' panel should close the drawer and let openAgent handle it
   var modal = document.getElementById('agentModal');
-  if (modal && modal.classList.contains('open')) {
-    // Show panel in overlay drawer instead of replacing the agent
+  if (modal && modal.classList.contains('open') && id !== 'agentes') {
     _showPanelOverAgent(id);
     return;
   }
+  // Close any open drawer when navigating normally
+  var drawer = document.getElementById('_agentPanelDrawer');
+  if (drawer) drawer.remove();
 
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   var panelEl = document.getElementById('panel-'+id);
