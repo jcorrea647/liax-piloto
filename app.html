@@ -3623,19 +3623,17 @@ function showPanel(id) {
   var tkBar=document.getElementById("tokenBulkBar");
   if(tkBar) tkBar.style.display=(currentRole==="superadmin"||currentRole==="sostenedor")?"flex":"none";
 
-  // If agent is open, minimize it (hide visually) but keep chat state
+  // If agent is open, show the panel in a floating drawer OVER the chat
   var modal = document.getElementById('agentModal');
-  var app   = document.querySelector('.app');
   if (modal && modal.classList.contains('open')) {
-    // Temporarily hide modal without clearing chat
-    modal.style.display = 'none';
-    if (app) app.classList.remove('agent-open');
-    // Store that agent was open so user can restore it
-    window._agentMinimized = true;
+    // Show panel in overlay drawer instead of replacing the agent
+    _showPanelOverAgent(id);
+    return;
   }
 
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('panel-'+id).classList.add('active');
+  var panelEl = document.getElementById('panel-'+id);
+  if (panelEl) panelEl.classList.add('active');
   currentPanel=id;
   if(id==='agentes') renderAgents();
   if(id==='mis-cursos')         { initMisCursosPanel(); }
@@ -17348,7 +17346,7 @@ async function cvEnviar() {
   });
 
   // Determine model from router
-  var model = 'claude-sonnet-4-6';
+  var model = 'claude-haiku-4-5-20251001';
   try {
     var cfg = JSON.parse(localStorage.getItem('liax_router_config')||'{}');
     model   = cfg['analisis'] || cfg['conversacion'] || model;
@@ -31271,6 +31269,82 @@ function _updateRestoreBtn() {
   var btn = document.getElementById('restoreAgentBtn');
   if (!btn) return;
   btn.style.display = window._agentMinimized ? 'flex' : 'none';
+}
+
+
+// ── Panel drawer over agent chat ─────────────────────────────
+function _showPanelOverAgent(id) {
+  // Remove existing drawer
+  var existing = document.getElementById('_agentPanelDrawer');
+  if (existing) existing.remove();
+
+  // Find the panel content
+  var sourcePanel = document.getElementById('panel-' + id);
+  if (!sourcePanel) {
+    // Fallback: close agent and show panel normally
+    closeModal();
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    var p = document.getElementById('panel-' + id);
+    if (p) p.classList.add('active');
+    currentPanel = id;
+    return;
+  }
+
+  // Trigger panel data load
+  if(id==='agentes') renderAgents();
+  if(id==='mis-cursos') initMisCursosPanel();
+  if(id==='historial-global') renderHistorialGlobal();
+  if(id==='repositorio-docs') renderRepositorioDocs();
+  if(id==='mi-progreso') renderMiProgreso();
+  if(id==='ayuda') renderAyuda();
+  if(id==='banco-recursos') renderBancoRecursos();
+  if(id==='gestion-cursos') renderGestionCursos();
+  if(id==='calendario') renderCalendario();
+  if(id==='favoritos') { renderHomeGreeting(); renderFavoritos(); }
+  if(id==='dashboard') { updateDashStats(); renderDashboard(); }
+  if(id==='usuarios') { renderTable(); initUsuariosPanel(); }
+  if(id==='informes') renderInformes();
+
+  // Create drawer
+  var drawer = document.createElement('div');
+  drawer.id = '_agentPanelDrawer';
+  drawer.style.cssText = [
+    'position:fixed',
+    'top:0',
+    'right:0',
+    'width:55%',
+    'height:100vh',
+    'background:var(--bg)',
+    'border-left:2px solid var(--border)',
+    'z-index:300',
+    'overflow-y:auto',
+    'box-shadow:-8px 0 32px #00000033',
+    'display:flex',
+    'flex-direction:column',
+  ].join(';');
+
+  // Header
+  var header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;position:sticky;top:0;z-index:1';
+  header.innerHTML = '<span style="font-size:12px;font-weight:700;color:var(--text)">📂 ' + id + '</span>' +
+    '<button id="_drawerCloseBtn" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px;font-family:DM Sans,sans-serif">✕ Cerrar</button>';
+  drawer.appendChild(header);
+
+  // Content — clone the panel
+  var clone = sourcePanel.cloneNode(true);
+  clone.id = '_cloned_panel_' + id;
+  clone.style.display = 'block';
+  clone.style.padding = '16px';
+  clone.style.flex = '1';
+  drawer.appendChild(clone);
+
+  document.body.appendChild(drawer);
+  var closeBtn = document.getElementById('_drawerCloseBtn');
+  if (closeBtn) closeBtn.onclick = function() {
+    var d = document.getElementById('_agentPanelDrawer');
+    if (d) d.remove();
+  };
+  currentPanel = id;
 }
 
 
