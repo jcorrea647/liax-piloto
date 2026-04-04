@@ -5250,9 +5250,10 @@ function openAgent(id, autoPrompt, sessionToRestore){
   // Store session to restore — used below after modal setup
   window._pendingSessionRestore = sessionToRestore || null;
 
-  // Save current chat history before switching agents
-  if (currentAgent && chatHistory.length > 0) {
-    _chatHistoryCache[currentAgent.id] = chatHistory.slice();
+  // Save PREVIOUS agent's chat history before switching
+  var _prevAgent = currentAgent;
+  if (_prevAgent && _prevAgent.id !== id && chatHistory.length > 0) {
+    _chatHistoryCache[_prevAgent.id] = chatHistory.slice();
   }
   // Restore history if we've talked to this agent before in this session
   if (_chatHistoryCache[id] && _chatHistoryCache[id].length > 0) {
@@ -5369,10 +5370,10 @@ function _buildChatView() {
   }
 
   // Init chatHistory — restore from cache if available
-  if (!(_chatHistoryCache[id] && _chatHistoryCache[id].length > 0)) {
+  var _curId = currentAgent ? currentAgent.id : null;
+  if (!(_curId && _chatHistoryCache[_curId] && _chatHistoryCache[_curId].length > 0)) {
     chatHistory = [];
   }
-  // (history already set above)
 
   // Event delegation for custom question buttons (set after DOM render)
   window._aqDelegationAgentId = currentAgent ? currentAgent.id : null;
