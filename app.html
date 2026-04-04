@@ -34,9 +34,9 @@
   .role-badge{font-size:10px;padding:2px 7px;border-radius:12px;font-weight:600;background:#1a3a6b;color:var(--accent1);border:1px solid var(--accent1)44;}
 
   /* sidebar */
-  .sb-sec{padding:6px 13px 3px;}
-  .sb-lbl{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-  .nav-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;transition:all .15s;color:var(--muted);font-size:12px;font-weight:500;margin-bottom:1px;}
+  .sb-sec{padding:3px 13px 1px;}
+  .sb-lbl{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;margin-top:6px;padding:3px 0 2px;border-top:1px solid var(--border);}
+  .nav-item{display:flex;align-items:center;gap:7px;padding:4px 9px;border-radius:6px;cursor:pointer;transition:all .15s;color:var(--muted);font-size:11.5px;font-weight:500;margin-bottom:1px;}
   .nav-item:hover,.nav-item.active{background:var(--surface2);color:var(--text);}
   .nav-item.active{color:var(--accent1);}
   .nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
@@ -129,6 +129,7 @@
     justify-content:stretch !important;
   }
   /* When open: take column 2, row 4 of the app grid */
+  /* Agent modal stays on top of all panels */
   #agentModal.open {
     display:flex !important;
     grid-column: 2 !important;
@@ -3624,6 +3625,8 @@ function showPanel(id) {
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
   currentPanel=id;
+  // Keep agent chat open — never close it when switching panels
+  // The modal stays visible alongside the new panel
   if(id==='agentes') renderAgents();
   if(id==='mis-cursos')         { initMisCursosPanel(); }
   if(id==='historial-global')   { renderHistorialGlobal(); }
