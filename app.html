@@ -8733,13 +8733,21 @@ function renderDocsPanel() {
 function saveCurrentResponseAsDoc(content) {
   const titleInput = document.getElementById('saveDocTitle');
   const title = titleInput?.value.trim() || `Documento ${new Date().toLocaleDateString('es-CL')}`;
+  // Always use the full conversation content from window var if available
+  var fullContent = window._saveDocFullContent || content;
   const docs = AGENT_STORE.getDocs(currentAgent.id);
-  docs.unshift({ title, content, savedAt: new Date().toISOString(), agentId: currentAgent.id, agentName: currentAgent.nombre });
+  // Update existing doc with same title, or create new
+  const existingIdx = docs.findIndex(function(d){ return d.title === title; });
+  const docObj = { title, content: fullContent, savedAt: new Date().toISOString(), agentId: currentAgent.id, agentName: currentAgent.nombre };
+  if (existingIdx > -1) {
+    docs[existingIdx] = docObj; // update existing
+  } else {
+    docs.unshift(docObj); // create new
+  }
   AGENT_STORE.saveDocs(currentAgent.id, docs);
-  // Hide save bar
   const bar = document.getElementById('saveDocBar');
   if (bar) { bar.style.display='none'; }
-  showSaveToast(`✅ Documento guardado: "${title}"`);
+  showSaveToast('✅ Documento guardado completo: "' + title + '"');
 }
 
 
@@ -9366,18 +9374,24 @@ sendChat = async function() {
     // Remove old save bar if exists
     const old = document.getElementById('saveDocBar');
     if (old) old.remove();
-    // Get last AI message content
-    const lastAI = [...chatHistory].reverse().find(m => m.role === 'assistant');
-    if (!lastAI) return;
-    const aiContent = typeof lastAI.content === 'string' ? lastAI.content : '';
+    if (!chatHistory.length) return;
+
+    // Build FULL conversation content — all messages, not just the last
+    var fullContent = chatHistory.map(function(m) {
+      if (!m.content || typeof m.content !== 'string') return '';
+      var rol = m.role === 'user' ? '👤 PREGUNTA' : '🤖 RESPUESTA';
+      return rol + ':\n' + m.content;
+    }).filter(Boolean).join('\n\n---\n\n');
+
     const bar = document.createElement('div');
     bar.id = 'saveDocBar';
     bar.className = 'save-doc-bar';
-    bar.dataset.content = aiContent;
+    // Store full content in dataset (truncated for attr, full in window var)
+    window._saveDocFullContent = fullContent;
     bar.innerHTML = `
-      <span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar como documento:</span>
+      <span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar conversación completa:</span>
       <input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="">
-      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(document.getElementById('saveDocBar').dataset.content)">💾 Guardar PDF</button>`;
+      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>`;
     area.parentElement.insertBefore(bar, area.nextSibling);
   }, 300);
 };
