@@ -119,7 +119,6 @@
   /* Sits in the grid as grid-row:4, grid-column:2 — right of sidebar */
   #agentModal {
     display:none;
-    /* Override modal-overlay defaults */
     position:static !important;
     background:transparent !important;
     z-index:auto !important;
@@ -128,13 +127,14 @@
     align-items:stretch !important;
     justify-content:stretch !important;
   }
-  /* When open: take column 2, row 4 of the app grid */
-  /* Agent modal stays on top of all panels */
+  /* When open: take column 2, row 4 of the app grid — stays over panels */
   #agentModal.open {
     display:flex !important;
     grid-column: 2 !important;
     grid-row: 4 !important;
     overflow: hidden;
+    position: relative !important;
+    z-index: 50 !important;
   }
   /* The app grid — add agentModal as part of it */
   .app.agent-open {
@@ -3622,11 +3622,21 @@ function buildClassContext() {
 function showPanel(id) {
   var tkBar=document.getElementById("tokenBulkBar");
   if(tkBar) tkBar.style.display=(currentRole==="superadmin"||currentRole==="sostenedor")?"flex":"none";
+
+  // If agent is open, minimize it (hide visually) but keep chat state
+  var modal = document.getElementById('agentModal');
+  var app   = document.querySelector('.app');
+  if (modal && modal.classList.contains('open')) {
+    // Temporarily hide modal without clearing chat
+    modal.style.display = 'none';
+    if (app) app.classList.remove('agent-open');
+    // Store that agent was open so user can restore it
+    window._agentMinimized = true;
+  }
+
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
   currentPanel=id;
-  // Keep agent chat open — never close it when switching panels
-  // The modal stays visible alongside the new panel
   if(id==='agentes') renderAgents();
   if(id==='mis-cursos')         { initMisCursosPanel(); }
   if(id==='historial-global')   { renderHistorialGlobal(); }
@@ -3659,6 +3669,7 @@ function showPanel(id) {
   if(id==='usuarios') { renderTable(); initUsuariosPanel(); }
   if(id==='informes') renderInformes();
   if(id==='dashboard') { updateDashStats(); renderDashboard(); }
+  _updateRestoreBtn();
 }
 
 // ── DASHBOARD ────────────────────────────────────────────
@@ -5290,6 +5301,8 @@ function openAgent(id, autoPrompt, sessionToRestore){
 
   // Init context selectors in modal header
   initAgentCtxSelectors();
+  window._agentMinimized = false;
+  _updateRestoreBtn();
 
   // If a session was requested to restore, do it now (modal is ready)
   if (window._pendingSessionRestore) {
@@ -6349,11 +6362,18 @@ function classifyComplexity(messages, system) {
   var modelId   = resolveModel(modelKey);
 
   // Fallback if no key for that provider
+  // Fallback: Gemini/OpenAI → Claude Haiku for simple tasks, Sonnet for complex
+  var complexTasks = ['analisis','nee','informe'];
+  var useHaiku = complexTasks.indexOf(task) === -1;
   if (provider === 'gemini' && !getGeminiKey()) {
-    provider = 'claude'; modelKey = 'claude-sonnet'; modelId = LIAX_MODELS['claude-sonnet'].id;
+    provider = 'claude';
+    modelKey = useHaiku ? 'claude-haiku' : 'claude-sonnet';
+    modelId  = LIAX_MODELS[modelKey].id;
   }
   if (provider === 'openai' && !getOpenAIKey()) {
-    provider = 'claude'; modelKey = 'claude-sonnet'; modelId = LIAX_MODELS['claude-sonnet'].id;
+    provider = 'claude';
+    modelKey = useHaiku ? 'claude-haiku' : 'claude-sonnet';
+    modelId  = LIAX_MODELS[modelKey].id;
   }
   if (provider === 'claude' && !getApiKey()) {
     if (getGeminiKey())      { provider='gemini'; modelKey='gemini-flash'; modelId=LIAX_MODELS['gemini-flash'].id; }
@@ -6684,9 +6704,12 @@ async function callClaude(payload) {
     result._modelId  = modelId;
     return result;
   } catch(e) {
-    console.warn('[LIAX Router] ' + provider + '/' + modelKey + ' falló: ' + e.message + ' — fallback Sonnet');
+    var _fallbackModel = complexTasks && complexTasks.indexOf ? 
+      ((['analisis','nee','informe'].indexOf(task) > -1) ? LIAX_MODELS['claude-sonnet'].id : LIAX_MODELS['claude-haiku'].id)
+      : LIAX_MODELS['claude-haiku'].id;
+    console.warn('[LIAX Router] ' + provider + '/' + modelKey + ' falló: ' + e.message + ' — fallback');
     try {
-      payload.model = LIAX_MODELS['claude-sonnet'].id;
+      payload.model = _fallbackModel;
       const fallback = await callClaudeDirect(payload);
       fallback._task     = task;
       fallback._fallback = true;
@@ -31226,6 +31249,28 @@ async function _supaDeleteRag(ragId) {
   try {
     await _supa.from('rags').delete().eq('id', ragId);
   } catch(e) {}
+}
+
+
+// ── Restore minimized agent chat ─────────────────────────────
+function restoreAgent() {
+  var modal = document.getElementById('agentModal');
+  var app   = document.querySelector('.app');
+  if (!modal || !window._agentMinimized) return;
+  modal.style.display = '';
+  modal.classList.add('open');
+  if (app) app.classList.add('agent-open');
+  window._agentMinimized = false;
+  document.getElementById('restoreAgentBtn').style.display = 'none';
+  // Hide current panel (agent takes the space)
+  document.querySelectorAll('.panel.active').forEach(function(p){ p.classList.remove('active'); });
+}
+
+// Show/hide restore button based on minimized state
+function _updateRestoreBtn() {
+  var btn = document.getElementById('restoreAgentBtn');
+  if (!btn) return;
+  btn.style.display = window._agentMinimized ? 'flex' : 'none';
 }
 
 
