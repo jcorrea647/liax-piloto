@@ -6388,19 +6388,27 @@ function classifyComplexity(messages, system) {
   var modelId   = resolveModel(modelKey);
 
   // Fallback if no key for that provider
-  // Fallback: Gemini/OpenAI → Claude Haiku for simple tasks, Sonnet for complex
+  // On Vercel, proxy has the keys — don't fallback based on local key presence
+  var _isVercel = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   var complexTasks = ['analisis','nee','informe'];
   var useHaiku = complexTasks.indexOf(task) === -1;
-  if (provider === 'gemini' && !getGeminiKey()) {
-    provider = 'claude';
-    modelKey = useHaiku ? 'claude-haiku' : 'claude-sonnet';
-    modelId  = LIAX_MODELS[modelKey].id;
+  if (!_isVercel) {
+    // On localhost: fallback if no local key
+    if (provider === 'gemini' && !getGeminiKey()) {
+      provider = 'claude';
+      modelKey = useHaiku ? 'claude-haiku' : 'claude-sonnet';
+      modelId  = LIAX_MODELS[modelKey].id;
+    }
+    if (provider === 'openai' && !getOpenAIKey()) {
+      provider = 'claude';
+      modelKey = useHaiku ? 'claude-haiku' : 'claude-sonnet';
+      modelId  = LIAX_MODELS[modelKey].id;
+    }
+    if (provider === 'claude' && !getApiKey()) {
+      if (getGeminiKey()) { provider='gemini'; modelKey='gemini-flash'; modelId=LIAX_MODELS['gemini-flash'].id; }
+    }
   }
-  if (provider === 'openai' && !getOpenAIKey()) {
-    provider = 'claude';
-    modelKey = useHaiku ? 'claude-haiku' : 'claude-sonnet';
-    modelId  = LIAX_MODELS[modelKey].id;
-  }
+  // On Vercel: trust proxy has all keys — use router defaults as-is
   if (provider === 'claude' && !getApiKey()) {
     if (getGeminiKey())      { provider='gemini'; modelKey='gemini-flash'; modelId=LIAX_MODELS['gemini-flash'].id; }
     else if (getOpenAIKey()) { provider='openai'; modelKey='gpt4o-mini';   modelId=LIAX_MODELS['gpt4o-mini'].id;   }
