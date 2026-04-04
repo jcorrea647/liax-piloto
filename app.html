@@ -5369,11 +5369,7 @@ function _buildChatView() {
     neeNote = '<div class="nee-note">⚠️ <strong>Alumnos con NEE:</strong> ' + neeList + '</div>';
   }
 
-  // Init chatHistory — restore from cache if available
-  var _curId = currentAgent ? currentAgent.id : null;
-  if (!(_curId && _chatHistoryCache[_curId] && _chatHistoryCache[_curId].length > 0)) {
-    chatHistory = [];
-  }
+  // chatHistory is managed by openAgent — _buildChatView never resets it
 
   // Event delegation for custom question buttons (set after DOM render)
   window._aqDelegationAgentId = currentAgent ? currentAgent.id : null;
