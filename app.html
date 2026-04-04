@@ -9006,24 +9006,51 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
       const tableRows = [];
       while (i < rawLines.length && rawLines[i].trim().startsWith('|')) {
         const cells = rawLines[i].trim().split('|').map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1)
-          .map(c => c.replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1'));
+          .map(c => c
+            .replace(/\*\*(.+?)\*\*/g,'$1')
+            .replace(/\*(.+?)\*/g,'$1')
+            // Remove emojis and non-latin chars that jsPDF can't render
+            .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+            .replace(/[\u{2600}-\u{26FF}]/gu, '')
+            .replace(/[\u{2700}-\u{27BF}]/gu, '')
+            .replace(/[^\x00-\x7F\xC0-\xFF]/g, '')
+            .trim()
+          );
         if (!cells.every(c => /^[-:\s]+$/.test(c))) tableRows.push(cells);
         i++;
       }
       if (!tableRows.length) continue;
 
       const cols = tableRows[0].length;
-      const colW = pageW / cols;
+
+      // Dynamic column widths based on content length
+      const colRatios = Array(cols).fill(0);
+      tableRows.forEach(row => {
+        row.forEach((cell, ci) => {
+          colRatios[ci] = Math.max(colRatios[ci], Math.min(cell.length, 60));
+        });
+      });
+      const totalRatio = colRatios.reduce((a,b) => a+b, 0) || 1;
+      const colWidths = colRatios.map(r => Math.max((r / totalRatio) * pageW, pageW / (cols * 2)));
+      // Normalize so they sum to pageW
+      const sumW = colWidths.reduce((a,b)=>a+b,0);
+      const normColWidths = colWidths.map(w => w * pageW / sumW);
+      const colW = pageW / cols; // fallback
       const CELL_LINEH = 4.5;
       const CELL_PAD   = 4;
+
+      // Compute X positions for each column
+      const colXs = [];
+      let cx0 = ML;
+      for (let ci = 0; ci < cols; ci++) { colXs.push(cx0); cx0 += normColWidths[ci]; }
 
       // Pre-compute wrapped text and row heights
       const wrappedRows = tableRows.map((row, ri) => {
         const isHeader = ri === 0;
         const fSize = isHeader ? 7.5 : 8.5;
-        return row.map(cell => {
+        return row.map((cell, ci) => {
           font(fSize, isHeader ? 'bold' : 'normal');
-          return doc.splitTextToSize(cell || '', colW - 6);
+          return doc.splitTextToSize(cell || '', normColWidths[ci] - 6);
         });
       });
 
@@ -9040,19 +9067,17 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
         const isHeader = ri === 0;
         const rh = rowHeights[ri];
 
-        // Check if row fits on page, if not start new page
         if (y + rh > H - 22) {
           newPage();
-          // Redraw header on new page
           if (ri > 0 && wrappedRows[0]) {
             const hh = rowHeights[0];
             box(ML, y, pageW, hh, 0, C.navy);
             box(ML, y, 3, hh, 0, C.teal);
             wrappedRows[0].forEach((wLines, ci) => {
-              const cx = ML + ci * colW + (ci === 0 ? 5 : 3);
+              const hcx = colXs[ci] + (ci === 0 ? 5 : 3);
               font(7.5, 'bold'); ink(C.white);
               wLines.forEach((wl, li) => {
-                doc.text(wl, cx, y + CELL_PAD + li * CELL_LINEH + 1.5);
+                doc.text(wl, hcx, y + CELL_PAD + li * CELL_LINEH + 1.5);
               });
             });
             y += hh;
@@ -9063,18 +9088,19 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
         if (isHeader) box(ML, y, 3, rh, 0, C.teal);
 
         wrappedCells.forEach((wLines, ci) => {
-          const cx = ML + ci * colW + (isHeader && ci === 0 ? 5 : 3);
+          const cx = colXs[ci] + (isHeader && ci === 0 ? 5 : 3);
           font(isHeader ? 7.5 : 8.5, isHeader ? 'bold' : 'normal');
           ink(isHeader ? C.white : C.text);
-          // Draw ALL lines of wrapped text
           wLines.forEach((wl, li) => {
             doc.text(wl, cx, y + CELL_PAD + li * CELL_LINEH);
           });
         });
 
         if (!isHeader) hline(ML, y + rh, W - MR, C.lineSoft);
-        for (let c = 1; c < cols; c++) {
-          vline(ML + c * colW, y, y + rh, isHeader ? [60,80,110] : C.lineSoft);
+        let vx = ML;
+        for (let c = 0; c < cols - 1; c++) {
+          vx += normColWidths[c];
+          vline(vx, y, y + rh, isHeader ? [60,80,110] : C.lineSoft);
         }
         y += rh;
       });
@@ -9205,6 +9231,11 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
       .replace(/`(.+?)`/g, '$1')
       .replace(/~~(.+?)~~/g, '$1')
       .replace(/^[-•] /, '• ')
+      .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+      .replace(/[\u{2600}-\u{26FF}]/gu, '')
+      .replace(/[\u{2700}-\u{27BF}]/gu, '')
+      .replace(/[^\x00-\x7F\xC0-\xFF]/g, ' ')
+      .replace(/\s+/g, ' ')
       .trim();
     if (!clean) { y += 2; i++; continue; }
     const wrapped = doc.splitTextToSize(clean, pageW);
