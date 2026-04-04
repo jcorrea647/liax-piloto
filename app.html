@@ -9003,11 +9003,10 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
 
     // ── TABLE (| col | col |) ────────────────────────────────
     if (t.startsWith('|')) {
-      // Collect all table rows
       const tableRows = [];
       while (i < rawLines.length && rawLines[i].trim().startsWith('|')) {
-        const cells = rawLines[i].trim().split('|').map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
-        // Skip separator rows (---|---)
+        const cells = rawLines[i].trim().split('|').map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1)
+          .map(c => c.replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1'));
         if (!cells.every(c => /^[-:\s]+$/.test(c))) tableRows.push(cells);
         i++;
       }
@@ -9015,38 +9014,73 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
 
       const cols = tableRows[0].length;
       const colW = pageW / cols;
-      const rowH = 7;
-      const totalH = tableRows.length * rowH + 2;
-      need(totalH + 6);
-      y += 2;
+      const CELL_LINEH = 4.5;
+      const CELL_PAD   = 4;
 
-      tableRows.forEach((row, ri) => {
+      // Pre-compute wrapped text and row heights
+      const wrappedRows = tableRows.map((row, ri) => {
         const isHeader = ri === 0;
-        box(ML, y, pageW, rowH, 0, isHeader ? C.navy : (ri % 2 === 0 ? C.white : C.tablealt));
-        // Left border accent on header
-        if (isHeader) box(ML, y, 3, rowH, 0, C.teal);
+        const fSize = isHeader ? 7.5 : 8.5;
+        return row.map(cell => {
+          font(fSize, isHeader ? 'bold' : 'normal');
+          return doc.splitTextToSize(cell || '', colW - 6);
+        });
+      });
 
-        row.forEach((cell, ci) => {
+      const rowHeights = wrappedRows.map((cells, ri) => {
+        const maxLines = Math.max(...cells.map(c => c.length));
+        const minH = ri === 0 ? 9 : 8;
+        return Math.max(minH, maxLines * CELL_LINEH + CELL_PAD * 2);
+      });
+
+      y += 2;
+      const tableStartY = y;
+
+      wrappedRows.forEach((wrappedCells, ri) => {
+        const isHeader = ri === 0;
+        const rh = rowHeights[ri];
+
+        // Check if row fits on page, if not start new page
+        if (y + rh > H - 22) {
+          newPage();
+          // Redraw header on new page
+          if (ri > 0 && wrappedRows[0]) {
+            const hh = rowHeights[0];
+            box(ML, y, pageW, hh, 0, C.navy);
+            box(ML, y, 3, hh, 0, C.teal);
+            wrappedRows[0].forEach((wLines, ci) => {
+              const cx = ML + ci * colW + (ci === 0 ? 5 : 3);
+              font(7.5, 'bold'); ink(C.white);
+              wLines.forEach((wl, li) => {
+                doc.text(wl, cx, y + CELL_PAD + li * CELL_LINEH + 1.5);
+              });
+            });
+            y += hh;
+          }
+        }
+
+        box(ML, y, pageW, rh, 0, isHeader ? C.navy : (ri % 2 === 0 ? C.white : C.tablealt));
+        if (isHeader) box(ML, y, 3, rh, 0, C.teal);
+
+        wrappedCells.forEach((wLines, ci) => {
           const cx = ML + ci * colW + (isHeader && ci === 0 ? 5 : 3);
           font(isHeader ? 7.5 : 8.5, isHeader ? 'bold' : 'normal');
           ink(isHeader ? C.white : C.text);
-          const cw = colW - 6;
-          const wrapped = doc.splitTextToSize(cell, cw);
-          doc.text(wrapped[0] || '', cx, y + 4.8);
+          // Draw ALL lines of wrapped text
+          wLines.forEach((wl, li) => {
+            doc.text(wl, cx, y + CELL_PAD + li * CELL_LINEH);
+          });
         });
 
-        // Row bottom line
-        if (!isHeader) hline(ML, y + rowH, W - MR, C.lineSoft);
-        // Column dividers
+        if (!isHeader) hline(ML, y + rh, W - MR, C.lineSoft);
         for (let c = 1; c < cols; c++) {
-          vline(ML + c * colW, y, y + rowH, isHeader ? [60,80,110] : C.lineSoft);
+          vline(ML + c * colW, y, y + rh, isHeader ? [60,80,110] : C.lineSoft);
         }
-        y += rowH;
+        y += rh;
       });
 
-      // Table outer border
       stroke(C.line); lw(0.4);
-      doc.rect(ML, y - tableRows.length * rowH, pageW, tableRows.length * rowH);
+      doc.rect(ML, tableStartY, pageW, y - tableStartY);
       y += 6;
       continue;
     }
