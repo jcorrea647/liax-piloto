@@ -3478,6 +3478,7 @@ Aplicas Diseño Inverso (Wiggins & McTighe), Marco para la Buena Enseñanza y Di
 // ── STATE ─────────────────────────────────────────────────
 let currentPanel='dashboard', currentUserTab='directores', currentAgent=null;
 let chatHistory=[], currentDimFilter='all';
+var _chatHistoryCache = {}; // {agentId: chatHistory[]}
 const CTX = { cursos:new Set(), asignaturas:new Set(), alumnos:new Set() };
 
 // ── CONTEXT PANEL ─────────────────────────────────────────
@@ -5246,7 +5247,16 @@ function openAgent(id, autoPrompt, sessionToRestore){
   // Store session to restore — used below after modal setup
   window._pendingSessionRestore = sessionToRestore || null;
 
-  chatHistory = [];
+  // Save current chat history before switching agents
+  if (currentAgent && chatHistory.length > 0) {
+    _chatHistoryCache[currentAgent.id] = chatHistory.slice();
+  }
+  // Restore history if we've talked to this agent before in this session
+  if (_chatHistoryCache[id] && _chatHistoryCache[id].length > 0) {
+    chatHistory = _chatHistoryCache[id].slice();
+  } else {
+    chatHistory = [];
+  }
   currentAgentPanel = 'chat';
 
   // Update modal header
@@ -5282,6 +5292,19 @@ function openAgent(id, autoPrompt, sessionToRestore){
 
   // Build chat directly — no intermediate screen
   _buildChatView();
+  // If restoring from cache, render existing messages
+  if (chatHistory.length > 0) {
+    setTimeout(function() {
+      var area = document.getElementById('chatArea');
+      if (!area) return;
+      area.innerHTML = '';
+      chatHistory.forEach(function(m) {
+        if (m.role === 'assistant') area.insertAdjacentHTML('beforeend', makeBubbleAI(formatMsg(m.content)));
+        else if (m.role === 'user') area.insertAdjacentHTML('beforeend', makeBubbleUser(m.content));
+      });
+      area.scrollTop = area.scrollHeight;
+    }, 100);
+  }
 
   // Open as side panel — grid column 2 row 4
   var app = document.querySelector('.app');
@@ -5342,8 +5365,11 @@ function _buildChatView() {
     neeNote = '<div class="nee-note">⚠️ <strong>Alumnos con NEE:</strong> ' + neeList + '</div>';
   }
 
-  // Init chatHistory silently (no welcome bubble yet — only shown after first send)
-  chatHistory = [];
+  // Init chatHistory — restore from cache if available
+  if (!(_chatHistoryCache[id] && _chatHistoryCache[id].length > 0)) {
+    chatHistory = [];
+  }
+  // (history already set above)
 
   // Event delegation for custom question buttons (set after DOM render)
   window._aqDelegationAgentId = currentAgent ? currentAgent.id : null;
@@ -6095,6 +6121,8 @@ function closeModal(){
   var sb3 = document.querySelector('.sidebar');
   if (sb3) sb3.style.display = '';
   if (app3) app3.style.gridTemplateColumns = '';
+  // Clear cache for closed agent
+  if (currentAgent) delete _chatHistoryCache[currentAgent.id];
   currentAgent=null; chatHistory=[];
 }
 
