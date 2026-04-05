@@ -1540,92 +1540,84 @@
     <!-- FAVORITOS -->
     <div class="panel" id="panel-favoritos" style="padding:0">
 
-      <!-- ══ HERO SECTION ══ -->
-      <div style="background:linear-gradient(160deg,var(--surface) 0%,var(--bg) 100%);border-bottom:1px solid var(--border);padding:36px 28px 28px;text-align:center">
+      <!-- ══ HERO SECTION — compacto ══ -->
+      <div style="background:linear-gradient(160deg,var(--surface) 0%,var(--bg) 100%);border-bottom:1px solid var(--border);padding:16px 24px 14px;text-align:center">
 
-        <!-- Saludo con nombre grande -->
+        <!-- Saludo -->
         <div id="homeGreeting"
-          style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;
-                 line-height:1.2;margin-bottom:6px;color:var(--text)">
+          style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;
+                 line-height:1.2;margin-bottom:4px;color:var(--text)">
         </div>
 
-        <!-- "¿Qué quieres hacer hoy?" -->
-        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;
-                    color:var(--accent2);margin-bottom:30px;letter-spacing:-.2px">
-          ¿Qué quieres hacer hoy?
-        </div>
+        <!-- Botones acción en una fila compacta -->
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px">
 
-        <!-- ── BOTÓN PRINCIPAL: LIAX prepárame el día ── -->
-        <button onclick="liaxPrepararDia()" id="btnLiaxDia"
-          style="display:inline-flex;align-items:center;gap:12px;
-                 background:linear-gradient(135deg,var(--accent1) 0%,var(--accent2) 100%);
-                 color:#fff;border:none;border-radius:16px;
-                 padding:16px 36px;font-size:16px;font-weight:800;
-                 cursor:pointer;font-family:DM Sans,sans-serif;
-                 box-shadow:0 6px 28px rgba(0,180,150,.35);
-                 transition:transform .15s,box-shadow .15s;
-                 margin-bottom:20px;letter-spacing:.1px">
-          <span style="font-size:26px">🌅</span>
-          <span>LIAX, prepárame el día / semana</span>
-        </button>
-
-        <!-- ── BOTONES SECUNDARIOS ── -->
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button onclick="showPanel('historial-global')"
-            style="display:flex;align-items:center;gap:8px;
-                   background:var(--surface);border:1.5px solid var(--border);
-                   color:var(--text);border-radius:12px;
-                   padding:11px 20px;font-size:13px;font-weight:700;
+          <button onclick="liaxPrepararDia()" id="btnLiaxDia"
+            style="display:inline-flex;align-items:center;gap:8px;
+                   background:linear-gradient(135deg,var(--accent1) 0%,var(--accent2) 100%);
+                   color:#fff;border:none;border-radius:10px;
+                   padding:9px 18px;font-size:12px;font-weight:800;
                    cursor:pointer;font-family:DM Sans,sans-serif;
-                   transition:all .15s"
-            onmouseover="this.style.borderColor='var(--accent1)';this.style.color='var(--accent1)'"
-            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">
-            <span style="font-size:18px">🕐</span>
-            <div style="text-align:left">
-              <div>¿Quieres retomar una conversación?</div>
-              <div style="font-size:10px;font-weight:400;opacity:.7;margin-top:1px">Historial de agentes IA</div>
-            </div>
+                   box-shadow:0 4px 16px rgba(0,180,150,.3)">
+            <span style="font-size:16px">🌅</span>
+            <span>Prepárame el día</span>
+          </button>
+
+          <button onclick="showPanel('historial-global')"
+            style="display:inline-flex;align-items:center;gap:6px;
+                   background:var(--surface);border:1.5px solid var(--border);
+                   color:var(--text);border-radius:10px;
+                   padding:9px 14px;font-size:12px;font-weight:600;
+                   cursor:pointer;font-family:DM Sans,sans-serif">
+            <span>🕐</span><span>Retomar chat</span>
           </button>
 
           <button onclick="openNewAgent()"
-            style="display:flex;align-items:center;gap:8px;
+            style="display:inline-flex;align-items:center;gap:6px;
                    background:var(--surface);border:1.5px solid var(--accent1);
-                   color:var(--accent1);border-radius:12px;
-                   padding:11px 20px;font-size:13px;font-weight:700;
-                   cursor:pointer;font-family:DM Sans,sans-serif;
-                   transition:all .15s"
-            onmouseover="this.style.background='var(--dim1)'"
-            onmouseout="this.style.background='var(--surface)'">
-            <span style="font-size:18px">🤖</span>
-            <div style="text-align:left">
-              <div>¿Quieres crear tu propio agente?</div>
-              <div style="font-size:10px;font-weight:400;opacity:.7;margin-top:1px">LIAX te guía paso a paso</div>
-            </div>
+                   color:var(--accent1);border-radius:10px;
+                   padding:9px 14px;font-size:12px;font-weight:600;
+                   cursor:pointer;font-family:DM Sans,sans-serif">
+            <span>🤖</span><span>Crear agente</span>
           </button>
 
           <button onclick="showPanel('repositorio-docs')"
-            style="display:flex;align-items:center;gap:8px;
+            style="display:inline-flex;align-items:center;gap:6px;
                    background:var(--surface);border:1.5px solid var(--border);
-                   color:var(--text);border-radius:12px;
-                   padding:11px 20px;font-size:13px;font-weight:700;
-                   cursor:pointer;font-family:DM Sans,sans-serif;
-                   transition:all .15s"
-            onmouseover="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'"
-            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">
-            <span style="font-size:18px">📄</span>
-            <div style="text-align:left">
-              <div>¿Quieres ver tus documentos guardados?</div>
-              <div style="font-size:10px;font-weight:400;opacity:.7;margin-top:1px">Repositorio de documentos IA</div>
-            </div>
+                   color:var(--text);border-radius:10px;
+                   padding:9px 14px;font-size:12px;font-weight:600;
+                   cursor:pointer;font-family:DM Sans,sans-serif">
+            <span>📄</span><span>Mis documentos</span>
           </button>
+
+        </div>
+      </div>
+
+      <!-- ══ AGENTES FAVORITOS — compacto ══ -->
+      <div style="padding:14px 24px 10px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:13px">⭐</span>
+            <span style="font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)">Agentes favoritos</span>
+            <span id="fav-sub" style="font-size:10px;font-weight:400;color:var(--muted)"></span>
+          </div>
+          <button onclick="showPanel('agentes')"
+            style="font-size:10px;background:none;border:1px solid var(--border);
+                   color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;
+                   font-family:DM Sans,sans-serif">Ver todos →</button>
+        </div>
+        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px"></div>
+        <div id="favEmptyState" style="display:none;text-align:center;padding:16px;color:var(--muted)">
+          <div style="font-size:11px">Sin favoritos — abre un agente y haz clic en ⭐</div>
+          <button onclick="showPanel('agentes')" class="btn btn-primary" style="font-size:11px;margin-top:8px">Explorar agentes →</button>
         </div>
       </div>
 
       <!-- ── Metacognición ── -->
-      <div style="padding:0 28px 20px" id="metacognicionBtns"></div>
+      <div style="padding:0 24px 14px" id="metacognicionBtns"></div>
 
-      <!-- ── Mini chat IA de actividad — visible para todos los roles ── -->
-      <div style="padding:0 28px 20px" id="inicioDashAI">
+      <!-- ── Mini chat IA ── -->
+      <div style="padding:0 24px 20px" id="inicioDashAI">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
             <span style="font-size:16px">🤖</span>
@@ -1634,11 +1626,8 @@
               <div style="font-size:10px;color:var(--muted)">Consultas sobre lo que has hecho en la plataforma</div>
             </div>
           </div>
-          <!-- Botones rápidos por rol -->
           <div id="dashQuickQuestionsInicio" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px"></div>
-          <!-- Chat -->
           <div id="dashAIChatInicio" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
-          <!-- Input -->
           <div style="display:flex;gap:7px;align-items:flex-end">
             <textarea id="dashAIInputInicio" rows="1"
               placeholder="Ej: ¿Cuántas planificaciones hice este mes?"
@@ -1651,32 +1640,6 @@
         </div>
       </div>
 
-      <!-- ══ AGENTES FAVORITOS ══ -->
-      <div style="padding:20px 28px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:16px">⭐</span>
-            <span style="font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)">⭐ Mis agentes favoritos</span>
-            <span id="fav-sub" style="font-size:11px;font-weight:400;color:var(--muted)"></span>
-          </div>
-          <button onclick="showPanel('agentes')"
-            style="font-size:11px;background:none;border:1px solid var(--border);
-                   color:var(--muted);border-radius:7px;padding:3px 10px;cursor:pointer;
-                   font-family:DM Sans,sans-serif">
-            Ver todos los agentes →
-          </button>
-        </div>
-        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px"></div>
-        <!-- Empty state -->
-        <div id="favEmptyState" style="display:none;text-align:center;padding:32px;color:var(--muted)">
-          <div style="font-size:36px;margin-bottom:10px">⭐</div>
-          <div style="font-size:13px;font-weight:700;margin-bottom:6px">Aún no tienes favoritos</div>
-          <div style="font-size:12px;margin-bottom:14px">Abre un agente y haz clic en ☆ para agregarlo aquí</div>
-          <button onclick="showPanel('agentes')" class="btn btn-primary" style="font-size:12px">
-            Explorar agentes →
-          </button>
-        </div>
-      </div>
     </div>
 
     <!-- ══════ HISTORIAL GLOBAL ══════ -->
@@ -5229,25 +5192,19 @@ function renderFavoritos() {
 
   grid.innerHTML = agents.map(a => {
     const c = COLORS[a.dim];
-    const hasAdj = AJUSTE_STORE.getColegio(a.id).trim() || AJUSTE_STORE.getUsuario(a.id).trim();
-    return `<div style="background:var(--surface);border:1px solid ${c.border};border-radius:11px;padding:15px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden"
-      onmouseenter="this.style.transform='translateY(-2px)'"
-      onmouseleave="this.style.transform=''">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${c.text}"></div>
-      <button class="fav-btn active" onclick="event.stopPropagation();toggleFav('${a.id}')" title="Quitar de favoritos" style="top:10px;right:10px">⭐</button>
-      ${hasAdj ? `<div style="position:absolute;top:10px;right:32px;font-size:10px;background:var(--dim4);color:var(--accent4);border-radius:8px;padding:1px 5px;font-weight:700">⚙️</div>` : ''}
-      <div onclick="openAgent('${a.id}')" style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
-        <div style="width:34px;height:34px;border-radius:8px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:17px">${a.icon}</div>
-        <div>
-          <div style="font-family:Syne,sans-serif;font-weight:700;font-size:12px">${a.nombre}</div>
-          <div style="font-size:9px;font-weight:600;color:${c.text};margin-top:1px">${dimNames[a.dim]}</div>
-        </div>
+    return `<div onclick="openAgent('${a.id}')"
+      style="background:var(--surface);border:1px solid ${c.border};border-radius:9px;
+             padding:10px 12px;cursor:pointer;transition:all .15s;position:relative;
+             display:flex;align-items:center;gap:9px;overflow:hidden"
+      onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px #0002'"
+      onmouseleave="this.style.transform='';this.style.boxShadow=''">
+      <div style="position:absolute;top:0;left:0;bottom:0;width:3px;background:${c.text}"></div>
+      <div style="width:30px;height:30px;border-radius:7px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-left:4px">${a.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nombre}</div>
+        <div style="font-size:9px;color:${c.text};font-weight:600">${dimNames[a.dim]||''}</div>
       </div>
-      <div onclick="openAgent('${a.id}')" style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:9px">${a.desc}</div>
-      <div onclick="openAgent('${a.id}')" style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:10px;color:var(--muted)">${a.preguntas.length} preguntas guía</span>
-        <span style="font-size:10px;font-weight:600;color:${c.text}">Abrir →</span>
-      </div>
+      <button onclick="event.stopPropagation();toggleFav('${a.id}')" title="Quitar" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);flex-shrink:0;padding:2px">✕</button>
     </div>`;
   }).join('');
 }
@@ -9616,10 +9573,22 @@ sendChat = async function() {
     if (old) old.remove();
     if (!chatHistory.length) return;
 
-    // Build document content — ONLY AI responses, questions excluded
+    // Build document content — ONLY AI responses, clean of reply fields
+    function _cleanForDoc(text) {
+      if (!text || typeof text !== 'string') return '';
+      var t = text;
+      t = t.replace(/_?Tu respuesta:?_?.*/gi, '');
+      t = t.replace(/> Tu respuesta.*/gi, '');
+      t = t.replace(/Pregunta [0-9]+[:.].*/gi, '');
+      t = t.replace(/#{1,4} Pregunta.*/gi, '');
+      t = t.replace(/\*\*Pregunta [0-9]+.*\*\*/gi, '');
+      t = t.replace(/\n{3,}/g, '\n\n');
+      return t.trim();
+    }
     var fullContent = chatHistory
       .filter(function(m){ return m.role === 'assistant' && m.content && typeof m.content === 'string'; })
-      .map(function(m){ return m.content; })
+      .map(function(m){ return _cleanForDoc(m.content); })
+      .filter(function(t){ return t.length > 10; })
       .join('\n\n---\n\n');
 
     const bar = document.createElement('div');
