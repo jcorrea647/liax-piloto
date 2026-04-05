@@ -1606,7 +1606,7 @@
                    color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;
                    font-family:DM Sans,sans-serif">Ver todos →</button>
         </div>
-        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px"></div>
+        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
         <div id="favEmptyState" style="display:none;text-align:center;padding:16px;color:var(--muted)">
           <div style="font-size:11px">Sin favoritos — abre un agente y haz clic en ⭐</div>
           <button onclick="showPanel('agentes')" class="btn btn-primary" style="font-size:11px;margin-top:8px">Explorar agentes →</button>
@@ -5195,13 +5195,13 @@ function renderFavoritos() {
     return `<div onclick="openAgent('${a.id}')"
       style="background:var(--surface);border:1px solid ${c.border};border-radius:9px;
              padding:10px 12px;cursor:pointer;transition:all .15s;position:relative;
-             display:flex;align-items:center;gap:9px;overflow:hidden"
+             display:flex;align-items:flex-start;gap:9px"
       onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px #0002'"
       onmouseleave="this.style.transform='';this.style.boxShadow=''">
       <div style="position:absolute;top:0;left:0;bottom:0;width:3px;background:${c.text}"></div>
       <div style="width:30px;height:30px;border-radius:7px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-left:4px">${a.icon}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nombre}</div>
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:11px;line-height:1.3;word-break:break-word">${a.nombre}</div>
         <div style="font-size:9px;color:${c.text};font-weight:600">${dimNames[a.dim]||''}</div>
       </div>
       <button onclick="event.stopPropagation();toggleFav('${a.id}')" title="Quitar" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);flex-shrink:0;padding:2px">✕</button>
