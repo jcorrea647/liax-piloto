@@ -30796,6 +30796,8 @@ function gcNuevoCurso() {
     if (!nombre) { showSaveToast('Escribe el nombre del curso'); return; }
     if (CURSOS.indexOf(nombre) > -1) { showSaveToast('Ese curso ya existe'); return; }
     CURSOS.push(nombre);
+    if (typeof _saveCursosCustom === 'function') _saveCursosCustom();
+    if (typeof _supaSaveCurso === 'function') _supaSaveCurso(nombre).catch(function(){});
     saveToStorage();
     portal.remove();
     renderGestionCursos();
