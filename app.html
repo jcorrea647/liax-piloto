@@ -2301,8 +2301,10 @@
             <div class="page-title">⚖️ Gestión de Denuncias</div>
             <div class="page-sub">Sistema de denuncias escolares — Ley N° 20.529 y normativa vigente</div>
           </div>
-          <div style="display:flex;gap:7px">
-            <button onclick="denShowAlertas()" class="btn btn-outline" style="font-size:12px">🔔 Alertas <span id="den-alerta-count" style="background:#f87171;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px">0</span></button>
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <button onclick="denShowAlertas()" class="btn btn-outline" style="font-size:12px;border-color:#f8717155;color:#f87171">🚨 Alertas <span id="den-alerta-count" style="background:#f87171;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px">0</span></button>
+            <button onclick="denInformeGeneral()" class="btn btn-outline" style="font-size:12px">📊 Informe General</button>
+            <button onclick="denInformePorCaso()" class="btn btn-outline" style="font-size:12px">📋 Informe por Caso</button>
             <button onclick="denNuevaDenuncia()" class="btn btn-primary" style="font-size:12px">+ Nueva Denuncia</button>
           </div>
         </div>
@@ -31677,6 +31679,18 @@ var _denWizardStep = 0;
 var _denWizardData = {};
 
 // Colores semáforo
+// Estado badge con colores semáforo
+function _denEstadoBadge(estado) {
+  var cfg = {
+    recibido:   { label:'Ingresada',   bg:'#f8717122', color:'#f87171',  border:'#f87171' },
+    en_proceso: { label:'En proceso',  bg:'#fbbf2422', color:'#fbbf24',  border:'#fbbf24' },
+    resolucion: { label:'Resolución',  bg:'#818cf822', color:'#818cf8',  border:'#818cf8' },
+    cerrado:    { label:'Terminada',   bg:'#4ade8022', color:'#4ade80',  border:'#4ade80' },
+  };
+  var c = cfg[estado] || cfg['recibido'];
+  return '<span style="background:' + c.bg + ';color:' + c.color + ';border:1px solid ' + c.border + '44;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">' + c.label + '</span>';
+}
+
 var DEN_RIESGO_COLOR = {
   critico: '#f87171', alto: '#fb923c', medio: '#fbbf24', normal: '#4ade80'
 };
@@ -31774,8 +31788,22 @@ function denRender() {
       '</td>' +
       '<td style="padding:10px 12px;font-size:11px">' + (DEN_TIPO_LABEL[d.tipo]||d.tipo) + '</td>' +
       '<td style="padding:10px 12px">' +
-        '<span style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">' +
-        (DEN_ESTADO_LABEL[d.estado]||d.estado) + '</span>' +
+        (function() {
+          var bg = d.estado==='recibido' ? '#f8717133' :
+                   d.estado==='en_proceso' ? '#fbbf2433' :
+                   d.estado==='resolucion' ? '#4ade8033' :
+                   d.estado==='cerrado' ? '#4ade8066' : 'var(--surface2)';
+          var col = d.estado==='recibido' ? '#f87171' :
+                    d.estado==='en_proceso' ? '#fbbf24' :
+                    d.estado==='resolucion' ? '#4ade80' :
+                    d.estado==='cerrado' ? '#22c55e' : 'var(--muted)';
+          var dot = d.estado==='recibido' ? '🔴' :
+                    d.estado==='en_proceso' ? '🟡' :
+                    d.estado==='resolucion' ? '🔵' :
+                    d.estado==='cerrado' ? '🟢' : '⚪';
+          return '<span style="background:'+bg+';border:1px solid '+col+'44;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:'+col+'">'+
+            dot+' '+(DEN_ESTADO_LABEL[d.estado]||d.estado)+'</span>';
+        })() +
       '</td>' +
       '<td style="padding:10px 12px;text-align:center;font-weight:700;color:' + (diasAbierto > 10 ? '#f87171' : 'var(--text)') + '">' + diasAbierto + '</td>' +
       '<td style="padding:10px 12px;text-align:center;font-size:16px">' + semaforo + '</td>' +
@@ -32049,7 +32077,8 @@ function denCompletarAccion(accionId, denId) {
 
       '<div style="display:flex;gap:8px">' +
         '<button id="accCancelBtn" style="flex:1;background:none;border:1px solid var(--border);border-radius:8px;padding:9px;font-size:12px;cursor:pointer;color:var(--muted);font-family:DM Sans,sans-serif">Cancelar</button>' +
-        '<button id="accGuardarBtn" style="flex:2;background:var(--accent2);color:#000;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif">✅ Marcar como completada</button>' +
+        '<button id="accAvanceBtn" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;color:var(--text)">💾 Guardar avance</button>' +
+        '<button id="accGuardarBtn" style="flex:2;background:#fbbf24;color:#000;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif">🟡 En Proceso</button>' +
       '</div>' +
     '</div>';
 
@@ -32069,7 +32098,8 @@ function denCompletarAccion(accionId, denId) {
     }
   });
 
-  document.getElementById('accGuardarBtn').onclick = async function() {
+  // Shared save logic
+  async function _saveAccionData(marcarCompleta) {
     var descripcion = document.getElementById('accDescripcion').value.trim();
     var linkDrive   = document.getElementById('accLinkDrive').value.trim();
     var nombreEv    = document.getElementById('accNombreEv').value.trim();
@@ -32081,12 +32111,14 @@ function denCompletarAccion(accionId, denId) {
     if (linkDrive && !nombreEv) { showSaveToast('⚠️ Escribe el nombre del archivo'); return; }
 
     try {
-      // 1. Marcar acción como completada
-      await _supa.from('acciones_denuncia').update({
-        estado:         'completada',
-        completada_en:  new Date().toISOString(),
-        completada_por: _supaUser.id,
-      }).eq('id', accionId);
+      // 1. Update accion estado
+      var nuevoEstado = marcarCompleta ? 'en_proceso' : 'en_proceso';
+      var updateData = { estado: nuevoEstado };
+      if (marcarCompleta) {
+        updateData.completada_en  = new Date().toISOString();
+        updateData.completada_por = _supaUser.id;
+      }
+      await _supa.from('acciones_denuncia').update(updateData).eq('id', accionId);
 
       // 2. Guardar evidencia si la hay
       if (linkDrive) {
@@ -32102,19 +32134,26 @@ function denCompletarAccion(accionId, denId) {
         });
       }
 
-      // 3. Log inmutable con descripción
+      // 3. Log
       await _supaLogDenuncia(
         denId,
-        'Acción completada',
+        marcarCompleta ? 'Acción en proceso' : 'Avance registrado',
         descripcion + (linkDrive ? ' | Evidencia: ' + nombreEv : '')
       );
 
+      // 4. Auto-update caso a "en_proceso" si hay acciones completadas
+      await _denAutoUpdateEstado(denId);
+
       portal.remove();
-      showSaveToast('✅ Acción registrada correctamente');
+      showSaveToast(marcarCompleta ? '🟡 Acción marcada En Proceso' : '💾 Avance guardado');
+      await denLoad();
       denAbrirDetalle(denId);
 
     } catch(e) { showSaveToast('❌ Error: ' + e.message); }
-  };
+  }
+
+  document.getElementById('accAvanceBtn').onclick = function() { _saveAccionData(false); };
+  document.getElementById('accGuardarBtn').onclick = function() { _saveAccionData(true); };
 }
 
 // ── Enviar mensaje interno ────────────────────────────────────
@@ -32629,6 +32668,287 @@ function denEditarCaso(denId) {
       denAbrirDetalle(denId);
     } catch(e) { showSaveToast('❌ Error: ' + e.message); }
   };
+}
+
+
+// Auto-actualiza el estado del caso según acciones completadas
+async function _denAutoUpdateEstado(denId) {
+  try {
+    var { data: accs } = await _supa.from('acciones_denuncia').select('estado').eq('denuncia_id', denId);
+    if (!accs || !accs.length) return;
+    var enProceso = accs.some(function(a){ return a.estado === 'en_proceso' || a.estado === 'completada'; });
+    var den = _denuncias.find(function(d){ return d.id === denId; });
+    if (!den) return;
+    // Only auto-upgrade from recibido → en_proceso
+    if (enProceso && den.estado === 'recibido') {
+      await _supa.from('denuncias').update({ estado: 'en_proceso' }).eq('id', denId);
+      await _supaLogDenuncia(denId, 'Estado actualizado', 'Caso pasó a En proceso automáticamente');
+    }
+  } catch(e) {}
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// INFORMES — General y por Caso
+// ══════════════════════════════════════════════════════════════
+
+async function denInformeGeneral() {
+  // Load all acciones for active cases
+  var activoIds = _denuncias.filter(function(d){ return d.estado !== 'cerrado'; }).map(function(d){ return d.id; });
+  var todasAcciones = [];
+  if (activoIds.length) {
+    var { data } = await _supa.from('acciones_denuncia').select('*')
+      .in('denuncia_id', activoIds);
+    if (data) todasAcciones = data;
+  }
+
+  var hoy = new Date();
+  var activos  = _denuncias.filter(function(d){ return d.estado !== 'cerrado'; });
+  var cerrados = _denuncias.filter(function(d){ return d.estado === 'cerrado'; });
+  var criticos = _denuncias.filter(function(d){ return d.riesgo === 'critico' || d.riesgo === 'alto'; });
+
+  // Cumplimiento global
+  var completadas = todasAcciones.filter(function(a){ return a.estado === 'completada'; }).length;
+  var pctGlobal   = todasAcciones.length ? Math.round(completadas / todasAcciones.length * 100) : 0;
+
+  // Atrasadas
+  var atrasadas = todasAcciones.filter(function(a){
+    return a.estado !== 'completada' && new Date(a.fecha_limite) < hoy;
+  });
+  var casosConAtraso = new Set(atrasadas.map(function(a){ return a.denuncia_id; })).size;
+
+  // Tiempo promedio cierre
+  var tiemposCierre = cerrados.filter(function(d){ return d.fecha_cierre; }).map(function(d){
+    return Math.floor((new Date(d.fecha_cierre) - new Date(d.fecha_creacion)) / 86400000);
+  });
+  var promCierre = tiemposCierre.length ? Math.round(tiemposCierre.reduce(function(a,b){ return a+b; }, 0) / tiemposCierre.length) : 0;
+
+  // Por tipo
+  var porTipo = {};
+  _denuncias.forEach(function(d) {
+    porTipo[d.tipo_denuncia] = (porTipo[d.tipo_denuncia]||0) + 1;
+  });
+
+  // Estado del sistema
+  var pctAtraso = _denuncias.length ? casosConAtraso / _denuncias.length * 100 : 0;
+  var estadoSistema = pctAtraso > 30 ? { label:'🔴 CRÍTICO', color:'#f87171' } :
+                      pctAtraso > 10 ? { label:'🟡 EN RIESGO', color:'#fbbf24' } :
+                                       { label:'🟢 CONTROLADO', color:'#4ade80' };
+
+  var portal = document.createElement('div');
+  portal.style.cssText = 'position:fixed;inset:0;background:#00000088;z-index:9995;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
+
+  var html = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px #00000088">' +
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1">' +
+      '<div style="font-weight:800;font-size:16px">📊 Informe General del Sistema</div>' +
+      '<div style="display:flex;gap:8px">' +
+        '<button id="igCopiarBtn" class="btn btn-outline" style="font-size:11px">📋 Copiar</button>' +
+        '<button id="igPDFBtn" class="btn btn-primary" style="font-size:11px">⬇️ PDF</button>' +
+        '<button id="igCloseBtn" style="background:var(--border);border:none;color:var(--muted);width:26px;height:26px;border-radius:6px;cursor:pointer">✕</button>' +
+      '</div>' +
+    '</div>' +
+    '<div style="padding:20px">' +
+
+    // KPIs
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:20px">' +
+      _denStatCard('Casos activos', activos.length, 'var(--accent2)') +
+      _denStatCard('Casos cerrados', cerrados.length, '#4ade80') +
+      _denStatCard('Cumplimiento', pctGlobal + '%', pctGlobal >= 70 ? '#4ade80' : '#f87171') +
+      _denStatCard('Con atraso', casosConAtraso, casosConAtraso > 0 ? '#f87171' : '#4ade80') +
+      _denStatCard('Alto riesgo', criticos.length, criticos.length > 0 ? '#f87171' : '#4ade80') +
+      _denStatCard('Prom. cierre', promCierre + ' días', 'var(--accent2)') +
+    '</div>' +
+
+    // Por tipo
+    '<div style="margin-bottom:20px">' +
+      '<div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:10px">CASOS POR TIPO</div>' +
+      Object.keys(porTipo).map(function(tipo) {
+        var pct = Math.round(porTipo[tipo] / _denuncias.length * 100);
+        return '<div style="margin-bottom:8px">' +
+          '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">' +
+            '<span>' + tipo + '</span><span style="font-weight:700">' + porTipo[tipo] + ' (' + pct + '%)</span>' +
+          '</div>' +
+          '<div style="background:var(--surface2);border-radius:20px;height:6px">' +
+            '<div style="background:var(--accent2);height:6px;border-radius:20px;width:' + pct + '%"></div>' +
+          '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+
+    // Estado del sistema
+    '<div style="background:var(--surface2);border-radius:10px;padding:16px;margin-bottom:20px">' +
+      '<div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:8px">ESTADO GENERAL DEL SISTEMA</div>' +
+      '<div style="font-size:20px;font-weight:900;color:' + estadoSistema.color + ';margin-bottom:10px">' + estadoSistema.label + '</div>' +
+
+      '<div style="font-size:11px;font-weight:700;margin-bottom:4px">Principales problemas detectados:</div>' +
+      '<ul style="font-size:12px;color:var(--muted);padding-left:18px;margin:0 0 12px">' +
+        (casosConAtraso > 0 ? '<li>' + casosConAtraso + ' caso(s) con acciones atrasadas</li>' : '') +
+        (criticos.length > 0 ? '<li>' + criticos.length + ' caso(s) de alto riesgo activos</li>' : '') +
+        (pctGlobal < 50 ? '<li>Cumplimiento de protocolo bajo (' + pctGlobal + '%)</li>' : '') +
+        (casosConAtraso === 0 && criticos.length === 0 && pctGlobal >= 50 ? '<li>Sin problemas críticos detectados</li>' : '') +
+      '</ul>' +
+
+      '<div style="font-size:11px;font-weight:700;margin-bottom:4px">Recomendaciones:</div>' +
+      '<ul style="font-size:12px;color:var(--muted);padding-left:18px;margin:0">' +
+        (casosConAtraso > 0 ? '<li>Revisar y actualizar acciones atrasadas inmediatamente</li>' : '') +
+        (criticos.length > 0 ? '<li>Priorizar casos de alto riesgo — verificar medidas de resguardo</li>' : '') +
+        (pctGlobal < 70 ? '<li>Aumentar frecuencia de seguimiento de casos activos</li>' : '') +
+        '<li>Mantener registro actualizado para inspecciones externas</li>' +
+      '</ul>' +
+    '</div>' +
+
+    '</div></div>';
+
+  portal.innerHTML = html;
+  portal.addEventListener('click', function(e){ if(e.target===portal) portal.remove(); });
+  document.body.appendChild(portal);
+  document.getElementById('igCloseBtn').onclick = function(){ portal.remove(); };
+
+  // PDF
+  var _nl = '\n';
+  var _igTexto = '## INFORME GENERAL DEL SISTEMA DE DENUNCIAS' + _nl + _nl +
+    '**Fecha:** ' + hoy.toLocaleDateString('es-CL') + _nl + _nl +
+    '## INDICADORES CLAVE' + _nl + _nl +
+    '- Casos activos: ' + activos.length + _nl +
+    '- Casos cerrados: ' + cerrados.length + _nl +
+    '- Cumplimiento de protocolo: ' + pctGlobal + '%' + _nl +
+    '- Casos con atraso: ' + casosConAtraso + _nl +
+    '- Casos de alto riesgo: ' + criticos.length + _nl +
+    '- Tiempo promedio de cierre: ' + promCierre + ' dias' + _nl + _nl +
+    '## CASOS POR TIPO' + _nl + _nl +
+    Object.keys(porTipo).map(function(t){ return '- ' + t + ': ' + porTipo[t]; }).join(_nl) + _nl + _nl +
+    '## ESTADO GENERAL: ' + estadoSistema.label + _nl + _nl +
+    '---' + _nl + 'Generado por LIAX el ' + hoy.toLocaleString('es-CL');
+
+  document.getElementById('igCopiarBtn').onclick = function() {
+    navigator.clipboard.writeText(_igTexto);
+    showSaveToast('✅ Copiado');
+  };
+  document.getElementById('igPDFBtn').onclick = function() {
+    exportDocToPDF('Informe General Denuncias', _igTexto, 'LIAX', hoy.toISOString());
+    portal.remove();
+  };
+}
+
+// ── Informe por caso ──────────────────────────────────────────
+function denInformePorCaso() {
+  var portal = document.createElement('div');
+  portal.style.cssText = 'position:fixed;inset:0;background:#00000088;z-index:9995;display:flex;align-items:center;justify-content:center;padding:20px';
+
+  var lista = _denuncias.map(function(d) {
+    return '<div data-ipc-id="' + d.id + '" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;border:1px solid var(--border);margin-bottom:6px;cursor:pointer;transition:background .1s" ' +
+      'class="_den-hover-row">' +
+      '<div>' +
+        '<div style="font-size:11px;font-family:monospace;color:var(--muted)">' + d.id + '</div>' +
+        '<div style="font-size:13px;font-weight:700">' + d.nombre + '</div>' +
+      '</div>' +
+      _denEstadoBadge(d.estado) +
+    '</div>';
+  }).join('');
+
+  portal.innerHTML =
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:520px;max-height:80vh;overflow-y:auto;box-shadow:0 24px 60px #00000088">' +
+      '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface)">' +
+        '<div style="font-weight:800;font-size:16px">📋 Informe por Caso</div>' +
+        '<button id="ipcCloseBtn" style="background:var(--border);border:none;color:var(--muted);width:26px;height:26px;border-radius:6px;cursor:pointer">✕</button>' +
+      '</div>' +
+      '<div style="padding:16px">' +
+        '<div style="font-size:11px;color:var(--muted);margin-bottom:12px">Selecciona un caso para generar su informe:</div>' +
+        (lista || '<div style="text-align:center;padding:24px;color:var(--muted)">Sin casos registrados</div>') +
+      '</div>' +
+    '</div>';
+
+  portal.addEventListener('click', function(e){ if(e.target===portal) portal.remove(); });
+  document.body.appendChild(portal);
+  document.getElementById('ipcCloseBtn').onclick = function(){ portal.remove(); };
+
+  portal.addEventListener('click', function(e) {
+    var item = e.target.closest('[data-ipc-id]');
+    if (item) {
+      portal.remove();
+      denGenerarInforme(item.getAttribute('data-ipc-id'));
+    }
+  });
+}
+
+// ── Alertas mejoradas ─────────────────────────────────────────
+async function denShowAlertas() {
+  var hoy = new Date();
+
+  // Load all acciones
+  var ids = _denuncias.filter(function(d){ return d.estado !== 'cerrado'; }).map(function(d){ return d.id; });
+  var todasAcciones = [];
+  if (ids.length) {
+    var { data } = await _supa.from('acciones_denuncia').select('*').in('denuncia_id', ids);
+    if (data) todasAcciones = data;
+  }
+
+  var alertas = [];
+
+  _denuncias.filter(function(d){ return d.estado !== 'cerrado'; }).forEach(function(d) {
+    var diasAbierto = Math.floor((hoy - new Date(d.fecha_creacion)) / 86400000);
+    var accsCase = todasAcciones.filter(function(a){ return a.denuncia_id === d.id; });
+    var atrasadas = accsCase.filter(function(a){ return a.estado !== 'completada' && new Date(a.fecha_limite) < hoy; });
+    var sinAvance = accsCase.length > 0 && accsCase.every(function(a){ return a.estado === 'pendiente'; }) && diasAbierto > 2;
+
+    if (d.riesgo === 'critico') {
+      alertas.push({ nivel:'🔴', titulo:'Caso crítico', caso: d.nombre, id: d.id, detalle:'Caso de riesgo crítico sin cerrar', dias: diasAbierto });
+    }
+    if (atrasadas.length > 0) {
+      alertas.push({ nivel:'❌', titulo:'Acciones atrasadas', caso: d.nombre, id: d.id, detalle: atrasadas.length + ' acción(es) vencida(s)', dias: diasAbierto });
+    }
+    if (sinAvance) {
+      alertas.push({ nivel:'⚠️', titulo:'Sin avance', caso: d.nombre, id: d.id, detalle:'El caso lleva ' + diasAbierto + ' días sin registrar acciones', dias: diasAbierto });
+    }
+    if (diasAbierto > 15 && d.estado === 'recibido') {
+      alertas.push({ nivel:'🟡', titulo:'Caso estancado', caso: d.nombre, id: d.id, detalle:'Lleva ' + diasAbierto + ' días en estado "Ingresada"', dias: diasAbierto });
+    }
+  });
+
+  // Sort by severity
+  alertas.sort(function(a,b){ return b.dias - a.dias; });
+
+  var portal = document.createElement('div');
+  portal.style.cssText = 'position:fixed;inset:0;background:#00000088;z-index:9995;display:flex;align-items:center;justify-content:center;padding:20px';
+  portal.innerHTML =
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:540px;max-height:80vh;overflow-y:auto;box-shadow:0 24px 60px #00000088">' +
+      '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface)">' +
+        '<div style="font-weight:800;font-size:16px">🚨 Alertas del sistema</div>' +
+        '<button id="alertCloseBtn" style="background:var(--border);border:none;color:var(--muted);width:26px;height:26px;border-radius:6px;cursor:pointer">✕</button>' +
+      '</div>' +
+      '<div style="padding:16px">' +
+        (alertas.length ? alertas.map(function(a) {
+          return '<div data-alert-id="' + a.id + '" style="padding:12px;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:background .1s" ' +
+            'class="_den-hover-row">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">' +
+              '<span style="font-size:16px">' + a.nivel + '</span>' +
+              '<span style="font-size:12px;font-weight:800">' + a.titulo + '</span>' +
+              '<span style="font-size:11px;color:var(--muted);margin-left:auto">' + a.dias + ' días</span>' +
+            '</div>' +
+            '<div style="font-size:12px;font-weight:700">' + a.caso + '</div>' +
+            '<div style="font-size:11px;color:var(--muted)">' + a.detalle + '</div>' +
+            '<div style="font-size:10px;color:var(--accent2);margin-top:4px">→ Clic para ver el caso</div>' +
+          '</div>';
+        }).join('') :
+        '<div style="text-align:center;padding:32px;color:var(--muted)"><div style="font-size:32px;margin-bottom:8px">✅</div><div style="font-weight:700">Sin alertas activas</div></div>') +
+      '</div>' +
+    '</div>';
+
+  portal.addEventListener('click', function(e){ if(e.target===portal) portal.remove(); });
+  document.body.appendChild(portal);
+  document.getElementById('alertCloseBtn').onclick = function(){ portal.remove(); };
+
+  portal.addEventListener('click', function(e) {
+    var item = e.target.closest('[data-alert-id]');
+    if (item) {
+      portal.remove();
+      denAbrirDetalle(item.getAttribute('data-alert-id'));
+    }
+  });
+
+  // Update badge
+  var badge = document.getElementById('den-alerta-count');
+  if (badge) badge.textContent = alertas.length;
 }
 
 
