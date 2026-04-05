@@ -9044,7 +9044,7 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
 
     // ── H1 (# Heading) ──────────────────────────────────────
     if (t.startsWith('# ') && !t.startsWith('## ')) {
-      const txt = t.slice(2).replace(/\*\*(.+?)\*\*/g, '$1');
+      const txt = t.slice(2).replace(/\*\*(.+?)\*\*/g, '$1').replace(/[^\x00-\x7F\xC0-\xFF]/g, '').trim();
       need(18);
       y += 3;
       box(ML, y - 4, pageW, 13, 2, C.h2bg);
@@ -9058,7 +9058,7 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
 
     // ── H2 (## Section) ─────────────────────────────────────
     if (t.startsWith('## ')) {
-      const txt = t.slice(3).replace(/\*\*(.+?)\*\*/g, '$1');
+      const txt = t.slice(3).replace(/\*\*(.+?)\*\*/g, '$1').replace(/[^\x00-\x7F\xC0-\xFF]/g, '').trim();
       sectionIdx++;
       need(17);
       y += 4;
@@ -9075,14 +9075,29 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
     }
 
     // ── H3 (### Subsection) ─────────────────────────────────
+    if (t.startsWith('#### ')) {
+      const txt4 = t.slice(5)
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/[^\x00-\x7F\xC0-\xFF]/g, '')
+        .trim();
+      need(9);
+      font(9, 'bold'); ink(C.sub);
+      doc.text(txt4, ML, y + 3);
+      y += 7;
+      i++; continue;
+    }
+
     if (t.startsWith('### ')) {
-      const txt = t.slice(4).replace(/\*\*(.+?)\*\*/g, '$1');
+      const txt = t.slice(4)
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/[^\x00-\x7F\xC0-\xFF]/g, '')
+        .trim();
       need(11);
       y += 2;
       font(9.5, 'bold'); ink(C.blue);
-      doc.text(txt, ML, y + 3);
-      // Subtle dotted underline
-      hline(ML, y + 5, ML + doc.getTextWidth(txt) + 2, C.lineSoft, 0.4);
+      const wrappedH3 = doc.splitTextToSize(txt, pageW);
+      doc.text(wrappedH3[0] || '', ML, y + 3);
+      hline(ML, y + 5, ML + doc.getTextWidth(wrappedH3[0]||'') + 2, C.lineSoft, 0.4);
       y += 9;
       i++; continue;
     }
