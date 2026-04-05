@@ -32320,49 +32320,151 @@ async function denGenerarInforme(denId) {
   var den = _denuncias.find(function(d){ return d.id === denId; });
   if (!den) return;
 
-  var { data: acciones } = await _supa.from('acciones_denuncia').select('*').eq('denuncia_id', denId);
   var hoy = new Date();
-  var completadas = (acciones||[]).filter(function(a){ return a.estado==='completada'; }).length;
-  var total = (acciones||[]).length;
-  var pct = total ? Math.round(completadas/total*100) : 0;
-  var atrasadas = (acciones||[]).filter(function(a){ return a.estado!=='completada' && new Date(a.fecha_limite)<hoy; });
+  var r1 = await _supa.from('acciones_denuncia').select('*').eq('denuncia_id', denId).order('etapa').order('numero');
+  var acciones = r1.data || [];
+  var r3 = await _supa.from('evidencias_denuncia').select('*').eq('denuncia_id', denId);
+  var evidencias = r3.data || [];
 
-  var informe = '## INFORME DEL CASO\n\n' +
-    '**ID del caso:** ' + den.id + '\n' +
-    '**Nombre:** ' + den.nombre + '\n' +
-    '**Tipo:** ' + (DEN_TIPO_LABEL[den.tipo]||den.tipo) + '\n' +
-    '**Tipo de denuncia:** ' + den.tipo_denuncia + '\n' +
-    '**Fecha de ingreso:** ' + (den.fecha_denuncia||'') + '\n' +
-    '**Estado actual:** ' + (DEN_ESTADO_LABEL[den.estado]||den.estado) + '\n' +
-    '**Nivel de riesgo:** ' + den.riesgo + '\n' +
-    '**Días abierto:** ' + Math.floor((hoy-new Date(den.fecha_creacion))/86400000) + '\n\n' +
-    '## CUMPLIMIENTO DEL PROTOCOLO\n\n' +
-    '- Acciones completadas: ' + completadas + ' / ' + total + '\n' +
-    '- Porcentaje de avance: ' + pct + '%\n\n' +
-    '## DESCRIPCIÓN DE LOS HECHOS\n\n' + den.descripcion + '\n\n' +
-    '## PERSONAS INVOLUCRADAS\n\n' + JSON.stringify(den.personas, null, 2) + '\n\n' +
-    '## INCUMPLIMIENTOS DETECTADOS\n\n' +
-    (atrasadas.length ? atrasadas.map(function(a){ return '- ❌ ' + a.descripcion + ' (vencida el ' + a.fecha_limite + ')'; }).join('\n') : '- Sin incumplimientos detectados') + '\n\n' +
-    '## CONCLUSIÓN\n\n' +
-    (pct >= 80 ? '✅ Caso controlado — protocolo en cumplimiento.' :
-     pct >= 50 ? '🟡 Caso en proceso — requiere seguimiento.' :
-                 '🔴 Caso en riesgo — protocolo con atrasos críticos.') + '\n\n' +
-    '---\n*Informe generado por LIAX el ' + hoy.toLocaleString('es-CL') + '*';
+  var completadas = acciones.filter(function(a){ return a.estado==='completada'; });
+  var atrasadas   = acciones.filter(function(a){ return a.estado!=='completada' && new Date(a.fecha_limite)<hoy; });
+  var total = acciones.length;
+  var pct   = total ? Math.round(completadas.length/total*100) : 0;
+  var diasAbierto = Math.floor((hoy - new Date(den.fecha_creacion)) / 86400000);
+
+  var accsEtapa = function(n){ return acciones.filter(function(a){ return a.etapa===n; }); };
+  var accsComp  = function(n){ return accsEtapa(n).filter(function(a){ return a.estado==='completada'; }); };
+
+  var personas = den.personas || [];
+  var personasStr = Array.isArray(personas) && personas.length
+    ? personas.map(function(p){ return p.descripcion || JSON.stringify(p); }).join('; ')
+    : 'No especificado';
+
+  var medidasResguardo = accsComp(1).map(function(a){
+    return '- ' + a.descripcion + (a.completada_en ? ' (' + a.completada_en.slice(0,10) + ')' : '');
+  }).join(nl) || '- Sin registrar';
+
+  var investigacion = accsEtapa(2).map(function(a){
+    var est = a.estado === 'completada' ? '[COMPLETADA]' : '[PENDIENTE]';
+    return '- ' + a.descripcion + ' ' + est + (a.fecha_limite ? ' Plazo: ' + a.fecha_limite : '');
+  }).join(nl) || '- Sin registrar';
+
+  var medidasAdoptadas = accsComp(3).map(function(a){
+    return '- ' + a.descripcion + (a.completada_en ? ' (' + a.completada_en.slice(0,10) + ')' : '');
+  }).join(nl) || '- Sin registrar';
+
+  var comunicacion = accsComp(4).map(function(a){
+    return '- ' + a.descripcion + (a.completada_en ? ' (' + a.completada_en.slice(0,10) + ')' : '');
+  }).join(nl) || '- Sin registrar';
+
+  var seguimiento = accsEtapa(4).filter(function(a){ return a.estado !== 'completada'; }).map(function(a){
+    return '- ' + a.descripcion + ' Plazo: ' + a.fecha_limite;
+  }).join(nl) || '- Sin acciones de seguimiento pendientes';
+
+  var docsRespaldo = evidencias.length
+    ? evidencias.map(function(e){ return '- ' + e.nombre + ' (' + (e.tipo_archivo||'') + ') ' + (e.created_at||'').slice(0,10); }).join(nl)
+    : '- Sin documentos adjuntos';
+
+  var conclusion = pct >= 80
+    ? 'El establecimiento ha actuado conforme a su protocolo de convivencia escolar, completando el ' + pct + '% de las etapas requeridas. El caso se encuentra bajo control.'
+    : pct >= 50
+    ? 'El caso se encuentra en proceso con un cumplimiento del ' + pct + '% del protocolo. Se requiere continuar con las etapas pendientes para su cierre formal.'
+    : 'El caso presenta un cumplimiento del ' + pct + '% del protocolo con ' + atrasadas.length + ' acciones atrasadas. Se requiere intervencion inmediata.';
+
+  var nl = '\n';
+  var sep = '----------------------------------------------------------------' + nl;
+
+  var informe =
+    '================================================================' + nl +
+    '    INFORME DE DENUNCIA ESCOLAR - PROTOCOLO DE CONVIVENCIA' + nl +
+    '================================================================' + nl + nl +
+
+    '1. IDENTIFICACION DEL ESTABLECIMIENTO' + nl + sep +
+    'Nombre: ' + (DB.directores[0]?.establecimiento || '[Nombre del establecimiento]') + nl +
+    'RBD: ' + (_supaPerfil?.colegio_id || '[RBD]') + nl +
+    'Dependencia: [Municipal / Particular Subvencionado / Particular Pagado]' + nl +
+    'Direccion: [Direccion]     Comuna: [Comuna]' + nl +
+    'Director(a): ' + (DB.directores[0]?.nombre || '[Nombre del director]') + nl +
+    'Encargado(a) de Convivencia: ' + (den.responsable_nombre || '[Nombre del encargado]') + nl + nl +
+
+    '2. IDENTIFICACION DEL CASO' + nl + sep +
+    'ID del caso: ' + den.id + nl +
+    'Nombre del caso: ' + den.nombre + nl +
+    'Fecha de recepcion: ' + (den.fecha_denuncia || '') + nl +
+    'Medio de recepcion: [verbal / escrita / correo / otro]' + nl +
+    'Tipo de caso: ' + (DEN_TIPO_LABEL[den.tipo] || den.tipo) + nl +
+    'Tipo de denuncia: ' + (den.tipo_denuncia || '') + nl +
+    'Nivel de riesgo: ' + den.riesgo.toUpperCase() + nl +
+    'Estado actual: ' + (DEN_ESTADO_LABEL[den.estado] || den.estado) + nl +
+    'Dias abierto: ' + diasAbierto + nl + nl +
+
+    '3. DESCRIPCION DE LOS HECHOS' + nl + sep +
+    (den.descripcion || '[Sin descripcion registrada]') + nl + nl +
+
+    '4. PERSONAS INVOLUCRADAS' + nl + sep +
+    personasStr + nl +
+    '(Identidades resguardadas segun normativa vigente — Ley 19.628)' + nl + nl +
+
+    '5. MEDIDAS DE RESGUARDO ADOPTADAS' + nl + sep +
+    medidasResguardo + nl + nl +
+
+    '6. PROCESO DE INVESTIGACION' + nl + sep +
+    investigacion + nl +
+    'Responsable: ' + (den.responsable_nombre || '[Sin asignar]') + nl + nl +
+
+    '7. ANALISIS DE ANTECEDENTES' + nl + sep +
+    'Cumplimiento: ' + completadas.length + ' / ' + total + ' acciones (' + pct + '%)' + nl +
+    (atrasadas.length ? 'Acciones atrasadas: ' + atrasadas.map(function(a){ return a.descripcion; }).join('; ') : 'Sin acciones atrasadas.') + nl + nl +
+
+    '8. MEDIDAS ADOPTADAS' + nl + sep +
+    medidasAdoptadas + nl + nl +
+
+    '9. COMUNICACION A LAS PARTES' + nl + sep +
+    comunicacion + nl + nl +
+
+    '10. ESTADO ACTUAL DEL CASO' + nl + sep +
+    (den.estado === 'cerrado' ? '[X] Cerrado' : '[ ] Cerrado') + '     ' +
+    (den.estado !== 'cerrado' ? '[X] En seguimiento' : '[ ] En seguimiento') + nl +
+    (den.fecha_cierre ? 'Fecha de cierre: ' + den.fecha_cierre.slice(0,10) : 'Caso no cerrado') + nl + nl +
+
+    '11. SEGUIMIENTO' + nl + sep +
+    seguimiento + nl + nl +
+
+    '12. CONCLUSION' + nl + sep +
+    conclusion + nl + nl +
+
+    '13. DOCUMENTOS DE RESPALDO' + nl + sep +
+    docsRespaldo + nl + nl +
+
+    '14. FIRMAS' + nl + sep +
+    'Encargado(a) de Convivencia Escolar' + nl +
+    'Nombre: ' + (den.responsable_nombre || '___________________________') + nl +
+    'Firma:  ___________________________     Fecha: _______________' + nl + nl +
+    'Director(a)' + nl +
+    'Nombre: ' + (DB.directores[0]?.nombre || '___________________________') + nl +
+    'Firma:  ___________________________     Fecha: _______________' + nl + nl +
+    '================================================================' + nl +
+    'Generado por LIAX el ' + hoy.toLocaleDateString('es-CL') + nl +
+    'Normativa: Ley 20.529, Ley 19.628, Decreto Exento 315/2010' + nl +
+    '================================================================';
 
   // Show editable modal
   var portal = document.createElement('div');
   portal.style.cssText = 'position:fixed;inset:0;background:#00000088;z-index:9995;display:flex;align-items:center;justify-content:center;padding:20px';
   portal.innerHTML =
-    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px #00000088">' +
-      '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">' +
-        '<div style="font-weight:800;font-size:15px">📄 Informe del caso — ' + den.id + '</div>' +
-        '<button id="informeCloseBtn" style="background:var(--border);border:none;color:var(--muted);width:26px;height:26px;border-radius:6px;cursor:pointer">✕</button>' +
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px #00000088">' +
+      '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">' +
+        '<div>' +
+          '<div style="font-weight:800;font-size:15px">Informe del Caso — ' + den.id + '</div>' +
+          '<div style="font-size:11px;color:var(--muted)">Puedes editar el texto antes de exportar</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px">' +
+          '<button id="informeCopiarBtn" class="btn btn-outline" style="font-size:11px">Copiar</button>' +
+          '<button id="informePDFBtn" class="btn btn-primary" style="font-size:11px">Exportar PDF</button>' +
+          '<button id="informeCloseBtn" style="background:var(--border);border:none;color:var(--muted);width:26px;height:26px;border-radius:6px;cursor:pointer">X</button>' +
+        '</div>' +
       '</div>' +
-      '<textarea id="informeTexto" style="flex:1;background:var(--surface2);border:none;padding:16px;font-size:12px;font-family:DM Sans,sans-serif;color:var(--text);resize:none;outline:none;min-height:400px">' + informe + '</textarea>' +
-      '<div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px">' +
-        '<button id="informeCopiarBtn" class="btn btn-outline" style="font-size:12px">📋 Copiar</button>' +
-        '<button id="informePDFBtn" class="btn btn-primary" style="font-size:12px">⬇️ Guardar como PDF</button>' +
-      '</div>' +
+      '<textarea id="informeTexto" style="flex:1;background:var(--surface2);border:none;padding:16px;font-size:11px;font-family:monospace;color:var(--text);resize:none;outline:none;min-height:500px;line-height:1.6">' + informe + '</textarea>' +
     '</div>';
 
   portal.addEventListener('click', function(e){ if(e.target===portal) portal.remove(); });
@@ -32370,11 +32472,11 @@ async function denGenerarInforme(denId) {
   document.getElementById('informeCloseBtn').onclick = function(){ portal.remove(); };
   document.getElementById('informeCopiarBtn').onclick = function() {
     navigator.clipboard.writeText(document.getElementById('informeTexto').value);
-    showSaveToast('✅ Copiado al portapapeles');
+    showSaveToast('Copiado al portapapeles');
   };
   document.getElementById('informePDFBtn').onclick = function() {
     var txt = document.getElementById('informeTexto').value;
-    exportDocToPDF('Informe ' + den.id, txt, 'LIAX Denuncias', new Date().toISOString());
+    exportDocToPDF('Informe ' + den.id, txt, 'LIAX Denuncias', hoy.toISOString());
     portal.remove();
   };
 }
