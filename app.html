@@ -6082,7 +6082,21 @@ async function sendChat(){
   pendingAttachments = [];
 
   try{
-    const data = await callClaude({ model:'claude-sonnet-4-6', max_tokens:4000, system, messages:chatHistory });
+    // ── Orquestador: decide modelo antes de ejecutar ──────
+    var _orchPlan = null;
+    var _isVercelOrch = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (_isVercelOrch && msg && msg.length > 3) {
+      try { _orchPlan = await orquestar(msg, currentAgent); } catch(e) {}
+    }
+    var _orchModel = _orchPlan ? _planToModelId(_orchPlan.modelo_sugerido) : null;
+    var _orchMaxTokens = (_orchPlan && _orchPlan.tokens_estimados === 'alto') ? 4000 : 2000;
+
+    const data = await callClaude({
+      model:      _orchModel || 'claude-haiku-4-5-20251001',
+      max_tokens: _orchMaxTokens,
+      system,
+      messages:   chatHistory
+    });
     const reply=data.content?.find(c=>c.type==='text')?.text||'No pude generar una respuesta. Intenta nuevamente.';
     // Store simplified version in history (avoid storing huge base64 in history)
     chatHistory[chatHistory.length-1] = { role:'user', content: msg || '[Archivos adjuntos]' };
@@ -6750,10 +6764,13 @@ async function callClaude(payload) {
   }
 
   try {
+    var _t0 = Date.now();
     const result = await tryProvider(provider);
+    window._lastCallDuration = Date.now() - _t0;
     result._task     = task;
     result._modelKey = modelKey;
     result._modelId  = modelId;
+    window._lastCallData = result;
     return result;
   } catch(e) {
     var _fallbackModel = complexTasks && complexTasks.indexOf ? 
@@ -31399,6 +31416,188 @@ function _showPanelOverAgent(id) {
     if (d) d.remove();
   };
   currentPanel = id;
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// EJECUCIONES + FEEDBACK — Métricas e inteligencia pedagógica
+// ══════════════════════════════════════════════════════════════
+
+// Registra cada llamada a la IA en la tabla ejecuciones
+async function _registrarEjecucion(agentId, modeloUsado, tareTipo, tokensInput, tokensOutput, duracionMs) {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    await _supa.from('ejecuciones').insert({
+      agente_id:     agentId,
+      user_id:       _supaUser.id,
+      colegio_id:    _supaPerfil.colegio_id,
+      modelo_usado:  modeloUsado || 'unknown',
+      tokens_input:  tokensInput  || 0,
+      tokens_output: tokensOutput || 0,
+      tokens_total:  (tokensInput||0) + (tokensOutput||0),
+      duracion_ms:   duracionMs   || 0,
+      tarea_tipo:    tareTipo     || 'conversacion',
+    });
+  } catch(e) { console.warn('[LIAX] Error registrando ejecución:', e.message); }
+}
+
+// Muestra botón de feedback al terminar una respuesta
+function _mostrarFeedbackBtn(agentId) {
+  if (!_supaUser) return;
+  var area = document.getElementById('chatArea');
+  if (!area) return;
+
+  // Remove existing feedback bar
+  var old = document.getElementById('_feedbackBar');
+  if (old) old.remove();
+
+  var bar = document.createElement('div');
+  bar.id = '_feedbackBar';
+  bar.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:6px;flex-wrap:wrap';
+  bar.innerHTML =
+    '<span style="font-size:11px;color:var(--muted);font-weight:600">¿Cómo resultó en aula?</span>' +
+    ['😊 Muy fácil', '✅ Adecuado', '😐 Difícil', '😰 Muy difícil', '❌ Falló'].map(function(label, i) {
+      var vals = ['muy_facil','adecuado','dificil','muy_dificil','fallo'];
+      var colors = ['#34d399','#4ade80','#fbbf24','#f97316','#f87171'];
+      return '<button data-fb-val="' + vals[i] + '" data-fb-agent="' + agentId + '" ' +
+        'style="background:none;border:1px solid ' + colors[i] + '44;color:' + colors[i] + ';' +
+        'border-radius:20px;padding:3px 10px;font-size:10px;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600">' +
+        label + '</button>';
+    }).join('') +
+    '<button id="_fbCloseBtn" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;margin-left:auto">✕</button>';
+
+  // Event delegation
+  bar.addEventListener('click', function(e) {
+    if (e.target.id === '_fbCloseBtn') { bar.remove(); return; }
+    var btn = e.target.closest('[data-fb-val]');
+    if (!btn) return;
+    var nivel = btn.getAttribute('data-fb-val');
+    var aId   = btn.getAttribute('data-fb-agent');
+    _guardarFeedback(aId, nivel);
+    bar.innerHTML = '<span style="font-size:11px;color:var(--accent2);font-weight:600">✅ Gracias por tu feedback</span>';
+    setTimeout(function(){ bar.remove(); }, 2000);
+  });
+
+  area.parentElement.insertBefore(bar, area.nextSibling);
+}
+
+async function _guardarFeedback(agentId, nivelResultado, rating, problema, comentario) {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    await _supa.from('feedback').insert({
+      agente_id:       agentId,
+      user_id:         _supaUser.id,
+      colegio_id:      _supaPerfil.colegio_id,
+      nivel_resultado: nivelResultado || 'adecuado',
+      rating:          rating || null,
+      problema:        problema || null,
+      comentario:      comentario || null,
+    });
+    console.log('[LIAX] Feedback guardado:', nivelResultado);
+  } catch(e) { console.warn('[LIAX] Error guardando feedback:', e.message); }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// ORQUESTADOR LIAX — Meta-prompt de planificación
+// Decide cómo resolver cada solicitud antes de ejecutarla
+// ══════════════════════════════════════════════════════════════
+
+const ORCHESTRATOR_PROMPT = `Actúa como un ORQUESTADOR dentro de LIAX, plataforma educativa chilena.
+No generes la respuesta final. Tu función es decidir cómo resolver la solicitud del docente.
+
+Para cada input:
+1. Identifica el tipo de tarea (guia, evaluacion, planificacion, analisis, consulta, reflexion, nee, informe, otro)
+2. Define la complejidad (simple, media, alta)
+3. Selecciona el modelo adecuado:
+   - simple/consulta rápida → gemini-flash
+   - creación pedagógica media → gemini-pro
+   - NEE, análisis profundo, informe crítico → claude-sonnet
+4. Decide si necesita pasos intermedios
+5. Indica si usar contexto (documentos, RAGs, historial del chat)
+
+Responde SIEMPRE en JSON válido, sin explicaciones, sin markdown:
+{
+  "tipo_tarea": "",
+  "complejidad": "",
+  "modelo_sugerido": "gemini-flash|gemini-pro|claude-haiku|claude-sonnet",
+  "pasos": [],
+  "usa_contexto": true,
+  "objetivo_pedagogico": "",
+  "tokens_estimados": "bajo|medio|alto"
+}`;
+
+var _orchestratorCache = {}; // cache por mensaje para no repetir llamadas
+
+async function orquestar(userMessage, agentContext) {
+  // Check cache — same message in same session reuses plan
+  var cacheKey = userMessage.slice(0, 80);
+  if (_orchestratorCache[cacheKey]) return _orchestratorCache[cacheKey];
+
+  try {
+    var contextHint = agentContext ? ('Contexto del agente: ' + (agentContext.nombre||'') + ' — ' + (agentContext.dim||'')) : '';
+    var payload = {
+      model: 'claude-haiku-4-5-20251001', // always use Haiku for orchestration (cheap+fast)
+      max_tokens: 300,
+      system: ORCHESTRATOR_PROMPT,
+      messages: [{
+        role: 'user',
+        content: contextHint + '\nSolicitud del docente: ' + userMessage
+      }]
+    };
+
+    var t0 = Date.now();
+    var res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    var data = await res.json();
+    var text = (data.content && data.content[0] && data.content[0].text) || '{}';
+
+    // Parse JSON safely
+    var plan;
+    try {
+      // Strip any markdown backticks if present
+      text = text.replace(/```json|```/g, '').trim();
+      plan = JSON.parse(text);
+    } catch(e) {
+      console.warn('[Orquestador] JSON inválido, usando defaults:', text.slice(0,100));
+      plan = {
+        tipo_tarea: 'consulta',
+        complejidad: 'simple',
+        modelo_sugerido: 'gemini-flash',
+        pasos: [],
+        usa_contexto: false,
+        objetivo_pedagogico: '',
+        tokens_estimados: 'bajo'
+      };
+    }
+
+    plan._duracion_ms = Date.now() - t0;
+    _orchestratorCache[cacheKey] = plan;
+    console.log('[Orquestador]', plan.tipo_tarea, '→', plan.modelo_sugerido, '(' + plan.complejidad + ')');
+    return plan;
+
+  } catch(e) {
+    console.warn('[Orquestador] Error:', e.message);
+    return {
+      tipo_tarea: 'consulta', complejidad: 'simple',
+      modelo_sugerido: 'gemini-flash', pasos: [],
+      usa_contexto: false, objetivo_pedagogico: '', tokens_estimados: 'bajo'
+    };
+  }
+}
+
+// Map orchestrator model suggestion to LIAX_MODELS id
+function _planToModelId(modelSugerido) {
+  var map = {
+    'gemini-flash':  LIAX_MODELS['gemini-flash'].id,
+    'gemini-pro':    LIAX_MODELS['gemini-pro'].id,
+    'claude-haiku':  LIAX_MODELS['claude-haiku'].id,
+    'claude-sonnet': LIAX_MODELS['claude-sonnet'].id,
+  };
+  return map[modelSugerido] || LIAX_MODELS['gemini-flash'].id;
 }
 
 
