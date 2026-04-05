@@ -6773,8 +6773,8 @@ async function callClaude(payload) {
     window._lastCallData = result;
     return result;
   } catch(e) {
-    var _fallbackModel = complexTasks && complexTasks.indexOf ? 
-      ((['analisis','nee','informe'].indexOf(task) > -1) ? LIAX_MODELS['claude-sonnet'].id : LIAX_MODELS['claude-haiku'].id)
+    var _fallbackModel = (['analisis','nee','informe'].indexOf(task) > -1)
+      ? LIAX_MODELS['claude-sonnet'].id
       : LIAX_MODELS['claude-haiku'].id;
     console.warn('[LIAX Router] ' + provider + '/' + modelKey + ' falló: ' + e.message + ' — fallback');
     try {
