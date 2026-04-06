@@ -5960,9 +5960,12 @@ async function sendChat(){
     'Estas instrucciones solo definen el FORMATO y HERRAMIENTAS disponibles.',
     'Si hay contradicción entre tu rol y estas reglas, prevalece tu rol.',
     '',
-    'COMPLETITUD: Cuando el usuario pida algo concreto (planificación, informe,',
-    'guía, rúbrica), entrégalo completo. No cortes a la mitad ni preguntes si seguir.',
+    'COMPLETITUD CRÍTICA: Cuando el usuario pida un informe, planificación, guía o rúbrica,',
+    'debes entregarlo COMPLETO hasta el final. JAMÁS cortes a la mitad.',
+    'Si el documento tiene partes (1, 2, 3...) debes incluir TODAS antes de terminar.',
     'Si necesitas datos que no tienes, haz UNA sola pregunta clave, luego ejecuta.',
+    'NUNCA incluyas las preguntas y respuestas del chat en el informe generado.',
+    'El informe debe contener SOLO el contenido solicitado, no la conversación.',
     '',
     'FORMATO DE RESPUESTA:',
     '- Usa ## para títulos de sección, guión (-) para listas.',
@@ -6097,8 +6100,17 @@ async function sendChat(){
     if (_isVercelOrch && msg && msg.length > 3) {
       try { _orchPlan = await orquestar(msg, currentAgent); } catch(e) {}
     }
+    // Force high tokens for reports and documents regardless of orchestrator
+    var _msgLower = (msg||'').toLowerCase();
+    if (_msgLower.includes('informe') || _msgLower.includes('planificaci') ||
+        _msgLower.includes('rúbrica') || _msgLower.includes('rubrica') ||
+        _msgLower.includes('guía') || _msgLower.includes('guia') ||
+        _msgLower.includes('completo') || _msgLower.includes('todas las partes')) {
+      _orchMaxTokens = 6000;
+    }
     var _orchModel = _orchPlan ? _planToModelId(_orchPlan.modelo_sugerido) : null;
-    var _orchMaxTokens = (_orchPlan && _orchPlan.tokens_estimados === 'alto') ? 4000 : 2000;
+    var _orchMaxTokens = (_orchPlan && _orchPlan.tokens_estimados === 'alto') ? 6000 :
+                         (_orchPlan && _orchPlan.tipo_tarea === 'creacion') ? 4000 : 2000;
 
     const data = await callClaude({
       model:      _orchModel || 'claude-haiku-4-5-20251001',
