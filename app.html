@@ -6093,6 +6093,24 @@ async function sendChat(){
   // Clear pending attachments after sending
   pendingAttachments = [];
 
+  // When requesting a report/informe, build clean history (AI responses only as context)
+  var _msgForOrch = typeof msg === 'string' ? msg.toLowerCase() : '';
+  var _isInformeRequest = _msgForOrch.includes('informe') || _msgForOrch.includes('genera el informe') ||
+      _msgForOrch.includes('crea el informe') || _msgForOrch.includes('escribe el informe');
+  var _historyToSend = chatHistory;
+  if (_isInformeRequest && chatHistory.length > 2) {
+    // Only send: system context (first AI message) + last few exchanges + current request
+    var aiMsgs = chatHistory.filter(function(m){ return m.role === 'assistant'; });
+    var lastUser = chatHistory[chatHistory.length - 1];
+    // Build clean history: previous AI responses as context + current user request
+    _historyToSend = [];
+    if (aiMsgs.length) {
+      // Include all AI responses as context (they contain the answers)
+      aiMsgs.forEach(function(m) { _historyToSend.push(m); });
+    }
+    _historyToSend.push(lastUser);
+  }
+
   try{
     // ── Orquestador: decide modelo antes de ejecutar ──────
     var _orchPlan = null;
@@ -6116,7 +6134,7 @@ async function sendChat(){
       model:      _orchModel || 'claude-haiku-4-5-20251001',
       max_tokens: _orchMaxTokens,
       system,
-      messages:   chatHistory
+      messages:   _historyToSend
     });
     const reply=data.content?.find(c=>c.type==='text')?.text||'No pude generar una respuesta. Intenta nuevamente.';
     // Store simplified version in history (avoid storing huge base64 in history)
@@ -9588,14 +9606,35 @@ sendChat = async function() {
     // Build document content — ONLY AI responses, clean of reply fields
     function _cleanForDoc(text) {
       if (!text || typeof text !== 'string') return '';
-      var t = text;
-      t = t.replace(/_?Tu respuesta:?_?.*/gi, '');
-      t = t.replace(/> Tu respuesta.*/gi, '');
-      t = t.replace(/Pregunta [0-9]+[:.].*/gi, '');
-      t = t.replace(/#{1,4} Pregunta.*/gi, '');
-      t = t.replace(/\*\*Pregunta [0-9]+.*\*\*/gi, '');
-      t = t.replace(/\n{3,}/g, '\n\n');
-      return t.trim();
+      var lines = text.split('\n');
+      var filtered = [];
+      var skipNext = false;
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        var low  = line.trim().toLowerCase();
+        // Skip reply field markers
+        if (low.match(/^_?tu respuesta:?_?/) ||
+            low.match(/^> tu respuesta/) ||
+            low.match(/^✏️.*tu respuesta/) ||
+            low.match(/^> _.*respuesta.*_/) ) {
+          skipNext = false;
+          continue;
+        }
+        // Skip question headers like "Pregunta 1:", "## Pregunta 2"
+        if (low.match(/^#{0,4}\s*pregunta\s+\d+[\s:.–-]/) ||
+            low.match(/^\*\*pregunta\s+\d+/) ||
+            low.match(/^p\d+[:.]\s/) ) {
+          continue;
+        }
+        // Skip lines that look like chat user inputs (short lines after a question marker)
+        if (low.match(/^respuesta:?\s*$/) || low.match(/^tu respuesta:?\s*$/)) {
+          continue;
+        }
+        filtered.push(line);
+      }
+      // Remove excessive blank lines
+      var result = filtered.join('\n').replace(/\n{3,}/g, '\n\n');
+      return result.trim();
     }
     var fullContent = chatHistory
       .filter(function(m){ return m.role === 'assistant' && m.content && typeof m.content === 'string'; })
