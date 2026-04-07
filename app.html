@@ -6093,46 +6093,45 @@ async function sendChat(){
   // Clear pending attachments after sending
   pendingAttachments = [];
 
-  // When requesting a report/informe, build clean history (AI responses only as context)
-  var _msgForOrch = typeof msg === 'string' ? msg.toLowerCase() : '';
-  var _isInformeRequest = _msgForOrch.includes('informe') || _msgForOrch.includes('genera el informe') ||
-      _msgForOrch.includes('crea el informe') || _msgForOrch.includes('escribe el informe');
+  // ── Decidir modelo y tokens ANTES de llamar ──────────────
+  var _msgLower = (msg||'').toLowerCase();
+
+  // Detectar tipo de tarea por keywords para elegir modelo y tokens
+  var _isInforme    = _msgLower.includes('informe') || _msgLower.includes('genera') || _msgLower.includes('crea el');
+  var _isDocumento  = _msgLower.includes('planificaci') || _msgLower.includes('rúbrica') || _msgLower.includes('rubrica') ||
+                      _msgLower.includes('guía') || _msgLower.includes('guia') || _msgLower.includes('completo') ||
+                      _msgLower.includes('todas las partes') || _msgLower.includes('evaluación') || _msgLower.includes('evaluacion');
+  var _isNEE        = _msgLower.includes('nee') || _msgLower.includes('dua') || _msgLower.includes('adaptación') || _msgLower.includes('inclusión');
+  var _isSimple     = _msgLower.length < 60 && !_isInforme && !_isDocumento && !_isNEE;
+
+  // Elegir modelo según tarea
+  var _selectedModel, _selectedTokens;
+  if (_isNEE) {
+    _selectedModel  = LIAX_MODELS['claude-sonnet'].id;
+    _selectedTokens = 6000;
+  } else if (_isInforme || _isDocumento) {
+    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
+    _selectedTokens = 6000;
+  } else if (_isSimple) {
+    _selectedModel  = LIAX_MODELS['gemini-flash'].id;
+    _selectedTokens = 2000;
+  } else {
+    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
+    _selectedTokens = 4000;
+  }
+
+  // Historial limpio para informes (solo respuestas IA como contexto)
   var _historyToSend = chatHistory;
-  if (_isInformeRequest && chatHistory.length > 2) {
-    // Only send: system context (first AI message) + last few exchanges + current request
-    var aiMsgs = chatHistory.filter(function(m){ return m.role === 'assistant'; });
-    var lastUser = chatHistory[chatHistory.length - 1];
-    // Build clean history: previous AI responses as context + current user request
-    _historyToSend = [];
-    if (aiMsgs.length) {
-      // Include all AI responses as context (they contain the answers)
-      aiMsgs.forEach(function(m) { _historyToSend.push(m); });
-    }
-    _historyToSend.push(lastUser);
+  if (_isInforme && chatHistory.length > 2) {
+    var _aiMsgs   = chatHistory.filter(function(m){ return m.role === 'assistant'; });
+    var _lastUser = chatHistory[chatHistory.length - 1];
+    _historyToSend = _aiMsgs.concat([_lastUser]);
   }
 
   try{
-    // ── Orquestador: decide modelo antes de ejecutar ──────
-    var _orchPlan = null;
-    var _isVercelOrch = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    if (_isVercelOrch && msg && msg.length > 3) {
-      try { _orchPlan = await orquestar(msg, currentAgent); } catch(e) {}
-    }
-    // Force high tokens for reports and documents regardless of orchestrator
-    var _msgLower = (msg||'').toLowerCase();
-    if (_msgLower.includes('informe') || _msgLower.includes('planificaci') ||
-        _msgLower.includes('rúbrica') || _msgLower.includes('rubrica') ||
-        _msgLower.includes('guía') || _msgLower.includes('guia') ||
-        _msgLower.includes('completo') || _msgLower.includes('todas las partes')) {
-      _orchMaxTokens = 6000;
-    }
-    var _orchModel = _orchPlan ? _planToModelId(_orchPlan.modelo_sugerido) : null;
-    var _orchMaxTokens = (_orchPlan && _orchPlan.tokens_estimados === 'alto') ? 6000 :
-                         (_orchPlan && _orchPlan.tipo_tarea === 'creacion') ? 4000 : 2000;
-
     const data = await callClaude({
-      model:      _orchModel || 'claude-haiku-4-5-20251001',
-      max_tokens: _orchMaxTokens,
+      model:      _selectedModel,
+      max_tokens: _selectedTokens,
       system,
       messages:   _historyToSend
     });
