@@ -1991,7 +1991,7 @@
       <!-- Filtros -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:18px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
         <div style="flex:1;min-width:160px">
-          <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Curso</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Aula</div>
           <select id="inf-curso-sel" onchange="renderInformes()" class="form-input" style="width:100%">
             <option value="all">Todos los cursos</option>
           </select>
@@ -2529,15 +2529,15 @@
       <!-- Configuración superior -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px" id="ingresoConfigGrid">
         <div class="form-group">
-          <label class="form-label">Curso</label>
+          <label class="form-label">Aula</label>
           <select class="form-input" id="ingresoCurso" onchange="loadIngresoAlumnos()">
-            <option value="">Seleccionar curso…</option>
+            <option value="">Seleccionar aula…</option>
           </select>
         </div>
         <div class="form-group" id="ingresoAsigGrp">
-          <label class="form-label">Asignatura</label>
+          <label class="form-label">Área Curricular</label>
           <select class="form-input" id="ingresoAsig">
-            <option value="">Seleccionar asignatura…</option>
+            <option value="">Seleccionar área curricular…</option>
           </select>
         </div>
       </div>
@@ -3035,14 +3035,14 @@
       <div id="agentCtxBar" style="display:flex;align-items:center;gap:6px;padding:6px 14px 8px;border-bottom:1px solid var(--border);background:var(--bg);flex-wrap:wrap;position:relative">
         <span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;white-space:nowrap">Contexto</span>
 
-        <!-- Cursos multi-select -->
+        <!-- Aula multi-select -->
         <div class="ctx-picker-wrap" id="ctxCursoWrap">
           <button class="ctx-picker-btn" id="ctxCursoBtn" onclick="toggleCtxPicker('curso')">
-            <span id="ctxCursoLabel">📚 Curso…</span>
+            <span id="ctxCursoLabel">📚 Aula…</span>
             <span style="font-size:9px;margin-left:4px;opacity:.6">▾</span>
           </button>
           <div class="ctx-picker-dropdown" id="ctxCursoDrop" style="display:none">
-            <div class="ctx-picker-search"><input placeholder="Buscar curso…" oninput="filterCtxPicker('curso',this.value)" style="width:100%;background:none;border:none;outline:none;font-size:12px;font-family:inherit;color:var(--text)"></div>
+            <div class="ctx-picker-search"><input placeholder="Buscar aula…" oninput="filterCtxPicker('curso',this.value)" style="width:100%;background:none;border:none;outline:none;font-size:12px;font-family:inherit;color:var(--text)"></div>
             <div id="ctxCursoList" class="ctx-picker-list"></div>
             <div class="ctx-picker-footer">
               <button onclick="selectAllCtx('curso')" class="ctx-picker-action">Todos</button>
@@ -3052,14 +3052,14 @@
           </div>
         </div>
 
-        <!-- Asignaturas multi-select -->
+        <!-- Área Curricular multi-select -->
         <div class="ctx-picker-wrap" id="ctxAsigWrap">
           <button class="ctx-picker-btn" id="ctxAsigBtn" onclick="toggleCtxPicker('asig')">
-            <span id="ctxAsigLabel">🔬 Asignatura…</span>
+            <span id="ctxAsigLabel">📖 Área Curricular…</span>
             <span style="font-size:9px;margin-left:4px;opacity:.6">▾</span>
           </button>
           <div class="ctx-picker-dropdown" id="ctxAsigDrop" style="display:none">
-            <div class="ctx-picker-search"><input placeholder="Buscar asignatura…" oninput="filterCtxPicker('asig',this.value)" style="width:100%;background:none;border:none;outline:none;font-size:12px;font-family:inherit;color:var(--text)"></div>
+            <div class="ctx-picker-search"><input placeholder="Buscar área curricular…" oninput="filterCtxPicker('asig',this.value)" style="width:100%;background:none;border:none;outline:none;font-size:12px;font-family:inherit;color:var(--text)"></div>
             <div id="ctxAsigList" class="ctx-picker-list"></div>
             <div class="ctx-picker-footer">
               <button onclick="selectAllCtx('asig')" class="ctx-picker-action">Todas</button>
@@ -3441,7 +3441,7 @@ function _saveCursosCustom() {
   var custom = CURSOS.filter(function(c){ return _CURSOS_DEFAULT.indexOf(c) === -1; });
   localStorage.setItem('liax_cursos_custom', JSON.stringify(custom));
 }
-const ASIGS  = ['Lenguaje','Matemática','Historia','Ciencias','Inglés','Ed. Física','Artes','Música','Tecnología','Orientación','Filosofía','Química','Física','Biología'];
+const ASIGS  = ['Castellano como Segunda Lengua','Ciencias y Tecnología','Comunicación','Descubrimiento del Mundo','Matemáticas','Personal y Social','Psicomotriz'];
 
 const COLORS = {
   liderazgo: {bg:'var(--dim1)',text:'var(--accent1)',border:'#4f7bff44'},
@@ -3587,7 +3587,7 @@ function renderCtxSummary() {
   sum.innerHTML=`
     <div style="font-size:9px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Resumen activo</div>
     ${CTX.cursos.size?`<div class="ctx-sum-row">📚 <span class="ctx-sum-val">${[...CTX.cursos].join(', ')}</span></div>`:''}
-    ${CTX.asignaturas.size?`<div class="ctx-sum-row">🔬 <span class="ctx-sum-val">${[...CTX.asignaturas].join(', ')}</span></div>`:''}
+    ${CTX.asignaturas.size?`<div class="ctx-sum-row">📖 <span class="ctx-sum-val">${[...CTX.asignaturas].join(', ')}</span></div>`:''}
     ${selAlus.length?`<div class="ctx-sum-row">🎓 <span class="ctx-sum-val">${selAlus.map(a=>a.nombre.split(' ').slice(0,2).join(' ')).join(', ')}</span></div>`:''}
     ${neeAlus.length?`<div class="ctx-sum-row" style="margin-top:5px;padding-top:6px;border-top:1px solid var(--border)">⚠️ NEE: <span class="ctx-sum-nee">${neeAlus.map(a=>a.nombre.split(' ')[0]+' '+a.nombre.split(' ')[1]).join(', ')}</span></div>`:''}
   `;
@@ -3610,7 +3610,7 @@ function buildClassContext() {
   if (!CTX.cursos.size && !CTX.asignaturas.size && !CTX.alumnos.size) return '';
   let c='\n\n════════════════════════════════\nCONTEXTO DE CLASE ACTIVO:\n════════════════════════════════';
   if(CTX.cursos.size) c+=`\nCURSO(S): ${[...CTX.cursos].join(', ')}`;
-  if(CTX.asignaturas.size) c+=`\nASIGNATURA(S): ${[...CTX.asignaturas].join(', ')}`;
+  if(CTX.asignaturas.size) c+=`\nÁREA CURRICULAR: ${[...CTX.asignaturas].join(', ')}`;
   if(selAlus.length) {
     c+=`\n\nLISTA DE ALUMNOS (${selAlus.length}):`;
     selAlus.forEach((a,i)=>{
@@ -9675,7 +9675,7 @@ let acmDocenteId = null;
 let acmCursosTemp = []; // [{curso, asignaturas:[]}]
 let acmQuickSel = new Set(); // selected quick asignaturas
 
-const ASIGS_LIST = ['Lenguaje','Matemática','Historia','Ciencias','Inglés','Ed. Física','Artes','Música','Tecnología','Orientación','Filosofía','Química','Física','Biología'];
+const ASIGS_LIST = ['Castellano como Segunda Lengua','Ciencias y Tecnología','Comunicación','Descubrimiento del Mundo','Matemáticas','Personal y Social','Psicomotriz'];
 
 function openAsignarCursos(docenteId) {
   const docente = DB.docentes.find(d => d.id === docenteId);
@@ -13421,10 +13421,10 @@ function updateAgentCtxBadge() {
   var hasCtx = CTX.cursos.size || CTX.asignaturas.size || CTX.alumnos.size;
   var cLabel = CTX.cursos.size
     ? '📚 ' + [...CTX.cursos].slice(0,2).join(', ') + (CTX.cursos.size>2 ? ' +'+(CTX.cursos.size-2) : '')
-    : '📚 Curso…';
+    : '📚 Aula…';
   var aLabel = CTX.asignaturas.size
     ? '🔬 ' + [...CTX.asignaturas].slice(0,2).join(', ') + (CTX.asignaturas.size>2 ? ' +'+(CTX.asignaturas.size-2) : '')
-    : '🔬 Asignatura…';
+    : '📖 Área Curricular…';
   var uLabel = CTX.alumnos.size
     ? '👤 ' + CTX.alumnos.size + ' alumno' + (CTX.alumnos.size>1?'s':'')
     : '👤 Alumno…';
@@ -15675,7 +15675,7 @@ function openIngresoModal(tipo) {
 
   // Populate curso selector
   var cursoSel = document.getElementById('ingresoCurso');
-  cursoSel.innerHTML = '<option value="">Seleccionar curso…</option>';
+  cursoSel.innerHTML = '<option value="">Seleccionar aula…</option>';
   var cursos;
   if (currentRole === 'docente' && currentDocenteId) {
     var doc = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
@@ -15695,7 +15695,7 @@ function openIngresoModal(tipo) {
 
   // Populate asignatura
   var asigSel = document.getElementById('ingresoAsig');
-  asigSel.innerHTML = '<option value="">Seleccionar asignatura…</option>';
+  asigSel.innerHTML = '<option value="">Seleccionar área curricular…</option>';
   ASIGS.forEach(function(a) {
     var opt = document.createElement('option');
     opt.value = a; opt.textContent = a;
@@ -33660,7 +33660,7 @@ if (!dataLoaded) {
         <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:10px;letter-spacing:.5px;text-transform:uppercase">➕ Agregar curso</div>
         <div style="display:grid;grid-template-columns:1fr 2fr auto;gap:8px;align-items:end">
           <div>
-            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600">Curso</div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600">Aula</div>
             <select class="form-input" id="acm-curso-sel" style="width:100%">
               <option value="">Seleccionar...</option>
             </select>
@@ -33717,7 +33717,7 @@ if (!dataLoaded) {
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Curso</label>
+            <label class="form-label">Aula</label>
             <select class="form-input" id="nd-curso">
               <option value="">Todos los cursos</option>
             </select>
@@ -34107,7 +34107,7 @@ if (!dataLoaded) {
           <input class="form-input" id="anot-alumno" placeholder="Nombre del alumno" style="width:100%">
         </div>
         <div>
-          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">Curso</div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">Aula</div>
           <input class="form-input" id="anot-curso" placeholder="Ej: 6°A" style="width:100%">
         </div>
       </div>
@@ -34125,7 +34125,7 @@ if (!dataLoaded) {
           <input type="date" class="form-input" id="anot-fecha" style="width:100%">
         </div>
         <div>
-          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">Asignatura</div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">Área Curricular</div>
           <input class="form-input" id="anot-asignatura" placeholder="Opcional" style="width:100%">
         </div>
       </div>
