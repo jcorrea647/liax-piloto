@@ -3208,6 +3208,8 @@ async function _supaLoadPerfil() {
     // Update display name
     var nameEl = document.getElementById('topUserName');
     if (nameEl) nameEl.textContent = data.nombre || data.email;
+    // Hide/show topbar buttons based on real role
+    setTimeout(function(){ renderStorageBar(); renderApiKeyStatus(); }, 200);
     // Load cloud data
     await _loadPlatformKey();
     await _supaLoadCursos();
@@ -7557,6 +7559,10 @@ function switchRole(r) {
       ).join('');
     }
   }
+
+  // Refresh role-sensitive topbar elements
+  renderStorageBar();
+  renderApiKeyStatus();
 }
 
 // ── COLEGIOS ─────────────────────────────────────────────
