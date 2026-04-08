@@ -4041,7 +4041,14 @@ let cursosFilter = new Set(); // empty = all courses
 function getVisibleCursos(visible) {
   const all = DATOS_STORE.getAll();
   let base = visible || all;
-  return [...new Set(base.map(d => d.curso).filter(Boolean))].sort();
+  // Courses from DATOS_STORE
+  var cursosData = base.map(d => d.curso).filter(Boolean);
+  // Also include courses from Supabase alumnos (DB.alumnos uses .esp as curso_nombre)
+  var cursosAlumnos = (DB.alumnos || []).map(function(a){ return a.esp || a.curso_nombre; }).filter(Boolean);
+  // Also from CURSOS array loaded from Supabase
+  var cursosArray = (window.CURSOS || []).filter(Boolean);
+  var allCursos = cursosData.concat(cursosAlumnos).concat(cursosArray);
+  return [...new Set(allCursos)].sort();
 }
 
 function renderCursoChips() {
@@ -4050,7 +4057,13 @@ function renderCursoChips() {
   if (currentRole === 'docente' && currentDocenteId) {
     const doc = DB.docentes.find(d => d.id === currentDocenteId);
     const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso));
-    base = all.filter(d => !d.curso || misCursos.has(d.curso));
+    // If real Supabase user (no demo cursosAsignados), show all cursos from DB.alumnos
+    if (misCursos.size === 0 && DB.alumnos && DB.alumnos.length) {
+      // Use all courses from Supabase alumnos — docente sees all courses in their colegio
+      base = all; // no filter
+    } else if (misCursos.size > 0) {
+      base = all.filter(d => !d.curso || misCursos.has(d.curso));
+    }
   }
   const cursos = getVisibleCursos(base);
   const chips  = document.getElementById('cursoFilterChips');
@@ -6222,6 +6235,9 @@ function openApiKeyModal() {
 }
 function renderApiKeyStatus() {
   var el = document.getElementById('apiKeyStatus');
+  if (!el) return;
+  // Solo superadmin ve el estado de API keys
+  if (currentRole && currentRole !== 'superadmin') { el.innerHTML = ''; return; }
   if (!el) return;
   var hasAnthropic = !!getApiKey();
   var hasGemini    = !!getGeminiKey();
@@ -9046,12 +9062,10 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
   function _pdfCleanText(t) {
     return (t || '')
       .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
-      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
       .replace(/[\u{2600}-\u{26FF}]/gu, '')
       .replace(/[\u{2700}-\u{27BF}]/gu, '')
       .replace(/[\u{FE00}-\u{FEFF}]/gu, '')
-      .replace(/[\u{1F100}-\u{1F1FF}]/gu, '')
-      .replace(/[^\x00-\xFF\n]/gu, ' ')
+      .replace(/[^\x00-\x7F\xC0-\xFF\n]/g, ' ')
       .replace(/ {2,}/g, ' ')
       .trim();
   }
@@ -9345,29 +9359,14 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
     }
 
         // ── SVG / diagram block in PDF ─────────────────────────
-    // Skip entire SVG blocks (raw <svg> or ```svg) — render placeholder instead
-    if (/^```svg/i.test(t) || t.startsWith('__SVG_') || /^<svg[\s>]/i.test(t)) {
-      // If it's an opening <svg tag, skip all lines until </svg>
-      if (/^<svg[\s>]/i.test(t)) {
-        while (i < rawLines.length && !/^<\/svg>/i.test(rawLines[i].trim())) i++;
-        i++; // skip </svg> line too
-      } else {
-        i++; // skip the ```svg or __SVG_ line
-      }
+    if (/```svg/i.test(t) || t.startsWith('__SVG_')) {
       need(16);
       box(ML, y, pageW, 12, 3, C.h2bg);
       box(ML, y, 3, 12, 0, C.teal);
       font(8.5, 'normal'); ink(C.sub);
       doc.text('Diagrama visual — visible en la plataforma', ML + 7, y + 6.5);
-      y += 16;
-      continue;
+      y += 16; i++; continue;
     }
-    // Skip stray SVG inner lines and closing backticks (safety net)
-    if (/^<\/svg>/i.test(t) || /^<rect |^<text |^<line |^<circle |^<path |^<g[ >]|^<\/g>|^<!--/.test(t)) {
-      i++; continue;
-    }
-    // Skip opening/closing code fences not already caught above
-    if (/^```/.test(t)) { i++; continue; }
 
     // ── Regular paragraph ────────────────────────────────────
     // Strip markdown symbols for clean rendering
@@ -10704,6 +10703,8 @@ function patchAutoSave() {
 function renderStorageBar() {
   const bar = document.getElementById('storageBar');
   if (!bar) return;
+  // Solo superadmin ve estos botones
+  if (currentRole !== 'superadmin') { bar.innerHTML = ''; return; }
   try {
     const raw = localStorage.getItem(LS_KEY);
     const snap = raw ? JSON.parse(raw) : null;
