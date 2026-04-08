@@ -6097,18 +6097,24 @@ async function sendChat(){
   var _msgLower = (msg||'').toLowerCase();
 
   // Detectar tipo de tarea por keywords para elegir modelo y tokens
-  var _isInforme    = _msgLower.includes('informe') || _msgLower.includes('genera') || _msgLower.includes('crea el');
-  var _isDocumento  = _msgLower.includes('planificaci') || _msgLower.includes('rúbrica') || _msgLower.includes('rubrica') ||
-                      _msgLower.includes('guía') || _msgLower.includes('guia') || _msgLower.includes('completo') ||
-                      _msgLower.includes('todas las partes') || _msgLower.includes('evaluación') || _msgLower.includes('evaluacion');
-  var _isNEE        = _msgLower.includes('nee') || _msgLower.includes('dua') || _msgLower.includes('adaptación') || _msgLower.includes('inclusión');
-  var _isSimple     = _msgLower.length < 60 && !_isInforme && !_isDocumento && !_isNEE;
+  var _hasExcel   = pendingAttachments.some(function(a){ return a.name && (a.name.match(/\.xlsx?$/i) || a.name.match(/\.csv$/i)); }) ||
+                    _msgLower.includes('excel') || _msgLower.includes('planilla') || _msgLower.includes('tabla');
+  var _isInforme  = _msgLower.includes('informe') || _msgLower.includes('genera') || _msgLower.includes('crea el');
+  var _isDocumento= _msgLower.includes('planificaci') || _msgLower.includes('rúbrica') || _msgLower.includes('rubrica') ||
+                    _msgLower.includes('guía') || _msgLower.includes('guia') || _msgLower.includes('completo') ||
+                    _msgLower.includes('todas las partes') || _msgLower.includes('evaluación') || _msgLower.includes('evaluacion');
+  var _isNEE      = _msgLower.includes('nee') || _msgLower.includes('dua') || _msgLower.includes('adaptación') || _msgLower.includes('inclusión');
+  var _isSimple   = _msgLower.length < 60 && !_isInforme && !_isDocumento && !_isNEE && !_hasExcel;
 
   // Elegir modelo según tarea
   var _selectedModel, _selectedTokens;
   if (_isNEE) {
-    _selectedModel  = LIAX_MODELS['claude-sonnet'].id;
+    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
     _selectedTokens = 6000;
+  } else if (_hasExcel) {
+    // Excel/CSV → Gemini Pro (2M tokens, ideal para tablas)
+    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
+    _selectedTokens = 4000;
   } else if (_isInforme || _isDocumento) {
     _selectedModel  = LIAX_MODELS['gemini-pro'].id;
     _selectedTokens = 6000;
@@ -6554,8 +6560,8 @@ async function callGemini(payload) {
       if (rk) { localStorage.setItem('liax_gemini_key', rk); window._cachedGeminiKey = rk; key = rk; }
     } catch(e) {}
   }
-  var _isVercelGemini = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  if (!key && !_isVercelGemini) throw new Error('Gemini key no configurada — ve a ⚙️ Configurar IAs');
+  var _isVercel = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  if (!key && !_isVercel) throw new Error('Gemini key no configurada — ve a ⚙️ Configurar IAs');
   if (!key) key = 'proxy'; // Vercel proxy has the key
 
   // Determine model — use payload.model if it's a Gemini ID, else default
@@ -6629,8 +6635,8 @@ async function callGemini(payload) {
 
   let res;
   try {
-    var isLocalGemini = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isLocalGemini && key) {
+    var isLocalGemini = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && key && key !== 'proxy';
+    if (isLocalGemini) {
       // Direct call on localhost
       res = await fetch(
         'https://generativelanguage.googleapis.com/v1beta/models/' + geminiModel + ':generateContent?key=' + key,
@@ -6757,73 +6763,47 @@ async function callClaudeDirect(payload) {
   return data;
 }
 
-// ── ROUTER INTELIGENTE: 4 niveles × 3 proveedores ───────────
+// ── LLAMADA IA — simple y estable ────────────────────────────
 async function callClaude(payload) {
-  var explicit   = payload.model; // model set explicitly by caller (e.g. sendChat)
-  var classified = classifyComplexity(payload.messages || [], payload.system || '');
-  var provider   = classified.provider;
-  var task       = classified.task;
-  var modelKey   = classified.modelKey;
-  var modelId    = classified.modelId;
+  var modelId = payload.model || LIAX_MODELS['gemini-pro'].id;
+  var isGemini = modelId.includes('gemini');
+  var isClaude = modelId.includes('claude');
 
-  // If caller already specified a model, derive provider from it and respect it
-  if (explicit) {
-    modelId  = explicit;
-    var expKey = Object.keys(LIAX_MODELS).find(function(k){ return LIAX_MODELS[k].id === explicit; });
-    if (expKey) { provider = LIAX_MODELS[expKey].provider; modelKey = expKey; }
-    else if (explicit.includes('gemini')) provider = 'gemini';
-    else if (explicit.includes('gpt'))    provider = 'openai';
-    else                                  provider = 'claude';
-  } else {
-    payload.model = modelId; // set router-chosen model
-  }
+  // Derive modelKey for display
+  var modelKey = Object.keys(LIAX_MODELS).find(function(k){
+    return LIAX_MODELS[k].id === modelId;
+  }) || (isGemini ? 'gemini-pro' : 'claude-haiku');
 
-  // Show subtle model indicator in chat
-  if (window._lastShownModel !== modelKey) {
-    window._lastShownModel = modelKey;
-    var meta = LIAX_MODELS[modelKey] || PROVIDER_META[modelKey] || {};
-    if (meta.label || meta.icon) {
-      var label = (meta.icon || '') + ' ' + (meta.label || modelKey);
-      showModelIndicator(label, task);
-    }
-  }
+  // Show model badge
+  var meta = LIAX_MODELS[modelKey] || {};
+  if (meta.label) showModelIndicator((meta.icon||'') + ' ' + meta.label, '');
 
-  async function tryProvider(p) {
-    if (p === 'gemini') {
-      payload.model = modelId;
-      return await callGemini(payload);
-    }
-    if (p === 'openai') {
-      payload.model = modelId;
-      return await callOpenAI(payload);
-    }
-    payload.model = modelId || LIAX_MODELS['claude-sonnet'].id;
-    return await callClaudeDirect(payload);
-  }
+  var _t0 = Date.now();
+  var result;
 
   try {
-    var _t0 = Date.now();
-    const result = await tryProvider(provider);
-    window._lastCallDuration = Date.now() - _t0;
-    result._task     = task;
-    result._modelKey = modelKey;
-    result._modelId  = modelId;
-    window._lastCallData = result;
-    return result;
+    if (isGemini) {
+      result = await callGemini(payload);
+    } else {
+      result = await callClaudeDirect(payload);
+    }
   } catch(e) {
-    var _fallbackModel = (['analisis','nee','informe'].indexOf(task) > -1)
-      ? LIAX_MODELS['claude-sonnet'].id
-      : LIAX_MODELS['claude-haiku'].id;
-    console.warn('[LIAX Router] ' + provider + '/' + modelKey + ' falló: ' + e.message + ' — fallback');
+    // Fallback: si Gemini falla, usar Claude Haiku
+    console.warn('[LIAX] ' + modelId + ' falló (' + e.message + ') — fallback a Claude Haiku');
     try {
-      payload.model = _fallbackModel;
-      const fallback = await callClaudeDirect(payload);
-      fallback._task     = task;
-      fallback._fallback = true;
-      fallback._modelKey = 'claude-sonnet';
-      return fallback;
-    } catch(e2) { throw e2; }
+      payload.model = LIAX_MODELS['claude-haiku'].id;
+      result = await callClaudeDirect(payload);
+      result._fallback = true;
+    } catch(e2) {
+      throw new Error('No se pudo obtener respuesta. Verifica tu conexión e intenta nuevamente.');
+    }
   }
+
+  window._lastCallDuration = Date.now() - _t0;
+  window._lastCallData = result;
+  result._modelKey = modelKey;
+  result._modelId  = modelId;
+  return result;
 }
 
 function showModelIndicator(modelLabel, task) {
