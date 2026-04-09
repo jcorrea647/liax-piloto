@@ -19,7 +19,7 @@
   h1,h2,h3,h4{font-family:'Syne',sans-serif;}
 
   /* 2-column layout — wide left sidebar */
-  .app{display:grid;grid-template-columns:280px 1fr;grid-template-rows:54px 48px auto 1fr;height:100vh;}
+  .app{display:grid;grid-template-columns:204px 1fr;grid-template-rows:54px 48px auto 1fr;height:100vh;}
   .topbar{grid-column:1/-1;grid-row:1;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;z-index:10;}
   .docente-view-banner{grid-column:1/-1;grid-row:3;}
   .sidebar{grid-row:4;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0;}
@@ -1534,7 +1534,7 @@
           <button class="btn btn-outline sa-sos-dir-only" onclick="openDimsConfigPanel()" style="font-size:11px;padding:4px 10px" title="Configurar dimensiones IA">🧩 Dimensiones</button>
         </div>
       </div>
-      <div id="agentGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:11px"></div>
+      <div id="agentGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:11px"></div>
     </div>
 
     <!-- FAVORITOS -->
@@ -1606,7 +1606,7 @@
                    color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;
                    font-family:DM Sans,sans-serif">Ver todos →</button>
         </div>
-        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
+        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px"></div>
         <div id="favEmptyState" style="display:none;text-align:center;padding:16px;color:var(--muted)">
           <div style="font-size:11px">Sin favoritos — abre un agente y haz clic en ⭐</div>
           <button onclick="showPanel('agentes')" class="btn btn-primary" style="font-size:11px;margin-top:8px">Explorar agentes →</button>
@@ -3217,6 +3217,11 @@ async function _supaLoadPerfil() {
     await _supaLoadRags();
     await denLoad();
     await _supaLoadAgentes();
+    await _loadFavoritesFromSupabase();
+    await _supaLoadDatos();
+    await _supaLoadAnotaciones();
+    await _supaLoadAjustes();
+    await _supaLoadDocumentosChat();
     await _supaLoadBanco();
     await _supaLoadNivel();
   }
@@ -4019,8 +4024,8 @@ function updateMisCursosLabel(r) {
 const DATOS_STORE = {
   getAll:  ()      => JSON.parse(localStorage.getItem('liax_datos') || '[]'),
   save:    (arr)   => localStorage.setItem('liax_datos', JSON.stringify(arr)),
-  add:     (item)  => { const a=DATOS_STORE.getAll(); a.unshift(item); DATOS_STORE.save(a); },
-  remove:  (id)    => DATOS_STORE.save(DATOS_STORE.getAll().filter(d=>d.id!==id)),
+  add:     (item)  => { const a=DATOS_STORE.getAll(); a.unshift(item); DATOS_STORE.save(a); if(typeof _supaSaveDato==='function') _supaSaveDato(item).catch(function(){}); },
+  remove:  (id)    => { DATOS_STORE.save(DATOS_STORE.getAll().filter(d=>d.id!==id)); if(typeof _supaDeleteDato==='function') _supaDeleteDato(id).catch(function(){}); },
   getById: (id)    => DATOS_STORE.getAll().find(d=>d.id===id),
 };
 
@@ -4814,6 +4819,8 @@ function saveAnotacion() {
   if (idx > -1) allDs[idx] = ds;
   DATOS_STORE.save(allDs);
 
+  // Save to Supabase
+  if (typeof _supaSaveAnotacion === 'function') _supaSaveAnotacion(newRow).catch(function(){});
   closeAnotacionModal();
   renderDatosCurso();
   // If profile is open for this alumno, refresh fichas
@@ -5149,10 +5156,40 @@ function guardarDato() {
 
 // ── FAVORITOS ─────────────────────────────────────────────
 const FAV_STORE = {
-  getAll: ()  => new Set(JSON.parse(localStorage.getItem('liax_favorites') || '[]')),
-  save:   (s) => localStorage.setItem('liax_favorites', JSON.stringify([...s])),
-  isFav:  (id)=> FAV_STORE.getAll().has(id),
+  getAll: function() {
+    try { return new Set(JSON.parse(localStorage.getItem('liax_favorites') || '[]')); }
+    catch(e) { return new Set(); }
+  },
+  save: function(s) {
+    try {
+      localStorage.setItem('liax_favorites', JSON.stringify([...s]));
+      // Backup to Supabase config if logged in
+      if (_supaUser && _supaPerfil && _supa) {
+        _supa.from('config').upsert({
+          key: 'favorites_' + _supaUser.id,
+          value: JSON.stringify([...s]),
+          colegio_id: _supaPerfil.colegio_id
+        }).catch(function(){});
+      }
+    } catch(e) {}
+  },
+  isFav: function(id) { return FAV_STORE.getAll().has(id); },
 };
+
+// Load favorites from Supabase if localStorage is empty (mobile Safari)
+async function _loadFavoritesFromSupabase() {
+  if (!_supaUser || !_supa) return;
+  var local = FAV_STORE.getAll();
+  if (local.size > 0) return; // already have local data
+  try {
+    var { data } = await _supa.from('config')
+      .select('value').eq('key', 'favorites_' + _supaUser.id).maybeSingle();
+    if (data && data.value) {
+      localStorage.setItem('liax_favorites', data.value);
+      renderFavoritos();
+    }
+  } catch(e) {}
+}
 
 function toggleFav(agentId) {
   const favs = FAV_STORE.getAll();
@@ -8874,6 +8911,7 @@ function saveCurrentResponseAsDoc(content) {
   // Update existing doc with same title, or create new
   const existingIdx = docs.findIndex(function(d){ return d.title === title; });
   const docObj = { title, content: fullContent, savedAt: new Date().toISOString(), agentId: currentAgent.id, agentName: currentAgent.nombre };
+  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(currentAgent.id, title, fullContent).catch(function(){});
   if (existingIdx > -1) {
     docs[existingIdx] = docObj; // update existing
   } else {
@@ -18443,6 +18481,7 @@ function paGuardarSalud() {
   var data = { estado:get('pa-salud-estado'), fecha:get('pa-salud-fecha'),
     diagnostico:get('pa-salud-diagnostico'), derivaciones:get('pa-salud-derivaciones'), acciones:get('pa-salud-acciones') };
   localStorage.setItem('liax_pa_salud_' + n, JSON.stringify(data));
+  if (typeof _supaSavePerfilAlumno === 'function') _supaSavePerfilAlumno(n, 'salud', data).catch(function(){});
   showSaveToast('✅ Datos de Salud del Alumno guardados');
 }
 
@@ -18466,6 +18505,7 @@ function paGuardarNEE() {
     paci:get('pa-nee-paci'), diagnostico:get('pa-nee-diagnostico'), adapt:get('pa-nee-adapt'),
     especialistas:get('pa-nee-especialistas') };
   localStorage.setItem('liax_pa_nee_' + n, JSON.stringify(data));
+  if (typeof _supaSavePerfilAlumno === 'function') _supaSavePerfilAlumno(n, 'nee', data).catch(function(){});
   // Update alumno in DB
   var alu = DB.alumnos.find(function(a){ return a.nombre===n; });
   if (alu) { alu.nee=data.perm; alu.neeT=data.trans; }
@@ -18518,6 +18558,7 @@ async function paSubirDocs(files) {
     docs.unshift(doc);
   }
   localStorage.setItem('liax_pa_docs_' + n, JSON.stringify(docs));
+  if (typeof _supaSavePerfilAlumno === 'function') _supaSavePerfilAlumno(n, 'docs', docs).catch(function(){});
   paCargarDocs(n);
   showSaveToast('✅ ' + files.length + ' documento(s) subido(s) — indexados como contexto IA');
 }
@@ -33070,6 +33111,192 @@ async function denShowAlertas() {
   // Update badge
   var badge = document.getElementById('den-alerta-count');
   if (badge) badge.textContent = alertas.length;
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// MIGRACIÓN localStorage → Supabase
+// datos, anotaciones, perfil_alumno, ajustes_agentes, docs_chat
+// ══════════════════════════════════════════════════════════════
+
+// ── DATOS ─────────────────────────────────────────────────────
+async function _supaLoadDatos() {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    var { data } = await _supa.from('datos').select('*')
+      .eq('colegio_id', _supaPerfil.colegio_id)
+      .order('saved_at', { ascending: false });
+    if (data && data.length) {
+      // Merge with localStorage — Supabase wins
+      var local = DATOS_STORE.getAll();
+      var supaIds = new Set(data.map(function(d){ return d.id; }));
+      var onlyLocal = local.filter(function(d){ return !supaIds.has(d.id); });
+      // Convert Supabase format → local format
+      var supaItems = data.map(function(d){
+        return { id:d.id, nombre:d.nombre, tipo:d.tipo, curso:d.curso, periodo:d.periodo,
+                 desc:d.descripcion, origen:d.origen, cols:d.cols||[], rows:d.rows||[],
+                 rawText:d.raw_text||'', savedAt:d.saved_at, owner:d.owner_rol };
+      });
+      DATOS_STORE.save(supaItems.concat(onlyLocal));
+      console.log('[LIAX] Datos cargados desde Supabase:', data.length);
+    }
+  } catch(e) { console.warn('[LIAX] Error cargando datos:', e.message); }
+}
+
+async function _supaSaveDato(item) {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    await _supa.from('datos').upsert({
+      id:          item.id,
+      nombre:      item.nombre,
+      tipo:        item.tipo,
+      curso:       item.curso || null,
+      periodo:     item.periodo || null,
+      descripcion: item.desc || null,
+      origen:      item.origen || 'manual',
+      cols:        item.cols || [],
+      rows:        item.rows || [],
+      raw_text:    item.rawText || null,
+      owner_rol:   item.owner || currentRole,
+      colegio_id:  _supaPerfil.colegio_id,
+      user_id:     _supaUser.id,
+      saved_at:    item.savedAt || new Date().toISOString(),
+    });
+  } catch(e) { console.warn('[LIAX] Error guardando dato:', e.message); }
+}
+
+async function _supaDeleteDato(id) {
+  if (!_supaUser) return;
+  try { await _supa.from('datos').delete().eq('id', id); } catch(e) {}
+}
+
+// ── ANOTACIONES ───────────────────────────────────────────────
+async function _supaLoadAnotaciones() {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    var { data } = await _supa.from('anotaciones').select('*')
+      .eq('colegio_id', _supaPerfil.colegio_id)
+      .order('created_at', { ascending: false });
+    if (data && data.length) {
+      var local = JSON.parse(localStorage.getItem('liax_anotaciones') || '[]');
+      var supaIds = new Set(data.map(function(a){ return a.id; }));
+      var onlyLocal = local.filter(function(a){ return !supaIds.has(a.id); });
+      var merged = data.concat(onlyLocal);
+      localStorage.setItem('liax_anotaciones', JSON.stringify(merged));
+      console.log('[LIAX] Anotaciones cargadas desde Supabase:', data.length);
+    }
+  } catch(e) { console.warn('[LIAX] Error cargando anotaciones:', e.message); }
+}
+
+async function _supaSaveAnotacion(anot) {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    await _supa.from('anotaciones').upsert({
+      id:         anot.id || undefined,
+      alumno:     anot.Alumno || anot.alumno,
+      curso:      anot.curso || null,
+      tipo:       anot.Tipo || anot.tipo || 'positiva',
+      fecha:      anot.Fecha || anot.fecha || null,
+      asignatura: anot.Asignatura || anot.asignatura || null,
+      texto:      anot.Texto || anot.texto,
+      colegio_id: _supaPerfil.colegio_id,
+      user_id:    _supaUser.id,
+    });
+  } catch(e) { console.warn('[LIAX] Error guardando anotación:', e.message); }
+}
+
+// ── PERFIL ALUMNO ─────────────────────────────────────────────
+async function _supaLoadPerfilAlumno(nombre) {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return null;
+  try {
+    var { data } = await _supa.from('perfil_alumno').select('*')
+      .eq('alumno_nombre', nombre)
+      .eq('colegio_id', _supaPerfil.colegio_id)
+      .maybeSingle();
+    if (data) {
+      // Sync to localStorage
+      if (data.nee)  localStorage.setItem('liax_pa_nee_'  + nombre, JSON.stringify(data.nee));
+      if (data.salud)localStorage.setItem('liax_pa_salud_'+ nombre, JSON.stringify(data.salud));
+      if (data.docs) localStorage.setItem('liax_pa_docs_' + nombre, JSON.stringify(data.docs));
+      return data;
+    }
+  } catch(e) { console.warn('[LIAX] Error cargando perfil alumno:', e.message); }
+  return null;
+}
+
+async function _supaSavePerfilAlumno(nombre, field, value) {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    var update = { alumno_nombre: nombre, colegio_id: _supaPerfil.colegio_id, updated_at: new Date().toISOString() };
+    update[field] = value;
+    await _supa.from('perfil_alumno').upsert(update, { onConflict: 'alumno_nombre,colegio_id' });
+  } catch(e) { console.warn('[LIAX] Error guardando perfil alumno:', e.message); }
+}
+
+// ── AJUSTES AGENTES ───────────────────────────────────────────
+async function _supaLoadAjustes() {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    var { data } = await _supa.from('ajustes_agentes').select('*')
+      .eq('colegio_id', _supaPerfil.colegio_id);
+    if (data && data.length) {
+      data.forEach(function(aj) {
+        var key = aj.tipo === 'colegio' ? 'liax_ajuste_colegio_' + aj.agente_id
+                                        : 'liax_ajuste_usuario_' + aj.agente_id;
+        if (aj.valor) localStorage.setItem(key, aj.valor);
+      });
+      console.log('[LIAX] Ajustes agentes cargados:', data.length);
+    }
+  } catch(e) { console.warn('[LIAX] Error cargando ajustes:', e.message); }
+}
+
+async function _supaSaveAjuste(agenteId, tipo, valor) {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    await _supa.from('ajustes_agentes').upsert({
+      agente_id:  agenteId,
+      tipo:       tipo,
+      valor:      valor,
+      colegio_id: _supaPerfil.colegio_id,
+      user_id:    _supaUser.id,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'agente_id,tipo,colegio_id' });
+  } catch(e) { console.warn('[LIAX] Error guardando ajuste:', e.message); }
+}
+
+// ── DOCUMENTOS CHAT ───────────────────────────────────────────
+async function _supaLoadDocumentosChat() {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    var { data } = await _supa.from('documentos_chat').select('*')
+      .eq('colegio_id', _supaPerfil.colegio_id)
+      .eq('user_id', _supaUser.id)
+      .order('saved_at', { ascending: false });
+    if (data && data.length) {
+      // Merge with localStorage docs
+      data.forEach(function(doc) {
+        var key = 'liax_docs_' + doc.agente_id;
+        var local = JSON.parse(localStorage.getItem(key) || '[]');
+        var exists = local.some(function(d){ return d.id === doc.id; });
+        if (!exists) local.unshift({ id: doc.id, title: doc.titulo, content: doc.contenido, savedAt: doc.saved_at });
+        localStorage.setItem(key, JSON.stringify(local));
+      });
+      console.log('[LIAX] Docs chat cargados:', data.length);
+    }
+  } catch(e) { console.warn('[LIAX] Error cargando docs chat:', e.message); }
+}
+
+async function _supaSaveDocChat(agenteId, titulo, contenido) {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    await _supa.from('documentos_chat').insert({
+      agente_id:  agenteId,
+      titulo:     titulo,
+      contenido:  contenido,
+      colegio_id: _supaPerfil.colegio_id,
+      user_id:    _supaUser.id,
+    });
+  } catch(e) { console.warn('[LIAX] Error guardando doc chat:', e.message); }
 }
 
 
