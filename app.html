@@ -1132,6 +1132,32 @@
   <header class="topbar">
     <span class="logo">Li<span>ax</span></span>
     <span class="top-badge" id="topBadgeLabel">IA Educativa</span>
+
+    <!-- Selector de colegio (SA y Sostenedor) -->
+    <div id="colegioSelectorWrap" style="display:none;position:relative;margin-left:10px">
+      <button id="colegioSelectorBtn" onclick="toggleColegioSelector()"
+        style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--accent2)44;
+               color:var(--text);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:11px;
+               font-family:DM Sans,sans-serif;font-weight:600;max-width:220px">
+        <span style="font-size:13px">🏫</span>
+        <span id="colegioSelectorLabel" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Colegio...</span>
+        <span style="font-size:9px;opacity:.6;flex-shrink:0">▾</span>
+      </button>
+      <div id="colegioSelectorDrop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:9999;
+            background:var(--surface);border:1px solid var(--border);border-radius:10px;
+            box-shadow:0 8px 24px rgba(0,0,0,.25);min-width:240px;overflow:hidden">
+        <div style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">
+          Seleccionar colegio(s)
+        </div>
+        <div id="colegioSelectorList" style="max-height:220px;overflow-y:auto;padding:4px 0"></div>
+        <div style="padding:7px 10px;border-top:1px solid var(--border);display:flex;gap:6px">
+          <button onclick="colegioSelAll()" style="flex:1;background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px;font-size:10px;cursor:pointer;font-family:DM Sans,sans-serif">Todos</button>
+          <button onclick="colegioSelNone()" style="flex:1;background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px;font-size:10px;cursor:pointer;font-family:DM Sans,sans-serif">Ninguno</button>
+          <button onclick="toggleColegioSelector()" style="flex:2;background:var(--accent2);color:#000;border:none;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif">Aplicar</button>
+        </div>
+      </div>
+    </div>
+
     <div id="storageBar" style="margin-left:10px"></div>
     <div id="apiKeyStatus" style="margin-left:4px"></div>
     <div class="top-spacer"></div>
@@ -3209,7 +3235,12 @@ async function _supaLoadPerfil() {
     var nameEl = document.getElementById('topUserName');
     if (nameEl) nameEl.textContent = data.nombre || data.email;
     // Hide/show topbar buttons based on real role
-    setTimeout(function(){ renderStorageBar(); renderApiKeyStatus(); }, 200);
+    setTimeout(function(){
+      renderStorageBar();
+      renderApiKeyStatus();
+      _initColegioDefault();
+      initColegioSelector();
+    }, 300);
     // Load cloud data
     await _loadPlatformKey();
     await _supaLoadCursos();
@@ -7600,6 +7631,7 @@ function switchRole(r) {
   // Refresh role-sensitive topbar elements
   renderStorageBar();
   renderApiKeyStatus();
+  initColegioSelector();
 }
 
 // ── COLEGIOS ─────────────────────────────────────────────
@@ -33297,6 +33329,191 @@ async function _supaSaveDocChat(agenteId, titulo, contenido) {
       user_id:    _supaUser.id,
     });
   } catch(e) { console.warn('[LIAX] Error guardando doc chat:', e.message); }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// SELECTOR DE COLEGIO — Topbar (SA y Sostenedor)
+// ══════════════════════════════════════════════════════════════
+
+var _selectedColegios = new Set(); // IDs de colegios seleccionados
+var _activeColegioId  = null;      // colegio activo actual
+
+function initColegioSelector() {
+  var wrap = document.getElementById('colegioSelectorWrap');
+  if (!wrap) return;
+
+  var isSA  = currentRole === 'superadmin';
+  var isSos = currentRole === 'sostenedor';
+
+  if (!isSA && !isSos) {
+    wrap.style.display = 'none';
+    // Para director/docente: mostrar nombre del colegio como texto
+    _renderColegioNombreTopbar();
+    return;
+  }
+
+  wrap.style.display = 'flex';
+  _renderColegioList();
+  _updateColegioLabel();
+
+  // Close on outside click
+  document.addEventListener('click', function(e) {
+    var drop = document.getElementById('colegioSelectorDrop');
+    var btn  = document.getElementById('colegioSelectorBtn');
+    if (drop && !drop.contains(e.target) && btn && !btn.contains(e.target)) {
+      drop.style.display = 'none';
+    }
+  });
+}
+
+function _renderColegioNombreTopbar() {
+  // Para roles sin selector: mostrar nombre del colegio en el badge
+  var badge = document.getElementById('topBadgeLabel');
+  if (!badge) return;
+  var colegio = COLEGIOS.find(function(c){
+    return c.id === (_supaPerfil?.colegio_id || '') ||
+           c.nombre === (_supaPerfil?.establecimiento || '');
+  });
+  if (colegio) badge.textContent = colegio.nombre;
+  else if (_supaPerfil?.establecimiento) badge.textContent = _supaPerfil.establecimiento;
+  else badge.textContent = 'IA Educativa';
+}
+
+function _renderColegioList() {
+  var list = document.getElementById('colegioSelectorList');
+  if (!list) return;
+  var visibleColegios = COLEGIOS;
+  if (!visibleColegios.length) {
+    list.innerHTML = '<div style="padding:12px;font-size:11px;color:var(--muted);text-align:center">Sin colegios</div>';
+    return;
+  }
+  list.innerHTML = visibleColegios.map(function(c) {
+    var sel = _selectedColegios.has(c.id);
+    var isActive = _activeColegioId === c.id;
+    var bg   = sel ? 'var(--dim2)' : 'transparent';
+    var chkBg= sel ? 'var(--accent2)' : 'transparent';
+    var chkBd= sel ? 'var(--accent2)' : 'var(--border)';
+    return [
+      '<div data-col-id="' + c.id + '" class="_col-item"',
+      ' style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;background:' + bg + '">',
+      '<div style="width:16px;height:16px;border-radius:4px;border:1.5px solid ' + chkBd + ';background:' + chkBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:#000">' + (sel ? '&#10003;' : '') + '</div>',
+      '<div style="flex:1;min-width:0">',
+        '<div style="font-size:12px;font-weight:' + (isActive ? '800' : '600') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + c.nombre + '</div>',
+        '<div style="font-size:9px;color:var(--muted)">' + (c.rbd ? 'RBD ' + c.rbd : '') + (c.comuna ? ' · ' + c.comuna : '') + '</div>',
+      '</div>',
+      (isActive ? '<span style="font-size:9px;background:var(--accent2);color:#000;border-radius:10px;padding:1px 6px;font-weight:800">activo</span>' : ''),
+      '</div>'
+    ].join('');
+  }).join('');
+
+  // Event delegation
+  list.onclick = function(e) {
+    var item = e.target.closest('[data-col-id]');
+    if (item) toggleColegio(item.getAttribute('data-col-id'));
+  };
+}
+
+function toggleColegio(id) {
+  if (_selectedColegios.has(id)) {
+    if (_selectedColegios.size > 1) _selectedColegios.delete(id); // keep at least one
+  } else {
+    _selectedColegios.add(id);
+  }
+  // Set active colegio = last selected
+  _activeColegioId = id;
+  _renderColegioList();
+  _updateColegioLabel();
+  _applyColegioFilter();
+}
+
+function colegioSelAll() {
+  COLEGIOS.forEach(function(c){ _selectedColegios.add(c.id); });
+  if (COLEGIOS.length) _activeColegioId = COLEGIOS[0].id;
+  _renderColegioList();
+  _updateColegioLabel();
+  _applyColegioFilter();
+}
+
+function colegioSelNone() {
+  // Keep only first
+  _selectedColegios.clear();
+  if (COLEGIOS.length) {
+    _selectedColegios.add(COLEGIOS[0].id);
+    _activeColegioId = COLEGIOS[0].id;
+  }
+  _renderColegioList();
+  _updateColegioLabel();
+  _applyColegioFilter();
+}
+
+function toggleColegioSelector() {
+  var drop = document.getElementById('colegioSelectorDrop');
+  if (!drop) return;
+  var isOpen = drop.style.display !== 'none';
+  drop.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) _renderColegioList();
+}
+
+function _updateColegioLabel() {
+  var label = document.getElementById('colegioSelectorLabel');
+  if (!label) return;
+  var count = _selectedColegios.size;
+  if (count === 0) {
+    label.textContent = 'Sin colegio';
+  } else if (count === 1) {
+    var id = [..._selectedColegios][0];
+    var c  = COLEGIOS.find(function(c){ return c.id === id; });
+    label.textContent = c ? c.nombre : id;
+  } else if (count === COLEGIOS.length) {
+    label.textContent = 'Todos los colegios (' + count + ')';
+  } else {
+    label.textContent = count + ' colegios seleccionados';
+  }
+  // Also update topbar badge
+  var badge = document.getElementById('topBadgeLabel');
+  if (badge && count === 1) {
+    var id = [..._selectedColegios][0];
+    var c  = COLEGIOS.find(function(c){ return c.id === id; });
+    if (c) badge.textContent = c.nombre;
+  } else if (badge && count > 1) {
+    badge.textContent = count + ' colegios';
+  }
+}
+
+function _applyColegioFilter() {
+  // Update colegio_id activo para queries
+  if (_activeColegioId && _supaPerfil) {
+    window._activeColegioFilter = [..._selectedColegios];
+    // Refresh current panel data
+    if (typeof renderDashboard === 'function') renderDashboard();
+    if (typeof renderColegiosGrid === 'function') renderColegiosGrid();
+  }
+}
+
+function _initColegioDefault() {
+  // Set default based on logged user
+  _selectedColegios.clear();
+  if (_supaPerfil?.colegio_id) {
+    // Find matching colegio
+    var match = COLEGIOS.find(function(c){
+      return c.id === _supaPerfil.colegio_id;
+    });
+    if (match) {
+      _selectedColegios.add(match.id);
+      _activeColegioId = match.id;
+    } else {
+      // Supabase colegio not in demo list — add it
+      var newC = { id: _supaPerfil.colegio_id, nombre: _supaPerfil.establecimiento || ('Colegio ' + _supaPerfil.colegio_id), rbd: _supaPerfil.colegio_id };
+      var exists = COLEGIOS.find(function(c){ return c.id === _supaPerfil.colegio_id; });
+      if (!exists) COLEGIOS.push(newC);
+      _selectedColegios.add(_supaPerfil.colegio_id);
+      _activeColegioId = _supaPerfil.colegio_id;
+    }
+  } else if (COLEGIOS.length) {
+    _selectedColegios.add(COLEGIOS[0].id);
+    _activeColegioId = COLEGIOS[0].id;
+  }
 }
 
 
