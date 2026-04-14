@@ -20,8 +20,8 @@
 
   /* 2-column layout — collapsible sidebar */
   .app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:54px 48px auto 1fr;height:100vh;}
-  .sidebar{grid-row:4;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0;width:220px;min-width:0;transition:width 0.22s ease,padding 0.22s ease,border 0.22s ease;overflow:hidden;}
-  .app.sidebar-collapsed .sidebar{width:0;padding-left:0;padding-right:0;border-right-color:transparent;}
+  .sidebar{grid-row:4;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0;max-width:220px;min-width:0;transition:max-width 0.25s ease, opacity 0.25s ease;overflow:hidden;opacity:1;}
+  .sidebar.sb-collapsed{max-width:0 !important;opacity:0;padding:0 !important;border-right-color:transparent !important;pointer-events:none;}
 
   /* ── Tema Gestión Estratégica — sidebar + topbar verde oscuro ── */
   body.theme-gestion .topbar {
@@ -771,6 +771,7 @@
   /* ── DOCENTE VIEW BANNER ── */
   .docente-view-banner{background:var(--dim2);border-bottom:2px solid var(--accent2)44;padding:7px 16px;font-size:11px;color:var(--accent2);display:none;align-items:center;gap:8px;flex-shrink:0;}
   body.is-docente .docente-view-banner{display:flex;}
+  body.is-docente .no-docente{display:none !important;}
 
   .agent-panel-btn.active-ajustar{background:var(--dim4);border-color:var(--accent4)66;color:var(--accent4);}
   /* ── VISOR DE RESULTADOS ── */
@@ -1614,7 +1615,7 @@
     <div class="panel" id="panel-favoritos" style="padding:0">
 
       <!-- ══ HERO SECTION — compacto ══ -->
-      <div style="background:linear-gradient(160deg,var(--surface) 0%,var(--bg) 100%);border-bottom:1px solid var(--border);padding:16px 24px 14px;text-align:center">
+      <div class="no-docente" style="background:linear-gradient(160deg,var(--surface) 0%,var(--bg) 100%);border-bottom:1px solid var(--border);padding:16px 24px 14px;text-align:center">
 
         <!-- Saludo -->
         <div id="homeGreeting"
@@ -31337,11 +31338,13 @@ function gcEliminarAlumno(alumnoId, curso) {
 // ── Desktop sidebar toggle ────────────────────────────────────
 function toggleDesktopSidebar() {
   var app = document.querySelector('.app');
+  var sb  = document.querySelector('.sidebar');
   var btn = document.getElementById('sidebarToggleBtn');
-  if (!app) return;
-  var collapsed = app.classList.toggle('sidebar-collapsed');
+  if (!sb) return;
+  var collapsed = sb.classList.toggle('sb-collapsed');
+  if (app) app.style.gridTemplateColumns = collapsed ? '0px 1fr' : '220px 1fr';
   if (btn) {
-    btn.style.color = collapsed ? 'var(--accent1)' : '';
+    btn.style.color       = collapsed ? 'var(--accent1)' : '';
     btn.style.borderColor = collapsed ? 'var(--accent1)' : '';
     btn.title = collapsed ? 'Mostrar menú' : 'Ocultar menú';
   }
