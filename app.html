@@ -5590,7 +5590,7 @@ function _buildChatView() {
     '</div>';
 
   document.getElementById('mBody').innerHTML =
-    ctxNote + neeNote + datosBar +
+    (currentRole === 'docente' ? '' : ctxNote + neeNote + datosBar) +
     '<div style="display:flex;flex-direction:column;height:100%;min-height:0">' +
       welcomeScreen +
       // Chat area — hidden until first message
