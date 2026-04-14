@@ -1612,10 +1612,10 @@
     </div>
 
     <!-- FAVORITOS -->
-    <div class="panel" id="panel-favoritos" style="padding:0">
+    <div class="panel" id="panel-favoritos" style="padding:0;background:#f5f3ef">
 
       <!-- ══ HERO SECTION — compacto ══ -->
-      <div class="no-docente" style="background:linear-gradient(160deg,var(--surface) 0%,var(--bg) 100%);border-bottom:1px solid var(--border);padding:16px 24px 14px;text-align:center">
+      <div class="no-docente" style="background:#f5f3ef;border-bottom:1px solid var(--border);padding:16px 24px 14px;text-align:center">
 
         <!-- Saludo -->
         <div id="homeGreeting"
@@ -1668,19 +1668,21 @@
       </div>
 
       <!-- ══ AGENTES FAVORITOS — compacto ══ -->
-      <div style="padding:14px 24px 10px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="padding:16px 24px 16px;background:#f5f3ef">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:6px">
             <span style="font-size:13px">⭐</span>
-            <span style="font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)">Agentes favoritos</span>
-            <span id="fav-sub" style="font-size:10px;font-weight:400;color:var(--muted)"></span>
+            <span style="font-size:11px;font-weight:600;color:var(--muted);font-family:'DM Sans',sans-serif">Agentes favoritos</span>
+            <span id="fav-sub" style="font-size:11px;font-weight:400;color:var(--muted)"></span>
           </div>
           <button onclick="showPanel('agentes')"
-            style="font-size:10px;background:none;border:1px solid var(--border);
-                   color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;
-                   font-family:DM Sans,sans-serif">Ver todos →</button>
+            style="font-size:11px;background:none;border:1px solid var(--border);
+                   color:var(--muted);border-radius:8px;padding:3px 10px;cursor:pointer;
+                   font-family:'DM Sans',sans-serif;transition:all .15s"
+            onmouseenter="this.style.borderColor='var(--accent1)';this.style.color='var(--accent1)'"
+            onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">Ver todos →</button>
         </div>
-        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px"></div>
+        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px"></div>
         <div id="favEmptyState" style="display:none;text-align:center;padding:16px;color:var(--muted)">
           <div style="font-size:11px">Sin favoritos — abre un agente y haz clic en ⭐</div>
           <button onclick="showPanel('agentes')" class="btn btn-primary" style="font-size:11px;margin-top:8px">Explorar agentes →</button>
@@ -5323,19 +5325,21 @@ function renderFavoritos() {
 
   grid.innerHTML = agents.map(a => {
     const c = COLORS[a.dim];
+    const descCorta = a.desc.length > 72 ? a.desc.slice(0, 72) + '…' : a.desc;
     return `<div onclick="openAgent('${a.id}')"
-      style="background:var(--surface);border:1px solid ${c.border};border-radius:9px;
-             padding:10px 12px;cursor:pointer;transition:all .15s;position:relative;
-             display:flex;align-items:flex-start;gap:9px"
-      onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px #0002'"
+      style="background:${c.bg};border:1px solid ${c.border}33;border-radius:12px;
+             padding:13px 15px;cursor:pointer;transition:all .18s;
+             display:flex;align-items:flex-start;gap:11px;position:relative;min-width:0"
+      onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 14px ${c.border}33'"
       onmouseleave="this.style.transform='';this.style.boxShadow=''">
-      <div style="position:absolute;top:0;left:0;bottom:0;width:3px;background:${c.text}"></div>
-      <div style="width:30px;height:30px;border-radius:7px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-left:4px">${a.icon}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:11px;line-height:1.3;word-break:break-word">${a.nombre}</div>
-        <div style="font-size:9px;color:${c.text};font-weight:600">${dimNames[a.dim]||''}</div>
+      <div style="width:34px;height:34px;border-radius:9px;background:${c.text}18;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${a.icon}</div>
+      <div style="flex:1;min-width:0;overflow:hidden">
+        <div style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;color:${c.text};line-height:1.35;margin-bottom:3px;white-space:normal;word-break:normal;overflow-wrap:break-word">${a.nombre}</div>
+        <div style="font-size:11.5px;color:var(--muted);font-family:'DM Sans',sans-serif;line-height:1.5;white-space:normal;overflow-wrap:break-word">${descCorta}</div>
       </div>
-      <button onclick="event.stopPropagation();toggleFav('${a.id}')" title="Quitar" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);flex-shrink:0;padding:2px">✕</button>
+      <button onclick="event.stopPropagation();toggleFav('${a.id}')" title="Quitar de favoritos"
+        style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);flex-shrink:0;padding:0;opacity:0.35;transition:opacity .15s;line-height:1;margin-top:2px"
+        onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.35'">✕</button>
     </div>`;
   }).join('');
 }
