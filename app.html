@@ -3307,13 +3307,14 @@ async function _supaLoadPerfil() {
       _initColegioDefault();
       initColegioSelector();
     }, 300);
-    // Load cloud data
+    // Load cloud data — primero restaurar locales, luego sincronizar con Supabase
     await _loadPlatformKey();
+    await _vaultRestoreAgents(); // cargar agentes locales ANTES de comparar con Supabase
     await _supaLoadCursos();
     await _supaLoadAlumnos();
     await _supaLoadRags();
     await denLoad();
-    await _supaLoadAgentes();
+    await _supaLoadAgentes(); // ahora sube los locales que falten en Supabase
     await _loadFavoritesFromSupabase();
     await _supaLoadDatos();
     await _supaLoadAnotaciones();
@@ -3328,9 +3329,12 @@ async function _supaLoadPerfil() {
 async function _supaLoadAgentes() {
   if (!_supaUser) return;
   try {
+    // 1. Cargar agentes que ya están en Supabase
     var { data } = await _supa.from('agentes_custom').select('*').eq('user_id', _supaUser.id);
+    var supaIds = new Set();
     if (data && data.length) {
       data.forEach(function(ag) {
+        supaIds.add(ag.id);
         var agente = {
           id: ag.id, dim: ag.dim, nombre: ag.nombre,
           icon: ag.icon, desc: ag.desc, prompt: ag.prompt,
@@ -3344,6 +3348,17 @@ async function _supaLoadAgentes() {
       });
       renderAgents();
       console.log('[Supabase] Cargados', data.length, 'agentes desde la nube');
+    }
+
+    // 2. CLAVE: subir a Supabase los agentes locales que no están en la nube
+    var localCustoms = AGENTS.filter(function(a){ return a.custom && !supaIds.has(a.id); });
+    if (localCustoms.length > 0) {
+      console.log('[Supabase] Subiendo', localCustoms.length, 'agente(s) local(es) a la nube...');
+      for (var i = 0; i < localCustoms.length; i++) {
+        await _supaSaveAgente(localCustoms[i]);
+      }
+      showSaveToast('☁️ ' + localCustoms.length + ' agente(s) sincronizado(s) a la nube');
+      renderAgents();
     }
   } catch(e) { console.warn('[Supabase] Error cargando agentes:', e.message); }
 }
