@@ -30818,27 +30818,89 @@ function liaxModoLocal() {
 
 // ── Check session on load ─────────────────────────────────────
 async function liaxInitAuth() {
-  // Hide app until auth check
   var app = document.querySelector('.app');
   if (app) app.style.display = 'none';
-
   var overlay = document.getElementById('liaxLoginOverlay');
+
+  // ── Detectar link de recovery en el hash de la URL ──
+  var hash = window.location.hash;
+  if (hash && hash.includes('type=recovery') && hash.includes('access_token=')) {
+    // Extraer token
+    var params = {};
+    hash.replace('#','').split('&').forEach(function(p){ var kv=p.split('='); params[kv[0]]=kv[1]; });
+    var accessToken = params['access_token'];
+    if (accessToken) {
+      // Mostrar modal para nueva contraseña
+      _liaxShowPasswordReset(accessToken);
+      return;
+    }
+  }
 
   try {
     var hasSession = await _supaInitSession();
     if (hasSession) {
-      // Already logged in
       if (overlay) overlay.style.display = 'none';
       if (app) app.style.display = 'grid';
     } else {
-      // Show login
       if (overlay) overlay.style.display = 'flex';
     }
   } catch(e) {
-    // Supabase unavailable — show app in local mode
     console.warn('[Supabase] Auth check failed, local mode:', e.message);
     if (overlay) overlay.style.display = 'none';
     if (app) app.style.display = 'grid';
+  }
+}
+
+function _liaxShowPasswordReset(accessToken) {
+  var overlay = document.getElementById('liaxLoginOverlay');
+  if (overlay) overlay.style.display = 'flex';
+  // Reemplazar contenido del card de login con formulario de nueva contraseña
+  var card = overlay.querySelector('div > div:nth-child(2) > div');
+  if (!card) return;
+  card.innerHTML = `
+    <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px">Nueva contraseña</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:22px">Ingresa tu nueva contraseña para LIAX</div>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Nueva contraseña</label>
+      <input id="resetNewPwd" type="password" placeholder="Mínimo 8 caracteres"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box"
+        onfocus="this.style.borderColor='#2d6a4f'" onblur="this.style.borderColor='var(--border)'">
+    </div>
+    <div id="resetError" style="display:none;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);border-radius:8px;padding:9px 12px;font-size:12px;color:#c0392b;margin-bottom:14px"></div>
+    <button onclick="_liaxDoPasswordReset('${accessToken}')"
+      style="width:100%;background:#2d6a4f;color:#fff;border:none;border-radius:9px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
+      Guardar nueva contraseña →
+    </button>
+  `;
+}
+
+async function _liaxDoPasswordReset(accessToken) {
+  var pwd = document.getElementById('resetNewPwd')?.value?.trim();
+  var errEl = document.getElementById('resetError');
+  if (!pwd || pwd.length < 8) {
+    if (errEl) { errEl.style.display='block'; errEl.textContent='La contraseña debe tener al menos 8 caracteres.'; }
+    return;
+  }
+  try {
+    // Establecer sesión con el access token del recovery
+    await _supa.auth.setSession({ access_token: accessToken, refresh_token: accessToken });
+    var { error } = await _supa.auth.updateUser({ password: pwd });
+    if (error) throw error;
+    // Limpiar hash y redirigir al login
+    window.location.hash = '';
+    var card = document.getElementById('liaxLoginOverlay').querySelector('div > div:nth-child(2) > div');
+    if (card) card.innerHTML = `
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:40px;margin-bottom:12px">✅</div>
+        <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">Contraseña actualizada</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Ya puedes iniciar sesión con tu nueva contraseña.</div>
+        <button onclick="location.reload()" style="background:#2d6a4f;color:#fff;border:none;border-radius:9px;padding:11px 24px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
+          Ir al login →
+        </button>
+      </div>
+    `;
+  } catch(e) {
+    if (errEl) { errEl.style.display='block'; errEl.textContent='Error: ' + e.message; }
   }
 }
 
