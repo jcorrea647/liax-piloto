@@ -6435,10 +6435,11 @@ function closeModal(){
   var app3   = document.querySelector('.app');
   if (modal3) modal3.classList.remove('open','rsz-full','rsz-large','rsz-normal');
   if (app3)   app3.classList.remove('agent-open');
-  // Reset any inline styles set by resizeAgentModal
+  // Reset sidebar — but keep hidden for docente role
   var sb3 = document.querySelector('.sidebar');
-  if (sb3) sb3.style.display = '';
-  if (app3) app3.style.gridTemplateColumns = '';
+  var isDocente = document.body.classList.contains('is-docente');
+  if (sb3) sb3.style.display = isDocente ? 'none' : '';
+  if (app3) app3.style.gridTemplateColumns = isDocente ? '0 1fr' : '';
   // Clear cache for closed agent
   if (currentAgent) delete _chatHistoryCache[currentAgent.id];
   currentAgent=null; chatHistory=[];
@@ -13373,9 +13374,11 @@ function resizeAgentModal(size, silent) {
   var overlay = document.getElementById('agentModal');
   if (!overlay || !app) return;
 
+  var isDocente = document.body.classList.contains('is-docente');
+
   overlay.classList.remove('rsz-normal','rsz-large','rsz-full');
 
-  if (size === 'full') {
+  if (size === 'full' || isDocente) {
     if (sidebar) sidebar.style.display = 'none';
     app.style.gridTemplateColumns = '0 1fr';
   } else {
