@@ -5992,7 +5992,7 @@ function formatMsg(text) {
         out.push(
           '<div class="reply-field-wrap" data-question="' + ph.replace(/"/g,'&quot;') + '">' +
             '<textarea id="' + uid + '" class="reply-field" rows="2" placeholder="' + ph.replace(/"/g,'&quot;') + '" ' +
-              'onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAllReplyFields(this)}"></textarea>' +
+              'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendAllReplyFields(this)}"></textarea>' +
             '<button class="reply-send-btn" onclick="sendAllReplyFields(this.previousElementSibling)">Enviar ↵</button>' +
             (needsFile ? buildInlineFileUploader(fuId, 'archivo') : '') +
           '</div>'
