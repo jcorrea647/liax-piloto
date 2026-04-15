@@ -6,22 +6,20 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Liax IA — Plataforma Educativa Inteligente</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:#f5f3ef; --surface:#ffffff; --surface2:#f0ede8; --border:#e2ddd6;
-    --accent1:#2d6a4f; --accent2:#2d6a4f; --accent3:#c77d3a; --accent4:#c77d3a;
-    --text:#1a1814; --muted:#7a7368;
-    --dim1:#e8f4ee; --dim2:#e8f4ee; --dim3:#fdf1e3; --dim4:#fdf1e3;
+    --bg:#0b0e1a; --surface:#111527; --surface2:#161c35; --border:#1e2644;
+    --accent1:#4f7bff; --accent2:#00e5c0; --accent3:#ff6b6b; --accent4:#ffd166;
+    --text:#e8ecf8; --muted:#7a85a8;
+    --dim1:#1a3a6b; --dim2:#0d4040; --dim3:#5a1a1a; --dim4:#5a4400;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+  body{background:var(--bg);color:var(--text);font-family:DM Sans,sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
   h1,h2,h3,h4{font-family:'Syne',sans-serif;}
 
-  /* 2-column layout — collapsible sidebar */
-  .app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:54px 48px auto 1fr;height:100vh;}
-  .sidebar{grid-row:4;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0;max-width:220px;min-width:0;transition:max-width 0.25s ease, opacity 0.25s ease;overflow:hidden;opacity:1;}
-  .sidebar.sb-collapsed{max-width:0 !important;opacity:0;padding:0 !important;border-right-color:transparent !important;pointer-events:none;}
+  /* 2-column layout — wide left sidebar */
+  .app{display:grid;grid-template-columns:204px 1fr;grid-template-rows:54px 48px auto 1fr;height:100vh;}
 
   /* ── Tema Gestión Estratégica — sidebar + topbar verde oscuro ── */
   body.theme-gestion .topbar {
@@ -54,28 +52,95 @@
   body.theme-gestion .btn-primary { background: #1E3A2F !important; }
   body.theme-gestion .btn-primary:hover { background: #2D5A42 !important; }
   body.theme-gestion .nav-item.active { border-left: 3px solid #C4962A !important; padding-left: 7px !important; }
-  .topbar{grid-column:1/-1;grid-row:1;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;z-index:10;}
+
+  /* ── Contenido interior — tema Gestión Estratégica ── */
+  body.theme-gestion { color: #2A2420 !important; }
+
+  /* Paneles y cards */
+  body.theme-gestion .panel,
+  body.theme-gestion .card,
+  body.theme-gestion .agent-modal,
+  body.theme-gestion #agentModal { background: #FDFAF7 !important; color: #2A2420 !important; }
+
+  /* Superficies secundarias */
+  body.theme-gestion .surface2,
+  body.theme-gestion [class*="surface2"] { background: #EDE9E4 !important; }
+
+  /* Títulos y textos */
+  body.theme-gestion .page-title { color: #1E3A2F !important; }
+  body.theme-gestion .page-sub   { color: #5A5450 !important; }
+
+  /* Botones primarios */
+  body.theme-gestion .btn-primary,
+  body.theme-gestion .btn.btn-primary { background: #1E3A2F !important; color: #fff !important; }
+  body.theme-gestion .btn-primary:hover { background: #2D5A42 !important; }
+
+  /* Botones outline */
+  body.theme-gestion .btn-outline { border-color: #4A4540 !important; color: #2A2420 !important; }
+  body.theme-gestion .btn-outline:hover { border-color: #1E3A2F !important; color: #1E3A2F !important; }
+
+  /* Inputs */
+  body.theme-gestion input,
+  body.theme-gestion textarea,
+  body.theme-gestion select { background: #F5F2EE !important; border-color: #C8C3BC !important; color: #2A2420 !important; }
+  body.theme-gestion input:focus,
+  body.theme-gestion textarea:focus,
+  body.theme-gestion select:focus { border-color: #1E3A2F !important; }
+
+  /* Smart bar */
+  body.theme-gestion .smart-bar { background: #EDE9E4 !important; border-bottom-color: #D4CFC8 !important; }
+  body.theme-gestion .smart-input { background: #FDFAF7 !important; color: #2A2420 !important; border-color: #C8C3BC !important; }
+  body.theme-gestion .smart-input::placeholder { color: #9A9590 !important; }
+
+  /* Topbar badges adicionales */
+  body.theme-gestion #storageBar button { background: #E8E4DF !important; border-color: #C8C3BC !important; color: #2A2420 !important; }
+
+  /* Chat bubbles */
+  body.theme-gestion .bubble-ai { background: #EDE9E4 !important; color: #2A2420 !important; border-color: #C8C3BC !important; }
+  body.theme-gestion .bubble-user { background: #1E3A2F !important; color: #FFFFFF !important; }
+
+  /* Chat input */
+  body.theme-gestion #chatInput { background: #F5F2EE !important; color: #2A2420 !important; border-color: #C8C3BC !important; }
+  body.theme-gestion #chatInput:focus { border-color: #1E3A2F !important; }
+  body.theme-gestion #chatSendBtn { background: #1E3A2F !important; color: #fff !important; }
+
+  /* Dimensiones pills */
+  body.theme-gestion .dim-pill { border-color: #C8C3BC !important; color: #2A2420 !important; }
+  body.theme-gestion .dim-pill.active { background: #1E3A2F !important; color: #fff !important; border-color: #1E3A2F !important; }
+
+  /* Modal agent */
+  body.theme-gestion .agent-modal-header { background: #EDE9E4 !important; border-color: #C8C3BC !important; }
+  body.theme-gestion .agent-panel-btn { background: #EDE9E4 !important; border-color: #C8C3BC !important; color: #2A2420 !important; }
+  body.theme-gestion .agent-panel-btn.active { background: #1E3A2F !important; color: #fff !important; border-color: #1E3A2F !important; }
+
+  /* Accent color for highlights */
+  body.theme-gestion .nav-item .nav-count,
+  body.theme-gestion .badge { background: #E8E4DF !important; color: #5A5450 !important; }
+
+  /* Scrollbars */
+  body.theme-gestion ::-webkit-scrollbar-track { background: #EDE9E4 !important; }
+  body.theme-gestion ::-webkit-scrollbar-thumb { background: #C8C3BC !important; border-radius: 4px; }
+  body.theme-gestion ::-webkit-scrollbar-thumb:hover { background: #4A4540 !important; }
+  .topbar{grid-column:1/-1;grid-row:1;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;z-index:10;}
   .docente-view-banner{grid-column:1/-1;grid-row:3;}
+  .sidebar{grid-row:4;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0;}
   .main{grid-row:4;overflow-y:auto;padding:20px;background:var(--bg);}
 
   /* topbar */
   .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:19px;color:var(--accent1);letter-spacing:-.5px;}
-  .logo span{color:var(--accent3);}
-  .top-badge{background:var(--dim1);color:var(--accent1);font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px;border:1px solid var(--accent1)55;opacity:.85;}
+  .logo span{color:var(--accent2);}
+  .top-badge{background:var(--dim1);color:var(--accent1);font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px;border:1px solid var(--accent1);opacity:.7;}
   .top-spacer{flex:1;}
-  .avatar{width:30px;height:30px;border-radius:50%;background:var(--accent1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;}
-  .role-badge{font-size:10px;padding:2px 7px;border-radius:12px;font-weight:600;background:var(--dim1);color:var(--accent1);border:1px solid var(--accent1)33;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent1),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;}
+  .role-badge{font-size:10px;padding:2px 7px;border-radius:12px;font-weight:600;background:#1a3a6b;color:var(--accent1);border:1px solid var(--accent1)44;}
 
-  .sb-sec{padding:3px 10px 1px;}
-  .sb-lbl{font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3,#b0aa9f);margin-bottom:2px;margin-top:8px;padding:4px 4px 2px;border-top:1px solid var(--border);}
-  .nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;transition:all .15s;color:var(--muted);font-size:13px;font-weight:400;margin-bottom:1px;font-family:'DM Sans',sans-serif;line-height:1.3;}
-  .nav-item:hover{background:var(--surface2);color:var(--text);}
-  .nav-item.active{background:#e8f4ee;color:#2d6a4f;font-weight:500;}
-  .nav-item span:first-child{display:none;}
-  .nav-item::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background .15s;}
-  .nav-item:hover::before{background:var(--muted);}
-  .nav-item.active::before{background:#2d6a4f;}
-  .nav-dot{display:none;}
+  /* sidebar */
+  .sb-sec{padding:3px 13px 1px;}
+  .sb-lbl{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;margin-top:6px;padding:3px 0 2px;border-top:1px solid var(--border);}
+  .nav-item{display:flex;align-items:center;gap:7px;padding:4px 9px;border-radius:6px;cursor:pointer;transition:all .15s;color:var(--muted);font-size:11.5px;font-weight:500;margin-bottom:1px;}
+  .nav-item:hover,.nav-item.active{background:var(--surface2);color:var(--text);}
+  .nav-item.active{color:var(--accent1);}
+  .nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
   .nav-count{margin-left:auto;background:var(--border);color:var(--muted);font-size:9px;padding:1px 5px;border-radius:10px;}
 
   /* panels */
@@ -88,11 +153,11 @@
   .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px;}
   .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 15px;position:relative;overflow:hidden;}
   .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
-  .stat-card.c1::before{background:var(--accent1);} .stat-card.c2::before{background:var(--accent1);}
-  .stat-card.c3::before{background:var(--accent3);} .stat-card.c4::before{background:var(--accent3);}
+  .stat-card.c1::before{background:var(--accent1);} .stat-card.c2::before{background:var(--accent2);}
+  .stat-card.c3::before{background:var(--accent3);} .stat-card.c4::before{background:var(--accent4);}
   .stat-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:1px;}
-  .stat-card.c1 .stat-num{color:var(--accent1);} .stat-card.c2 .stat-num{color:var(--accent1);}
-  .stat-card.c3 .stat-num{color:var(--accent3);} .stat-card.c4 .stat-num{color:var(--accent3);}
+  .stat-card.c1 .stat-num{color:var(--accent1);} .stat-card.c2 .stat-num{color:var(--accent2);}
+  .stat-card.c3 .stat-num{color:var(--accent3);} .stat-card.c4 .stat-num{color:var(--accent4);}
   .stat-label{color:var(--muted);font-size:11px;}
 
   /* dim grid */
@@ -119,7 +184,7 @@
   .search-input{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:5px 10px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;width:170px;outline:none;}
   .search-input:focus{border-color:var(--accent1)66;}
   .btn{padding:5px 12px;border-radius:7px;border:none;cursor:pointer;font-family:DM Sans,sans-serif;font-size:12px;font-weight:500;transition:all .15s;}
-  .btn-primary{background:var(--accent1);color:#fff;} .btn-primary:hover{background:#245a41;}
+  .btn-primary{background:var(--accent1);color:#fff;} .btn-primary:hover{background:#3d68e8;}
   .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);}
   .btn-outline:hover{border-color:var(--accent1)66;color:var(--text);}
   table{width:100%;border-collapse:collapse;}
@@ -221,17 +286,17 @@
   .chat-row{display:flex;gap:10px;padding:10px 14px;align-items:flex-start;}
   .chat-row.chat-row-user{flex-direction:row-reverse;}
   .chat-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:2px;}
-  .chat-avatar-ai{background:var(--accent1);color:#fff;}
-  .chat-avatar-user{background:var(--dim1);color:var(--accent1);border:1.5px solid var(--accent1)33;}
+  .chat-avatar-ai{background:linear-gradient(135deg,var(--accent2),var(--accent1));color:#fff;}
+  .chat-avatar-user{background:var(--dim1);color:var(--accent1);border:1.5px solid var(--accent1)44;}
   .chat-bubble-wrap{display:flex;flex-direction:column;max-width:82%;min-width:0;}
   .chat-bubble-meta{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px;color:var(--muted);}
   .chat-row-user .chat-bubble-meta{flex-direction:row-reverse;}
   .chat-bubble-name{font-weight:700;color:var(--text);font-size:11px;}
   .chat-bubble-time{font-size:10px;color:var(--muted);}
   .chat-bubble{padding:12px 16px;border-radius:14px;font-size:14px;line-height:1.8;white-space:pre-wrap;word-break:break-word;}
-  .chat-bubble-ai{background:var(--surface2);border:1px solid var(--border);border-top-left-radius:4px;color:var(--text);}
-  .chat-bubble-user{background:var(--dim1);border:1px solid var(--accent1)22;border-top-right-radius:4px;color:var(--accent1);}
-  .chat-bubble strong{font-weight:600;color:var(--text);}
+  .chat-bubble-ai{background:var(--surface);border:1px solid var(--border);border-top-left-radius:4px;color:var(--text);}
+  .chat-bubble-user{background:var(--dim1);border:1px solid var(--accent1)33;border-top-right-radius:4px;color:var(--accent1);}
+  .chat-bubble strong{font-weight:700;color:var(--text);}
   .chat-bubble-user strong{color:var(--accent1);}
   .chat-bubble ol,.chat-bubble ul{padding-left:18px;margin:6px 0;}
   .chat-bubble li{margin-bottom:3px;}
@@ -239,8 +304,8 @@
   .chat-input-row{display:flex;gap:6px;margin-top:8px;}
   .chat-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 11px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;}
   .chat-input:focus{border-color:var(--accent1)66;}
-  .btn-send{background:var(--accent1);color:#fff;border:none;border-radius:7px;padding:7px 13px;cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;}
-  .btn-send:hover{background:#245a41;}
+  .btn-send{background:var(--accent1);color:#fff;border:none;border-radius:7px;padding:7px 13px;cursor:pointer;font-size:12px;font-weight:600;font-family:DM Sans,sans-serif;}
+  .btn-send:hover{background:#3d68e8;}
 
 
 
@@ -272,10 +337,10 @@
   .token-bar-wrap{display:flex;align-items:center;gap:8px;min-width:0;}
   .token-bar-track{flex:1;height:8px;border-radius:20px;background:var(--surface2);overflow:hidden;min-width:60px;}
   .token-bar-fill{height:100%;border-radius:20px;transition:width .4s,background .4s;}
-  .token-bar-fill.tk-green {background:var(--accent1);}
-  .token-bar-fill.tk-yellow{background:var(--accent3);}
-  .token-bar-fill.tk-orange{background:#c0622a;}
-  .token-bar-fill.tk-red   {background:#c0392b;animation:tk-pulse .9s ease-in-out infinite;}
+  .token-bar-fill.tk-green {background:linear-gradient(90deg,#00b496,#00e5c0);}
+  .token-bar-fill.tk-yellow{background:linear-gradient(90deg,#f59e0b,#ffd166);}
+  .token-bar-fill.tk-orange{background:linear-gradient(90deg,#f97316,#fb923c);}
+  .token-bar-fill.tk-red   {background:linear-gradient(90deg,#ef4444,#f87171);animation:tk-pulse .9s ease-in-out infinite;}
   @keyframes tk-pulse{0%,100%{opacity:1}50%{opacity:.55}}
   .token-pct{font-size:10px;font-weight:700;min-width:30px;text-align:right;}
   .token-pct.tk-red{color:#ef4444;}
@@ -484,20 +549,6 @@
     #mobileSidebarBtn { display: block !important; }
   }
 
-  /* Toggle sidebar desktop */
-  #sidebarToggleBtn {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--muted);
-    width: 30px; height: 30px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; flex-shrink: 0;
-    transition: all 0.15s;
-  }
-  #sidebarToggleBtn:hover { background: var(--surface2); color: var(--text); border-color: var(--accent1)55; }
-
   /* Overlay para cerrar sidebar en mobile */
   #mobileSidebarOverlay {
     display: none;
@@ -680,50 +731,38 @@
   .svg-diagram-body{padding:12px;overflow-x:auto;}
   .svg-diagram-body svg{max-width:100%;height:auto;display:block;margin:0 auto;}
   /* ── Message formatting ─────────────────────────── */
-  .reply-field{background:var(--surface);border:1.5px solid var(--accent1)55;border-radius:10px;padding:11px 15px;margin:8px 0 0;font-size:13px;color:var(--text);font-style:normal;min-height:44px;outline:none;cursor:text;transition:border-color .15s;resize:none;width:100%;box-sizing:border-box;font-family:'DM Sans',sans-serif;line-height:1.5;}
-  .reply-field:focus,.reply-field:focus-within{border-color:var(--accent1);box-shadow:0 0 0 3px var(--accent1)22;}
+  .reply-field{background:var(--surface);border:2px solid var(--accent2)88;border-radius:10px;padding:11px 15px;margin:8px 0 0;font-size:13px;color:var(--text);font-style:normal;min-height:44px;outline:none;cursor:text;transition:border-color .15s;resize:none;width:100%;box-sizing:border-box;font-family:DM Sans,sans-serif;line-height:1.5;}
+  .reply-field:focus,.reply-field:focus-within{border-color:var(--accent2);box-shadow:0 0 0 3px var(--accent2)33;}
   .reply-field[data-placeholder]:empty:before{content:attr(data-placeholder);color:var(--muted);font-style:italic;pointer-events:none;}
-  .reply-field-wrap{position:relative;margin:10px 0 14px;border-radius:10px;}
-  .reply-field-wrap::before{content:'✏️ Tu respuesta';display:block;font-size:10px;font-weight:600;color:var(--accent1);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-  .reply-send-btn{position:absolute;right:6px;bottom:6px;background:var(--accent1);color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;opacity:1 !important;}
+  .reply-field-wrap{position:relative;margin:8px 0 12px;border-radius:10px;}
+  .reply-field-wrap::before{content:'✏️ Tu respuesta';display:block;font-size:10px;font-weight:800;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+  .reply-send-btn{position:absolute;right:6px;bottom:6px;background:var(--accent1);color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;opacity:0;transition:opacity .15s;}
   .reply-field-wrap:focus-within .reply-send-btn{opacity:1;}
-
-  /* ── Chat bubble content — estilo informe ejecutivo ── */
-  .chat-bubble{padding:16px 20px;border-radius:14px;font-size:13.5px;line-height:1.75;word-break:break-word;font-family:'DM Sans',sans-serif;}
-  .chat-bubble-ai{background:#ffffff;border:1px solid var(--border);border-top-left-radius:4px;color:var(--text);}
-  .chat-bubble-user{background:#e8f4ee;border:1px solid var(--accent1)22;border-top-right-radius:4px;color:#1a3d2b;}
-
-  .msg-h2{font-size:14px;font-weight:600;color:#1a3d2b;margin:16px 0 8px;padding:9px 14px;background:#e8f4ee;border-left:3px solid #2d6a4f;border-radius:0 8px 8px 0;font-family:'DM Sans',sans-serif;}
-  .msg-h2:first-child{margin-top:0;}
-  .msg-h3{font-size:13.5px;font-weight:600;color:#2d6a4f;margin:14px 0 6px;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:7px;}
-  .msg-h3::before{content:'';width:3px;height:14px;background:#2d6a4f;border-radius:2px;display:inline-block;flex-shrink:0;}
-  .msg-hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
-  .msg-bullet{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;padding:3px 0;font-size:13.5px;line-height:1.65;}
-  .msg-dot{width:7px;height:7px;border-radius:50%;background:#2d6a4f;flex-shrink:0;margin-top:6px;}
-  .msg-num{min-width:22px;height:22px;border-radius:6px;background:#2d6a4f;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-family:'DM Mono',monospace;}
-  .chat-bubble strong{font-weight:600;color:#1a3d2b;}
-  .chat-bubble em{font-style:italic;color:var(--muted);}
-  .chat-bubble-user strong{color:#1a3d2b;}
-  .chat-bubble ol,.chat-bubble ul{padding-left:18px;margin:8px 0;}
-  .chat-bubble li{margin-bottom:5px;line-height:1.65;}
-  .chat-bubble p{margin:0 0 10px;} .chat-bubble p:last-child{margin-bottom:0;}
+  .reply-send-btn{opacity:1 !important;background:var(--accent2);color:#000;font-weight:800;}
+  .msg-h2{font-size:15px;font-weight:800;color:var(--accent2);margin:14px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--accent2)44;}
+  .msg-h3{font-size:14px;font-weight:800;color:var(--accent1);margin:10px 0 4px;}
+  .msg-hr{border:none;border-top:1px solid var(--border);margin:8px 0;}
+  .msg-bullet{display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;}
+  .msg-dot{width:6px;height:6px;border-radius:50%;background:var(--accent2);flex-shrink:0;margin-top:5px;}
+  .msg-num{width:18px;height:18px;border-radius:50%;background:var(--accent1);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+  .chat-bubble strong{font-weight:700;}
   /* ───────────────────────────────────────────────── */
-  .agent-welcome-icon{font-size:42px;margin-bottom:10px;line-height:1;}
-  .agent-welcome-title{font-family:'DM Sans',sans-serif;font-size:18px;font-weight:600;color:var(--text);margin-bottom:6px;text-align:center;letter-spacing:-0.3px;}
-  .agent-welcome-sub{font-size:13px;color:var(--muted);margin-bottom:22px;text-align:center;font-family:'DM Sans',sans-serif;}
-  .agent-q-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:700px;}
-  .agent-q-card{display:flex;align-items:flex-start;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px;cursor:pointer;transition:all .15s;min-height:46px;}
-  .agent-q-card:hover{border-color:#2d6a4f55;background:#e8f4ee;transform:translateY(-1px);}
-  .agent-q-dot{width:7px;height:7px;border-radius:50%;background:#2d6a4f;flex-shrink:0;margin-top:5px;}
-  .agent-q-text{font-size:12.5px;color:var(--text);line-height:1.55;font-weight:400;font-family:'DM Sans',sans-serif;}
+    .agent-welcome-icon{font-size:44px;margin-bottom:12px;line-height:1;}
+  .agent-welcome-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px;text-align:center;}
+  .agent-welcome-sub{font-size:13px;color:var(--muted);margin-bottom:22px;text-align:center;}
+  .agent-q-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;max-width:680px;}
+  .agent-q-card{display:flex;align-items:flex-start;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px;cursor:pointer;transition:border-color .15s,background .15s;min-height:46px;}
+  .agent-q-card:hover{border-color:var(--accent1)66;background:var(--surface2);}
+  .agent-q-dot{width:8px;height:8px;border-radius:50%;background:var(--accent1);flex-shrink:0;margin-top:5px;}
+  .agent-q-text{font-size:13px;color:var(--text);line-height:1.5;font-weight:500;}
   @media(max-width:560px){.agent-q-grid{grid-template-columns:1fr;}}
   /* ───────────────────────────────────────────────── */
     .loading-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--muted);animation:blink 1s infinite;margin:0 2px;}
   .loading-dot:nth-child(2){animation-delay:.2s;} .loading-dot:nth-child(3){animation-delay:.4s;}
   @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
   .api-note{background:var(--dim1);border:1px solid var(--accent1)33;border-radius:7px;padding:8px 12px;font-size:11px;color:var(--accent1);margin-bottom:11px;}
-  .ctx-note{background:#e8f4ee;border:1px solid #2d6a4f33;border-radius:7px;padding:8px 12px;font-size:11px;color:#2d6a4f;margin-bottom:11px;}
-  .nee-note{background:#f3eeff;border:1px solid #7c3aed33;border-radius:7px;padding:8px 12px;font-size:11px;color:#6d28d9;margin-bottom:11px;}
+  .ctx-note{background:#0d3030;border:1px solid var(--accent2)33;border-radius:7px;padding:8px 12px;font-size:11px;color:var(--accent2);margin-bottom:11px;}
+  .nee-note{background:#2a1040;border:1px solid #7c3aed55;border-radius:7px;padding:8px 12px;font-size:11px;color:#c084fc;margin-bottom:11px;}
 
   /* ── CONTEXT PANEL ── */
   .ctx-header{padding:6px 13px 8px;}
@@ -787,7 +826,6 @@
   /* ── DOCENTE VIEW BANNER ── */
   .docente-view-banner{background:var(--dim2);border-bottom:2px solid var(--accent2)44;padding:7px 16px;font-size:11px;color:var(--accent2);display:none;align-items:center;gap:8px;flex-shrink:0;}
   body.is-docente .docente-view-banner{display:flex;}
-  body.is-docente .no-docente{display:none !important;}
 
   .agent-panel-btn.active-ajustar{background:var(--dim4);border-color:var(--accent4)66;color:var(--accent4);}
   /* ── VISOR DE RESULTADOS ── */
@@ -1134,35 +1172,35 @@
 <div id="mobileSidebarOverlay" onclick="toggleMobileSidebar()"></div>
 
 <!-- ══ LIAX LOGIN OVERLAY ══ -->
-<div id="liaxLoginOverlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif">
+<div id="liaxLoginOverlay" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#0a0f1a 0%,#0d1f35 50%,#0a1628 100%);z-index:9999;align-items:center;justify-content:center;font-family:DM Sans,sans-serif">
   <div style="width:100%;max-width:420px;padding:20px">
 
     <!-- Logo -->
     <div style="text-align:center;margin-bottom:32px">
-      <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:42px;color:var(--accent1);letter-spacing:-1px">LIAX</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:4px">Plataforma Educativa con Inteligencia Artificial</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:42px;color:#00e5c0;letter-spacing:-1px">LIAX</div>
+      <div style="font-size:13px;color:#7d8fa3;margin-top:4px">Plataforma Educativa con Inteligencia Artificial</div>
     </div>
 
     <!-- Card -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;">
-      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px">Iniciar sesión</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:22px">Ingresa con tu cuenta de LIAX</div>
+    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px;backdrop-filter:blur(10px)">
+      <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:6px">Iniciar sesión</div>
+      <div style="font-size:12px;color:#7d8fa3;margin-bottom:22px">Ingresa con tu cuenta de LIAX</div>
 
       <!-- Email -->
       <div style="margin-bottom:14px">
-        <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Email</label>
+        <label style="display:block;font-size:11px;font-weight:700;color:#7d8fa3;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Email</label>
         <input id="loginEmail" type="email" placeholder="tu@colegio.cl"
-          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;transition:border-color .15s"
-          onfocus="this.style.borderColor='#2d6a4f'" onblur="this.style.borderColor='var(--border)'"
+          style="width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);border-radius:9px;padding:11px 14px;color:#fff;font-size:13px;font-family:DM Sans,sans-serif;outline:none;box-sizing:border-box;transition:border-color .15s"
+          onfocus="this.style.borderColor='#00e5c0'" onblur="this.style.borderColor='rgba(255,255,255,0.15)'"
           onkeydown="if(event.key==='Enter') document.getElementById('loginPassword').focus()">
       </div>
 
       <!-- Password -->
       <div style="margin-bottom:20px">
-        <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Contraseña</label>
+        <label style="display:block;font-size:11px;font-weight:700;color:#7d8fa3;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Contraseña</label>
         <input id="loginPassword" type="password" placeholder="••••••••"
-          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;transition:border-color .15s"
-          onfocus="this.style.borderColor='#2d6a4f'" onblur="this.style.borderColor='var(--border)'"
+          style="width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);border-radius:9px;padding:11px 14px;color:#fff;font-size:13px;font-family:DM Sans,sans-serif;outline:none;box-sizing:border-box;transition:border-color .15s"
+          onfocus="this.style.borderColor='#00e5c0'" onblur="this.style.borderColor='rgba(255,255,255,0.15)'"
           onkeydown="if(event.key==='Enter') liaxDoLogin()">
       </div>
 
@@ -1171,19 +1209,19 @@
 
       <!-- Button -->
       <button onclick="liaxDoLogin()" id="loginBtn"
-        style="width:100%;background:var(--accent1);color:#fff;border:none;border-radius:9px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .15s">
+        style="width:100%;background:linear-gradient(135deg,#00b496,#00e5c0);color:#000;border:none;border-radius:9px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif;transition:opacity .15s">
         Entrar a LIAX →
       </button>
 
       <!-- Offline mode -->
       <div style="text-align:center;margin-top:16px">
-        <button onclick="liaxModoLocal()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline">
+        <button onclick="liaxModoLocal()" style="background:none;border:none;color:#7d8fa3;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;text-decoration:underline">
           Continuar sin cuenta (modo local)
         </button>
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:20px;font-size:10px;color:var(--muted)">
+    <div style="text-align:center;margin-top:20px;font-size:10px;color:#3d4f61">
       LIAX © 2026 · Plataforma educativa IA
     </div>
   </div>
@@ -1193,7 +1231,6 @@
 
   <!-- TOPBAR -->
   <header class="topbar">
-    <button id="sidebarToggleBtn" onclick="toggleDesktopSidebar()" title="Mostrar/ocultar menú">☰</button>
     <span class="logo">Li<span>ax</span></span>
     <span class="top-badge" id="topBadgeLabel">IA Educativa</span>
 
@@ -1305,7 +1342,7 @@
         <input class="smart-input" id="smartInput" placeholder="¿Qué quieres hacer? Ej: &quot;ver asistencia del 6°A&quot;, &quot;planificar una clase&quot;, &quot;alumnos en riesgo&quot;..." 
           oninput="handleSmartInput(this.value)" onkeydown="handleSmartKey(event)" autocomplete="off">
         <button id="smartClearBtn" onclick="clearSmartInput()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 4px;display:none">✕</button>
-        <button onclick="runSmartSearch()" style="background:var(--accent1);border:none;color:#fff;border-radius:7px;padding:4px 12px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap">Ir →</button>
+        <button onclick="runSmartSearch()" style="background:var(--accent2);border:none;color:#111;border-radius:7px;padding:4px 12px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap">Ir →</button>
       </div>
       <div id="smartSuggestions" class="smart-suggestions" style="display:none"></div>
     </div>
@@ -1628,10 +1665,10 @@
     </div>
 
     <!-- FAVORITOS -->
-    <div class="panel" id="panel-favoritos" style="padding:0;background:#f5f3ef">
+    <div class="panel" id="panel-favoritos" style="padding:0">
 
       <!-- ══ HERO SECTION — compacto ══ -->
-      <div class="no-docente" style="background:#f5f3ef;border-bottom:1px solid var(--border);padding:16px 24px 14px;text-align:center">
+      <div style="background:linear-gradient(160deg,var(--surface) 0%,var(--bg) 100%);border-bottom:1px solid var(--border);padding:16px 24px 14px;text-align:center">
 
         <!-- Saludo -->
         <div id="homeGreeting"
@@ -1684,21 +1721,19 @@
       </div>
 
       <!-- ══ AGENTES FAVORITOS — compacto ══ -->
-      <div style="padding:16px 24px 16px;background:#f5f3ef">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="padding:14px 24px 10px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="display:flex;align-items:center;gap:6px">
             <span style="font-size:13px">⭐</span>
-            <span style="font-size:11px;font-weight:600;color:var(--muted);font-family:'DM Sans',sans-serif">Agentes favoritos</span>
-            <span id="fav-sub" style="font-size:11px;font-weight:400;color:var(--muted)"></span>
+            <span style="font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)">Agentes favoritos</span>
+            <span id="fav-sub" style="font-size:10px;font-weight:400;color:var(--muted)"></span>
           </div>
           <button onclick="showPanel('agentes')"
-            style="font-size:11px;background:none;border:1px solid var(--border);
-                   color:var(--muted);border-radius:8px;padding:3px 10px;cursor:pointer;
-                   font-family:'DM Sans',sans-serif;transition:all .15s"
-            onmouseenter="this.style.borderColor='var(--accent1)';this.style.color='var(--accent1)'"
-            onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">Ver todos →</button>
+            style="font-size:10px;background:none;border:1px solid var(--border);
+                   color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;
+                   font-family:DM Sans,sans-serif">Ver todos →</button>
         </div>
-        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px"></div>
+        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px"></div>
         <div id="favEmptyState" style="display:none;text-align:center;padding:16px;color:var(--muted)">
           <div style="font-size:11px">Sin favoritos — abre un agente y haz clic en ⭐</div>
           <button onclick="showPanel('agentes')" class="btn btn-primary" style="font-size:11px;margin-top:8px">Explorar agentes →</button>
@@ -1706,10 +1741,10 @@
       </div>
 
       <!-- ── Metacognición ── -->
-      <div class="no-docente" style="padding:0 24px 14px" id="metacognicionBtns"></div>
+      <div style="padding:0 24px 14px" id="metacognicionBtns"></div>
 
       <!-- ── Mini chat IA ── -->
-      <div class="no-docente" style="padding:0 24px 20px" id="inicioDashAI">
+      <div style="padding:0 24px 20px" id="inicioDashAI">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
             <span style="font-size:16px">🤖</span>
@@ -3161,6 +3196,23 @@
           </div>
         </div>
 
+        <!-- Competencias multi-select -->
+        <div class="ctx-picker-wrap" id="ctxCompWrap">
+          <button class="ctx-picker-btn" id="ctxCompBtn" onclick="toggleCtxPicker('comp')">
+            <span id="ctxCompLabel">🎯 Competencias…</span>
+            <span style="font-size:9px;margin-left:4px;opacity:.6">▾</span>
+          </button>
+          <div class="ctx-picker-dropdown" id="ctxCompDrop" style="display:none">
+            <div class="ctx-picker-search"><input placeholder="Buscar competencia…" oninput="filterCtxPicker('comp',this.value)" style="width:100%;background:none;border:none;outline:none;font-size:12px;font-family:inherit;color:var(--text)"></div>
+            <div id="ctxCompList" class="ctx-picker-list"></div>
+            <div class="ctx-picker-footer">
+              <button onclick="selectAllCtx('comp')" class="ctx-picker-action">Todas</button>
+              <button onclick="clearCtx('comp')" class="ctx-picker-action">Limpiar</button>
+              <button onclick="toggleCtxPicker('comp')" class="ctx-picker-action ctx-picker-apply">Aplicar</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Alumnos multi-select -->
         <div class="ctx-picker-wrap" id="ctxAluWrap">
           <button class="ctx-picker-btn" id="ctxAluBtn" onclick="toggleCtxPicker('alu')">
@@ -3307,14 +3359,13 @@ async function _supaLoadPerfil() {
       _initColegioDefault();
       initColegioSelector();
     }, 300);
-    // Load cloud data — primero restaurar locales, luego sincronizar con Supabase
+    // Load cloud data
     await _loadPlatformKey();
-    await _vaultRestoreAgents(); // cargar agentes locales ANTES de comparar con Supabase
     await _supaLoadCursos();
     await _supaLoadAlumnos();
     await _supaLoadRags();
     await denLoad();
-    await _supaLoadAgentes(); // ahora sube los locales que falten en Supabase
+    await _supaLoadAgentes();
     await _loadFavoritesFromSupabase();
     await _supaLoadDatos();
     await _supaLoadAnotaciones();
@@ -3329,12 +3380,9 @@ async function _supaLoadPerfil() {
 async function _supaLoadAgentes() {
   if (!_supaUser) return;
   try {
-    // 1. Cargar agentes que ya están en Supabase
     var { data } = await _supa.from('agentes_custom').select('*').eq('user_id', _supaUser.id);
-    var supaIds = new Set();
     if (data && data.length) {
       data.forEach(function(ag) {
-        supaIds.add(ag.id);
         var agente = {
           id: ag.id, dim: ag.dim, nombre: ag.nombre,
           icon: ag.icon, desc: ag.desc, prompt: ag.prompt,
@@ -3348,17 +3396,6 @@ async function _supaLoadAgentes() {
       });
       renderAgents();
       console.log('[Supabase] Cargados', data.length, 'agentes desde la nube');
-    }
-
-    // 2. CLAVE: subir a Supabase los agentes locales que no están en la nube
-    var localCustoms = AGENTS.filter(function(a){ return a.custom && !supaIds.has(a.id); });
-    if (localCustoms.length > 0) {
-      console.log('[Supabase] Subiendo', localCustoms.length, 'agente(s) local(es) a la nube...');
-      for (var i = 0; i < localCustoms.length; i++) {
-        await _supaSaveAgente(localCustoms[i]);
-      }
-      showSaveToast('☁️ ' + localCustoms.length + ' agente(s) sincronizado(s) a la nube');
-      renderAgents();
     }
   } catch(e) { console.warn('[Supabase] Error cargando agentes:', e.message); }
 }
@@ -3561,6 +3598,7 @@ function _saveCursosCustom() {
   localStorage.setItem('liax_cursos_custom', JSON.stringify(custom));
 }
 const ASIGS  = ['Castellano como Segunda Lengua','Ciencias y Tecnología','Comunicación','Descubrimiento del Mundo','Matemáticas','Personal y Social','Psicomotriz'];
+const COMPETENCIAS = ['Socialmente Activo','Interesado','Perseverante'];
 
 const COLORS = {
   liderazgo: {bg:'var(--dim1)',text:'var(--accent1)',border:'#4f7bff44'},
@@ -3611,7 +3649,7 @@ Aplicas Diseño Inverso (Wiggins & McTighe), Marco para la Buena Enseñanza y Di
 let currentPanel='dashboard', currentUserTab='directores', currentAgent=null;
 let chatHistory=[], currentDimFilter='all';
 var _chatHistoryCache = {}; // {agentId: chatHistory[]}
-const CTX = { cursos:new Set(), asignaturas:new Set(), alumnos:new Set() };
+const CTX = { cursos:new Set(), asignaturas:new Set(), alumnos:new Set(), competencias:new Set() };
 
 // ── CONTEXT PANEL ─────────────────────────────────────────
 function initCtx() {
@@ -3647,7 +3685,8 @@ function toggleCtx(type,val,el) {
 }
 
 function clearCtx(type) {
-  CTX[type].clear();
+  var _key = type === 'comp' ? 'competencias' : type;
+  if (CTX[_key]) CTX[_key].clear();
   if (type==='cursos') { document.querySelectorAll('#cursosWrap .ms-chip').forEach(c=>c.classList.remove('sel')); renderCtxAlumnos(); }
   else if (type==='asignaturas') document.querySelectorAll('#asignaturasWrap .ms-chip').forEach(c=>c.classList.remove('sel'));
   else document.querySelectorAll('#alumnosWrap .stu-item').forEach(c=>c.classList.remove('sel'));
@@ -3707,6 +3746,7 @@ function renderCtxSummary() {
     <div style="font-size:9px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Resumen activo</div>
     ${CTX.cursos.size?`<div class="ctx-sum-row">📚 <span class="ctx-sum-val">${[...CTX.cursos].join(', ')}</span></div>`:''}
     ${CTX.asignaturas.size?`<div class="ctx-sum-row">📖 <span class="ctx-sum-val">${[...CTX.asignaturas].join(', ')}</span></div>`:''}
+  ${CTX.competencias.size?`<div class="ctx-sum-row">🎯 <span class="ctx-sum-val">${[...CTX.competencias].join(', ')}</span></div>`:''}
     ${selAlus.length?`<div class="ctx-sum-row">🎓 <span class="ctx-sum-val">${selAlus.map(a=>a.nombre.split(' ').slice(0,2).join(' ')).join(', ')}</span></div>`:''}
     ${neeAlus.length?`<div class="ctx-sum-row" style="margin-top:5px;padding-top:6px;border-top:1px solid var(--border)">⚠️ NEE: <span class="ctx-sum-nee">${neeAlus.map(a=>a.nombre.split(' ')[0]+' '+a.nombre.split(' ')[1]).join(', ')}</span></div>`:''}
   `;
@@ -3730,6 +3770,7 @@ function buildClassContext() {
   let c='\n\n════════════════════════════════\nCONTEXTO DE CLASE ACTIVO:\n════════════════════════════════';
   if(CTX.cursos.size) c+=`\nCURSO(S): ${[...CTX.cursos].join(', ')}`;
   if(CTX.asignaturas.size) c+=`\nÁREA CURRICULAR: ${[...CTX.asignaturas].join(', ')}`;
+  if(CTX.competencias.size) c+=`\nCOMPETENCIAS DEL ESTUDIANTE: ${[...CTX.competencias].join(', ')}`;
   if(selAlus.length) {
     c+=`\n\nLISTA DE ALUMNOS (${selAlus.length}):`;
     selAlus.forEach((a,i)=>{
@@ -5356,21 +5397,19 @@ function renderFavoritos() {
 
   grid.innerHTML = agents.map(a => {
     const c = COLORS[a.dim];
-    const descCorta = a.desc.length > 72 ? a.desc.slice(0, 72) + '…' : a.desc;
     return `<div onclick="openAgent('${a.id}')"
-      style="background:${c.bg};border:1px solid ${c.border}33;border-radius:12px;
-             padding:13px 15px;cursor:pointer;transition:all .18s;
-             display:flex;align-items:flex-start;gap:11px;position:relative;min-width:0"
-      onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 14px ${c.border}33'"
+      style="background:var(--surface);border:1px solid ${c.border};border-radius:9px;
+             padding:10px 12px;cursor:pointer;transition:all .15s;position:relative;
+             display:flex;align-items:flex-start;gap:9px"
+      onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px #0002'"
       onmouseleave="this.style.transform='';this.style.boxShadow=''">
-      <div style="width:34px;height:34px;border-radius:9px;background:${c.text}18;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${a.icon}</div>
-      <div style="flex:1;min-width:0;overflow:hidden">
-        <div style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;color:${c.text};line-height:1.35;margin-bottom:3px;white-space:normal;word-break:normal;overflow-wrap:break-word">${a.nombre}</div>
-        <div style="font-size:11.5px;color:var(--muted);font-family:'DM Sans',sans-serif;line-height:1.5;white-space:normal;overflow-wrap:break-word">${descCorta}</div>
+      <div style="position:absolute;top:0;left:0;bottom:0;width:3px;background:${c.text}"></div>
+      <div style="width:30px;height:30px;border-radius:7px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-left:4px">${a.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:11px;line-height:1.3;word-break:break-word">${a.nombre}</div>
+        <div style="font-size:9px;color:${c.text};font-weight:600">${dimNames[a.dim]||''}</div>
       </div>
-      <button onclick="event.stopPropagation();toggleFav('${a.id}')" title="Quitar de favoritos"
-        style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);flex-shrink:0;padding:0;opacity:0.35;transition:opacity .15s;line-height:1;margin-top:2px"
-        onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.35'">✕</button>
+      <button onclick="event.stopPropagation();toggleFav('${a.id}')" title="Quitar" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);flex-shrink:0;padding:2px">✕</button>
     </div>`;
   }).join('');
 }
@@ -5388,22 +5427,34 @@ function filterDim(d){
 
 function renderAgents(){
   const agents=currentDimFilter==='all'?AGENTS:AGENTS.filter(a=>a.dim===currentDimFilter);
-  document.getElementById('agentGrid').innerHTML=agents.map((a,idx)=>{
+  document.getElementById('agentGrid').innerHTML=agents.map(a=>{
     const c=COLORS[a.dim];
     const isFav = FAV_STORE.isFav(a.id);
-    return `<div style="background:${c.bg};border:1px solid ${c.border}22;border-radius:12px;padding:14px 15px;cursor:pointer;transition:all .18s;position:relative;display:flex;align-items:flex-start;gap:12px"
-      onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px ${c.border}33'"
-      onmouseleave="this.style.transform='';this.style.boxShadow=''"
-      onclick="openAgent('${a.id}')">
+    const isGestion = document.body.classList.contains('theme-gestion');
+    const cardBg     = isGestion ? '#F5F2EE' : 'var(--surface)';
+    const cardBorder = isGestion ? '#4A4540' : 'var(--border)';
+    const cardHover  = isGestion ? '#3A3530' : c.border;
+    const nameColor  = isGestion ? '#2A2420' : 'var(--text)';
+    const descColor  = isGestion ? '#4A4540' : 'var(--muted)';
+    const metaColor  = isGestion ? '#5A5450' : 'var(--muted)';
+    return `<div style="background:${cardBg};border:1.5px solid ${cardBorder};border-radius:11px;padding:15px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden"
+      onmouseenter="this.style.borderColor='${cardHover}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.12)'"
+      onmouseleave="this.style.borderColor='${cardBorder}';this.style.transform='';this.style.boxShadow=''">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${c.text}"></div>
       <button class="fav-btn ${isFav?'active':''}" id="fav-btn-${a.id}"
         onclick="event.stopPropagation();toggleFav('${a.id}')"
-        title="${isFav?'Quitar de favoritos':'Agregar a favoritos'}"
-        style="position:absolute;top:10px;right:10px;background:none;border:none;cursor:pointer;font-size:12px;opacity:${isFav?'1':'0.35'};transition:opacity .15s"
-        onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='${isFav?'1':'0.35'}'">⭐</button>
-      <div style="width:30px;height:30px;border-radius:9px;background:${c.text}22;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:1px">${a.icon}</div>
-      <div style="min-width:0;flex:1">
-        <div style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;color:${c.text};line-height:1.3;margin-bottom:3px">${a.nombre}</div>
-        <div style="font-size:11.5px;color:var(--muted);line-height:1.55;font-family:'DM Sans',sans-serif">${a.desc}</div>
+        title="${isFav?'Quitar de favoritos':'Agregar a favoritos'}">⭐</button>
+      <div onclick="openAgent('${a.id}')" style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+        <div style="width:34px;height:34px;border-radius:8px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:17px">${a.icon}</div>
+        <div>
+          <div style="font-family:Syne,sans-serif;font-weight:700;font-size:12px;color:${nameColor}">${a.nombre}</div>
+          <div style="font-size:9px;font-weight:600;color:${c.text};margin-top:1px">${dimNames[a.dim]}</div>
+        </div>
+      </div>
+      <div onclick="openAgent('${a.id}')" style="font-size:11px;color:${descColor};line-height:1.5;margin-bottom:9px">${a.desc}</div>
+      <div onclick="openAgent('${a.id}')" style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:10px;color:${metaColor}">${a.preguntas.length} preguntas guía</span>
+        <span style="font-size:10px;font-weight:600;color:${isGestion?'#2A2420':c.text}">Abrir →</span>
       </div>
     </div>`;
   }).join('');
@@ -5605,7 +5656,7 @@ function _buildChatView() {
     '</div>';
 
   document.getElementById('mBody').innerHTML =
-    (currentRole === 'docente' ? '' : ctxNote + neeNote + datosBar) +
+    ctxNote + neeNote + datosBar +
     '<div style="display:flex;flex-direction:column;height:100%;min-height:0">' +
       welcomeScreen +
       // Chat area — hidden until first message
@@ -13375,16 +13426,19 @@ function initAgentCtxSelectors() {
 function ctxRenderAll() {
   ctxRenderList('curso');
   ctxRenderList('asig');
+  ctxRenderList('comp');
   ctxRenderAlus();
 }
 
 // ── Generic list renderer — NO innerHTML onclick, uses data attrs ──
 function ctxRenderList(type) {
-  var elId   = type === 'curso' ? 'ctxCursoList' : 'ctxAsigList';
+  var elId   = type === 'curso' ? 'ctxCursoList' : type === 'asig' ? 'ctxAsigList' : 'ctxCompList';
   var listEl = document.getElementById(elId);
   if (!listEl) return;
-  var items  = (type === 'curso' ? window._ctxCursoList : window._ctxAsigList) || [];
-  var ctxSet = type === 'curso' ? CTX.cursos : CTX.asignaturas;
+  var items  = type === 'curso' ? (window._ctxCursoList || [])
+             : type === 'asig'  ? (window._ctxAsigList || [])
+             : COMPETENCIAS;
+  var ctxSet = type === 'curso' ? CTX.cursos : type === 'asig' ? CTX.asignaturas : CTX.competencias;
   var filter = listEl.dataset.filter || '';
   if (filter) items = items.filter(function(i){ return i.toLowerCase().includes(filter.toLowerCase()); });
 
@@ -13480,7 +13534,7 @@ function ctxRenderAlus(filter) {
 
 // ── Open / close ──────────────────────────────────────────────
 function toggleCtxPicker(type) {
-  var map  = { curso:'ctxCursoDrop', asig:'ctxAsigDrop', alu:'ctxAluDrop' };
+  var map  = { curso:'ctxCursoDrop', asig:'ctxAsigDrop', alu:'ctxAluDrop', comp:'ctxCompDrop' };
   var drop = document.getElementById(map[type]);
   if (!drop) return;
   var wasOpen = drop.style.display !== 'none';
@@ -13496,7 +13550,7 @@ function toggleCtxPicker(type) {
 }
 
 function ctxCloseAll() {
-  ['ctxCursoDrop','ctxAsigDrop','ctxAluDrop'].forEach(function(id){
+  ['ctxCursoDrop','ctxAsigDrop','ctxAluDrop','ctxCompDrop'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -13543,6 +13597,11 @@ function selectAllCtx(type) {
     ctxRenderAlus();
   }
   updateAgentCtxBadge(); applyCtxToChat();
+  if (type === 'comp') {
+    COMPETENCIAS.forEach(function(c){ CTX.competencias.add(c); });
+    ctxRenderList('comp');
+  }
+  updateAgentCtxBadge(); renderCtxSummary();
 }
 
 function clearCtx(type) {
@@ -13588,6 +13647,12 @@ function updateAgentCtxBadge() {
 
   var lb1=document.getElementById('ctxCursoLabel'); if(lb1) lb1.textContent=cLabel;
   var lb2=document.getElementById('ctxAsigLabel');  if(lb2) lb2.textContent=aLabel;
+  var cLabel = CTX.competencias.size===0 ? '🎯 Competencias…'
+             : CTX.competencias.size===1 ? '🎯 '+[...CTX.competencias][0]
+             : '🎯 Competencias ('+CTX.competencias.size+')';
+  var lb3=document.getElementById('ctxCompLabel'); if(lb3) lb3.textContent=cLabel;
+  var cb3=document.getElementById('ctxCompBtn');
+  if(cb3) cb3.classList.toggle('active', CTX.competencias.size>0);
   var lb3=document.getElementById('ctxAluLabel');   if(lb3) lb3.textContent=uLabel;
 
   var b1=document.getElementById('ctxCursoBtn'); if(b1) b1.classList.toggle('active', CTX.cursos.size>0);
@@ -30845,89 +30910,27 @@ function liaxModoLocal() {
 
 // ── Check session on load ─────────────────────────────────────
 async function liaxInitAuth() {
+  // Hide app until auth check
   var app = document.querySelector('.app');
   if (app) app.style.display = 'none';
-  var overlay = document.getElementById('liaxLoginOverlay');
 
-  // ── Detectar link de recovery en el hash de la URL ──
-  var hash = window.location.hash;
-  if (hash && hash.includes('type=recovery') && hash.includes('access_token=')) {
-    // Extraer token
-    var params = {};
-    hash.replace('#','').split('&').forEach(function(p){ var kv=p.split('='); params[kv[0]]=kv[1]; });
-    var accessToken = params['access_token'];
-    if (accessToken) {
-      // Mostrar modal para nueva contraseña
-      _liaxShowPasswordReset(accessToken);
-      return;
-    }
-  }
+  var overlay = document.getElementById('liaxLoginOverlay');
 
   try {
     var hasSession = await _supaInitSession();
     if (hasSession) {
+      // Already logged in
       if (overlay) overlay.style.display = 'none';
       if (app) app.style.display = 'grid';
     } else {
+      // Show login
       if (overlay) overlay.style.display = 'flex';
     }
   } catch(e) {
+    // Supabase unavailable — show app in local mode
     console.warn('[Supabase] Auth check failed, local mode:', e.message);
     if (overlay) overlay.style.display = 'none';
     if (app) app.style.display = 'grid';
-  }
-}
-
-function _liaxShowPasswordReset(accessToken) {
-  var overlay = document.getElementById('liaxLoginOverlay');
-  if (overlay) overlay.style.display = 'flex';
-  // Reemplazar contenido del card de login con formulario de nueva contraseña
-  var card = overlay.querySelector('div > div:nth-child(2) > div');
-  if (!card) return;
-  card.innerHTML = `
-    <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px">Nueva contraseña</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:22px">Ingresa tu nueva contraseña para LIAX</div>
-    <div style="margin-bottom:14px">
-      <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Nueva contraseña</label>
-      <input id="resetNewPwd" type="password" placeholder="Mínimo 8 caracteres"
-        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box"
-        onfocus="this.style.borderColor='#2d6a4f'" onblur="this.style.borderColor='var(--border)'">
-    </div>
-    <div id="resetError" style="display:none;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);border-radius:8px;padding:9px 12px;font-size:12px;color:#c0392b;margin-bottom:14px"></div>
-    <button onclick="_liaxDoPasswordReset('${accessToken}')"
-      style="width:100%;background:#2d6a4f;color:#fff;border:none;border-radius:9px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
-      Guardar nueva contraseña →
-    </button>
-  `;
-}
-
-async function _liaxDoPasswordReset(accessToken) {
-  var pwd = document.getElementById('resetNewPwd')?.value?.trim();
-  var errEl = document.getElementById('resetError');
-  if (!pwd || pwd.length < 8) {
-    if (errEl) { errEl.style.display='block'; errEl.textContent='La contraseña debe tener al menos 8 caracteres.'; }
-    return;
-  }
-  try {
-    // Establecer sesión con el access token del recovery
-    await _supa.auth.setSession({ access_token: accessToken, refresh_token: accessToken });
-    var { error } = await _supa.auth.updateUser({ password: pwd });
-    if (error) throw error;
-    // Limpiar hash y redirigir al login
-    window.location.hash = '';
-    var card = document.getElementById('liaxLoginOverlay').querySelector('div > div:nth-child(2) > div');
-    if (card) card.innerHTML = `
-      <div style="text-align:center;padding:20px 0">
-        <div style="font-size:40px;margin-bottom:12px">✅</div>
-        <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">Contraseña actualizada</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Ya puedes iniciar sesión con tu nueva contraseña.</div>
-        <button onclick="location.reload()" style="background:#2d6a4f;color:#fff;border:none;border-radius:9px;padding:11px 24px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
-          Ir al login →
-        </button>
-      </div>
-    `;
-  } catch(e) {
-    if (errEl) { errEl.style.display='block'; errEl.textContent='Error: ' + e.message; }
   }
 }
 
@@ -31426,21 +31429,6 @@ function gcEliminarAlumno(alumnoId, curso) {
   showSaveToast('🗑️ Alumno eliminado');
 }
 
-
-// ── Desktop sidebar toggle ────────────────────────────────────
-function toggleDesktopSidebar() {
-  var app = document.querySelector('.app');
-  var sb  = document.querySelector('.sidebar');
-  var btn = document.getElementById('sidebarToggleBtn');
-  if (!sb) return;
-  var collapsed = sb.classList.toggle('sb-collapsed');
-  if (app) app.style.gridTemplateColumns = collapsed ? '0px 1fr' : '220px 1fr';
-  if (btn) {
-    btn.style.color       = collapsed ? 'var(--accent1)' : '';
-    btn.style.borderColor = collapsed ? 'var(--accent1)' : '';
-    btn.title = collapsed ? 'Mostrar menú' : 'Ocultar menú';
-  }
-}
 
 // ── Mobile sidebar toggle ─────────────────────────────────────
 function toggleMobileSidebar() {
