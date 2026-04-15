@@ -21,6 +21,22 @@
   /* 2-column layout — wide left sidebar */
   .app{display:grid;grid-template-columns:204px 1fr;grid-template-rows:54px 48px auto 1fr;height:100vh;}
 
+  /* ── Perfil Docente: ocultar sidebar ── */
+  body.is-docente .sidebar { display:none !important; }
+  body.is-docente .app {
+    grid-template-columns: 1fr !important;
+  }
+  body.is-docente #agentModal.open {
+    grid-column: 1 !important;
+  }
+  body.is-docente .app.agent-open {
+    grid-template-areas:
+      "topbar"
+      "smartbar"
+      "banner"
+      "agent" !important;
+  }
+
   /* ── Tema Gestión Estratégica — sidebar + topbar verde oscuro ── */
   body.theme-gestion .topbar {
     background: #1E3A2F !important;
@@ -301,11 +317,10 @@
   .chat-bubble ol,.chat-bubble ul{padding-left:18px;margin:6px 0;}
   .chat-bubble li{margin-bottom:3px;}
   .chat-bubble p{margin:0 0 8px;} .chat-bubble p:last-child{margin-bottom:0;}
-  .chat-input-row{display:flex;gap:6px;margin-top:0;padding-top:10px;border-top:2px solid var(--border);}
-  .chat-input{flex:1;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;color:#111;font-family:DM Sans,sans-serif;font-size:15px;outline:none;min-height:52px;height:52px;}
-  .chat-input:focus{border-color:var(--accent1)88;box-shadow:0 0 0 3px var(--accent1)18;}
-  .chat-input::placeholder{color:#aab;font-size:15px;}
-  .btn-send{background:var(--accent1);color:#fff;border:none;border-radius:9px;padding:0 18px;cursor:pointer;font-size:13px;font-weight:700;font-family:DM Sans,sans-serif;height:52px;min-width:80px;}
+  .chat-input-row{display:flex;gap:6px;margin-top:8px;}
+  .chat-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 11px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;}
+  .chat-input:focus{border-color:var(--accent1)66;}
+  .btn-send{background:var(--accent1);color:#fff;border:none;border-radius:7px;padding:7px 13px;cursor:pointer;font-size:12px;font-weight:600;font-family:DM Sans,sans-serif;}
   .btn-send:hover{background:#3d68e8;}
 
 
@@ -525,7 +540,7 @@
 
     /* Chat input */
     .chat-input-row { gap: 5px !important; }
-    .chat-input { font-size: 15px !important; }
+    .chat-input { font-size: 13px !important; }
 
     /* Login overlay */
     #liaxLoginOverlay > div { padding: 12px !important; }
@@ -740,7 +755,6 @@
   .reply-send-btn{position:absolute;right:6px;bottom:6px;background:var(--accent1);color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;opacity:0;transition:opacity .15s;}
   .reply-field-wrap:focus-within .reply-send-btn{opacity:1;}
   .reply-send-btn{opacity:1 !important;background:var(--accent2);color:#000;font-weight:800;}
-  .bq-list-item{padding:2px 0 2px 10px;color:var(--muted);font-size:13px;}
   .msg-h2{font-size:15px;font-weight:800;color:var(--accent2);margin:14px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--accent2)44;}
   .msg-h3{font-size:14px;font-weight:800;color:var(--accent1);margin:10px 0 4px;}
   .msg-hr{border:none;border-top:1px solid var(--border);margin:8px 0;}
@@ -828,10 +842,6 @@
   /* ── DOCENTE VIEW BANNER ── */
   .docente-view-banner{background:var(--dim2);border-bottom:2px solid var(--accent2)44;padding:7px 16px;font-size:11px;color:var(--accent2);display:none;align-items:center;gap:8px;flex-shrink:0;}
   body.is-docente .docente-view-banner{display:flex;}
-  body.is-docente .sidebar{display:none !important;}
-  body.is-docente .app{grid-template-columns:0 1fr !important;}
-  body.is-docente.agent-open .sidebar{display:none !important;}
-  body.is-docente.agent-open .app{grid-template-columns:0 1fr !important;}
 
   .agent-panel-btn.active-ajustar{background:var(--dim4);border-color:var(--accent4)66;color:var(--accent4);}
   /* ── VISOR DE RESULTADOS ── */
@@ -3139,17 +3149,27 @@
 <!-- MODAL AGENTE -->
 <div class="modal-overlay" id="agentModal">
   <div class="modal agent-modal-resizable" id="agentModalBox">
-    <!-- Header -->
+    <!-- Header — fila única: icono + nombre + "¿Qué quieres hacer?" + input + tabs + resize + cerrar -->
     <div class="modal-head" style="flex-direction:column;gap:0;padding:0;flex-shrink:0">
-      <!-- Fila 1: icono + título + tabs + resize + cerrar -->
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 8px;flex-wrap:wrap">
-        <div class="modal-icon" id="mIcon"></div>
-        <div style="flex:1;min-width:0">
-          <div class="modal-title" id="mTitle"></div>
-          <span class="modal-dim" id="mDim"></span>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;min-height:48px">
+        <!-- Icono + nombre agente -->
+        <div class="modal-icon" id="mIcon" style="width:32px;height:32px;font-size:16px;flex-shrink:0"></div>
+        <div style="flex-shrink:0;min-width:0">
+          <div class="modal-title" id="mTitle" style="font-size:13px;margin:0;white-space:nowrap"></div>
+          <span class="modal-dim" id="mDim" style="font-size:9px"></span>
         </div>
-        <!-- Tabs + resize + close -->
-        <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;flex-wrap:wrap">
+        <!-- Separador -->
+        <div style="width:1px;height:28px;background:var(--border);flex-shrink:0;margin:0 2px"></div>
+        <!-- Label + input "¿Qué quieres hacer?" -->
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0">¿Qué quieres hacer?</span>
+        <input id="smartAgentInput" placeholder="Escribe aquí…"
+          style="width:120px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:5px 9px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;flex-shrink:0"
+          onkeydown="if(event.key==='Enter'&&this.value.trim()){var ci=document.getElementById('chatInput');if(ci){ci.value=this.value.trim();this.value='';sendChat();}}"
+          onfocus="this.style.borderColor='var(--accent1)66'" onblur="this.style.borderColor='var(--border)'">
+        <!-- Separador -->
+        <div style="width:1px;height:28px;background:var(--border);flex-shrink:0;margin:0 2px"></div>
+        <!-- Tabs de navegación -->
+        <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;flex-wrap:nowrap">
           <button class="agent-panel-btn active" id="apbtn-chat"    onclick="switchAgentPanel('chat')"    >💬 Chat</button>
           <button class="agent-panel-btn"        id="apbtn-docs"    onclick="switchAgentPanel('docs')"    >📄 Docs</button>
           <button class="agent-panel-btn"        id="apbtn-files"   onclick="switchAgentPanel('files')"   >📎 Archivos</button>
@@ -3158,14 +3178,16 @@
             title="Volver al inicio del agente y comenzar una nueva conversación"
             style="border-color:var(--accent2)44;color:var(--accent2)">🚀 Iniciar Chat</button>
           <button class="agent-panel-btn"        id="apbtn-ajustar" onclick="switchAgentPanel('ajustar')" style="border-color:var(--accent4);color:var(--accent4);background:var(--dim4);font-weight:800">✨ Personalizar</button>
-          <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
+        </div>
+        <!-- Resize + cerrar -->
+        <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;margin-left:auto">
           <button onclick="resizeAgentModal('normal')" id="rsz-normal" title="Con sidebar" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">◧</button>
           <button onclick="resizeAgentModal('full')"   id="rsz-full"   title="Sin sidebar (máximo espacio)" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">⬜</button>
           <button class="modal-close" onclick="closeModal()" style="margin-left:4px">✕</button>
         </div>
       </div>
-      <!-- Fila 2: selector multi contexto -->
-      <div id="agentCtxBar" style="display:flex;align-items:center;gap:6px;padding:6px 14px 8px;border-bottom:1px solid var(--border);background:var(--bg);flex-wrap:wrap;position:relative">
+      <!-- Fila 2: selector multi contexto — alineado con "Vista de Marcela Pinto" -->
+      <div id="agentCtxBar" style="display:flex;align-items:center;gap:6px;padding:5px 14px 6px;border-bottom:1px solid var(--border);background:var(--bg);flex-wrap:wrap;position:relative">
         <span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;white-space:nowrap">Contexto</span>
 
         <!-- Aula multi-select -->
@@ -3603,8 +3625,43 @@ function _saveCursosCustom() {
   var custom = CURSOS.filter(function(c){ return _CURSOS_DEFAULT.indexOf(c) === -1; });
   localStorage.setItem('liax_cursos_custom', JSON.stringify(custom));
 }
-const ASIGS  = ['Castellano como Segunda Lengua','Ciencias y Tecnología','Comunicación','Descubrimiento del Mundo','Matemáticas','Personal y Social','Psicomotriz'];
-const COMPETENCIAS = ['Socialmente Activo','Interesado','Perseverante'];
+const ASIGS  = ['Lenguaje','Matemáticas','Descentramiento','F. Ejecutivo','Cognitivo (global)','Motor (global)','S. Externalizante','S. Internalizante','Habilidades Sociales','Disp. Aprendizaje'];
+const COMPETENCIAS = [
+  'L1 - Comprensión del Lenguaje',
+  'L2 - Expresión Oral',
+  'L3 - Vocabulario',
+  'L4 - Conciencia Fonológica',
+  'M5 - Conteo y Cardinalidad',
+  'M6 - Reconocimiento de Números',
+  'M7 - Seriación y Patrones',
+  'M8 - Comparación de Cantidades',
+  'M9 - Nociones de Espacio',
+  'M10 - Nociones de Tiempo',
+  'M11 - Pensamiento Lógico',
+  'MF1 - Coordinación Mano-Ojo',
+  'MF2 - Manipulación de Objetos',
+  'MF3 - Trazo y Prerrafismo',
+  'MG1 - Control Cefálico y Postural',
+  'MG2 - Locomoción',
+  'MG3 - Equilibrio',
+  'MG4 - Coordinación Gruesa',
+  'MG5 - Flexibilidad y Fuerza',
+  'MG6 - Autocontrol Motriz',
+  'S1 - Reconocimiento de Emociones Propias',
+  'S2 - Expresión de Emociones',
+  'S3 - Regulación Emocional',
+  'S4 - Empatía',
+  'S5 - Reconocimiento de Diferencias',
+  'S6 - Autonomía e Independencia',
+  'S7 - Autorregulación',
+  'S8 - Iniciativa y Persistencia',
+  'S9 - Vínculos Afectivos',
+  'S10 - Cooperación y Colaboración',
+  'S11 - Comunicación Social',
+  'S12 - Respeto de Normas',
+  'S13 - Inclusión y Pertenencia',
+  'S14 - Resolución de Conflictos'
+];
 
 const COLORS = {
   liderazgo: {bg:'var(--dim1)',text:'var(--accent1)',border:'#4f7bff44'},
@@ -5623,11 +5680,18 @@ function _buildChatView() {
   var qs = currentAgent.preguntas || [];
   var customQs = _getCustomPreguntas(currentAgent.id);
 
-  var gridCards = qs.map(function(q) {
-    var safe = q.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<div class="agent-q-card" onclick="useQuestion(\'' + safe + '\',true)">' +
-             '<span class="agent-q-dot"></span>' +
-             '<span class="agent-q-text">' + q + '</span>' +
+  var gridCards = qs.map(function(q, qi) {
+    var safe = q.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return '<div class="agent-q-card" style="flex-direction:column;align-items:flex-start;gap:6px;cursor:default" onclick="event.stopPropagation()">' +
+             '<div style="display:flex;align-items:flex-start;gap:6px;width:100%;cursor:pointer" onclick="useQuestion(\'' + safe.replace(/'/g,"\\'") + '\',true)">' +
+               '<span class="agent-q-dot" style="margin-top:3px"></span>' +
+               '<span class="agent-q-text">' + q + '</span>' +
+             '</div>' +
+             '<input class="q-inline-answer" data-question="' + safe + '" data-qi="' + qi + '" placeholder="Responde aquí…" ' +
+               'style="width:100%;min-height:38px;height:38px;background:#ffffff;color:#1a1a2e;border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;resize:none;" ' +
+               'onclick="event.stopPropagation()" ' +
+               'onfocus="this.style.borderColor=\'var(--accent1)66\'" ' +
+               'onblur="this.style.borderColor=\'var(--border)\'">' +
            '</div>';
   }).join('');
 
@@ -5668,12 +5732,12 @@ function _buildChatView() {
       // Chat area — hidden until first message
       '<div class="chat-area" id="chatArea" style="flex:1;overflow-y:auto;min-height:0;display:none"></div>' +
       '<div id="attachPreview" style="padding:4px 0;display:flex;flex-wrap:wrap;gap:5px"></div>' +
-      '<div class="chat-input-row" style="align-items:center;margin-top:0">' +
+      '<div class="chat-input-row" style="align-items:flex-end;margin-top:8px">' +
         '<label title="Adjuntar archivo" style="cursor:pointer;flex-shrink:0;width:30px;height:30px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--muted)" onmouseover="this.style.borderColor=\'var(--accent1)\'" onmouseout="this.style.borderColor=\'var(--border)\'">' +
           '+<input type="file" id="fileAttach" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.png,.jpg,.jpeg,.gif,.webp,.bmp" style="display:none" onchange="handleAttachFiles(this.files)">' +
         '</label>' +
         '<button title="Usar documento guardado como contexto" onclick="openDocPickerForChat()" style="flex-shrink:0;width:30px;height:30px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor=\'var(--accent2)\';this.style.color=\'var(--accent2)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--muted)\'">📄</button>' +
-        '<input class="chat-input" id="chatInput" placeholder="Escribe aquí o elige una opción..." onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendChat()}" style="flex:1">' +
+        '<input class="chat-input" id="chatInput" placeholder="Escribe aquí o elige una opción..." onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendChat()}" style="flex:1;min-height:48px;height:48px;background:#ffffff;color:#1a1a2e;border-color:var(--border)">' +
         '<button class="btn-send" onclick="sendChat()">Enviar →</button>' +
       '</div>' +
       '<div style="font-size:9px;color:var(--muted);margin-top:3px">📎 Word, Excel, PPT, PDF, imágenes · Enter para enviar</div>' +
@@ -5729,7 +5793,7 @@ function startChat(){
   document.getElementById('mBody').innerHTML=`
     <div class="chat-area" id="chatArea"></div>
     <div id="attachPreview" style="display:none;padding:6px 0 4px;display:flex;flex-wrap:wrap;gap:5px"></div>
-    <div class="chat-input-row" style="align-items:center">
+    <div class="chat-input-row" style="align-items:flex-end">
       <label title="Adjuntar archivo (Word, Excel, PPT, PDF, imagen)" style="cursor:pointer;flex-shrink:0;width:30px;height:30px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--muted);transition:all .15s" onmouseover="this.style.borderColor='var(--accent1)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
         +<input type="file" id="fileAttach" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.png,.jpg,.jpeg,.gif,.webp,.bmp" style="display:none" onchange="handleAttachFiles(this.files)">
       </label>
@@ -5972,36 +6036,28 @@ function formatMsg(text) {
   var out = [];
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i];
-    // Blockquote: > - item  →  plain list item (no reply field)
-    if (/^> - /.test(l)) {
-      var itemText = l.replace(/^> - /, '').replace(/^_|_$/g,'').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-      out.push('<div class="bq-list-item">– ' + itemText + '</div>');
-    }
-    // Blockquote: > _question_  →  editable reply textarea
-    else if (/^> /.test(l)) {
-      var raw = l.replace(/^> /, '');
-      if (!raw.trim() || raw.trim() === '_') {
-        out.push('<div style="height:4px"></div>');
-      } else {
-        var ph  = raw.replace(/^_|_$/g,'').replace(/<[^>]+>/g,'').trim() || 'Escribe tu respuesta aquí...';
-        var uid = 'rf' + (++window._rfCount || (window._rfCount=1));
-        var context3 = lines.slice(Math.max(0,i-4), i+1).join(' ').toLowerCase();
-        var needsFile =
-          /\b(sube|adjunta|comparte|carga|env[ií]a|attach|upload|pega)\b.{0,80}\b(archivo|excel|documento|doc|pdf|imagen|foto|planilla|datos|xls|xlsx|csv|word)/i.test(context3) ||
-          /\b(archivo|excel|documento|pdf|planilla|imagen|foto|datos)\b.{0,60}\b(subir|adjuntar|compartir|cargar|enviar|attach|upload)/i.test(context3) ||
-          /\b(tu[\s_]?(planificaci|archivo|documento|excel|resultado|nota|asistencia))/i.test(context3) ||
-          /\b(puedes[\s_]?(subir|adjuntar|compartir|enviar|cargar))/i.test(context3) ||
-          /necesito.{0,30}(archivo|excel|documento|planilla)/i.test(context3);
-        var fuId = 'ifu_' + uid;
-        out.push(
-          '<div class="reply-field-wrap" data-question="' + ph.replace(/"/g,'&quot;') + '">' +
-            '<textarea id="' + uid + '" class="reply-field" rows="2" placeholder="' + ph.replace(/"/g,'&quot;') + '" ' +
-              'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendAllReplyFields(this)}"></textarea>' +
-            '<button class="reply-send-btn" onclick="sendAllReplyFields(this.previousElementSibling)">Enviar ↵</button>' +
-            (needsFile ? buildInlineFileUploader(fuId, 'archivo') : '') +
-          '</div>'
-        );
-      }
+    // Blockquote: > text  →  editable reply textarea
+    if (/^> /.test(l)) {
+      var ph  = l.replace(/^> /, '').replace(/<[^>]+>/g, '') || 'Escribe tu respuesta aquí...';
+      var uid = 'rf' + (++window._rfCount || (window._rfCount=1));
+      // Check if nearby lines ask for a file
+      var context3 = lines.slice(Math.max(0,i-4), i+1).join(' ').toLowerCase();
+      var needsFile =
+        /\b(sube|adjunta|comparte|carga|env[ií]a|attach|upload|pega)\b.{0,80}\b(archivo|excel|documento|doc|pdf|imagen|foto|planilla|datos|xls|xlsx|csv|word)/i.test(context3) ||
+        /\b(archivo|excel|documento|pdf|planilla|imagen|foto|datos)\b.{0,60}\b(subir|adjuntar|compartir|cargar|enviar|attach|upload)/i.test(context3) ||
+        /\b(tu[\s_]?(planificaci|archivo|documento|excel|resultado|nota|asistencia))/i.test(context3) ||
+        /\b(puedes[\s_]?(subir|adjuntar|compartir|enviar|cargar))/i.test(context3) ||
+        /necesito.{0,30}(archivo|excel|documento|planilla)/i.test(context3);
+
+      var fuId = 'ifu_' + uid;
+      out.push(
+        '<div class="reply-field-wrap">' +
+          '<textarea id="' + uid + '" class="reply-field" rows="2" placeholder="' + ph + '" ' +
+            'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendReplyField(this)}"></textarea>' +
+          '<button class="reply-send-btn" onclick="sendReplyField(this.previousElementSibling)">Enviar ↵</button>' +
+          (needsFile ? buildInlineFileUploader(fuId, 'archivo') : '') +
+        '</div>'
+      );
     }
     // ## heading
     else if (/^## /.test(l)) {
@@ -6056,49 +6112,15 @@ function sendReplyField(el) {
   if (!ta) return;
   var val = (ta.value || ta.textContent || '').trim();
   if (!val) { ta.focus(); return; }
-  // Replace textarea with confirmed answer shown inline
-  var wrap = ta.parentElement;
-  if (wrap) {
-    var confirmed = document.createElement('div');
-    confirmed.style.cssText = 'background:var(--accent2)18;border:2px solid var(--accent2)88;border-radius:10px;padding:9px 14px;font-size:13px;color:var(--text);line-height:1.5;';
-    confirmed.textContent = val;
-    wrap.replaceChildren(confirmed);
-  }
+  // Lock the field
+  ta.disabled = true;
+  ta.style.opacity = '0.55';
+  ta.style.borderColor = 'var(--accent2)55';
+  var btn = ta.parentElement ? ta.parentElement.querySelector('.reply-send-btn') : null;
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; }
   // Inject value into main chat input and send
   var inp = document.getElementById('chatInput');
   if (inp) inp.value = val;
-  sendChat();
-}
-
-// Collect all reply fields in the same bubble + chatInput, send as one message
-function sendAllReplyFields(el) {
-  var ta = (typeof el === 'string') ? document.getElementById(el) : el;
-  if (!ta) return;
-  // Find the parent bubble to scope only fields within it
-  var bubble = ta.closest('.chat-bubble, .chat-bubble-ai, .chat-bubble-wrap') || document.getElementById('chatArea');
-  var wraps = bubble ? bubble.querySelectorAll('.reply-field-wrap') : [];
-  var parts = [];
-  wraps.forEach(function(wrap) {
-    var textarea = wrap.querySelector('textarea.reply-field');
-    if (!textarea || textarea.disabled) return;
-    var q = wrap.getAttribute('data-question') || '';
-    var a = textarea.value.trim();
-    if (a) {
-      parts.push((q ? '**' + q + '**\n' : '') + a);
-      // Lock & replace with confirmed display
-      var confirmed = document.createElement('div');
-      confirmed.style.cssText = 'background:var(--accent2)18;border:2px solid var(--accent2)88;border-radius:10px;padding:9px 14px;font-size:13px;color:var(--text);line-height:1.5;';
-      confirmed.textContent = a;
-      wrap.replaceChildren(confirmed);
-    }
-  });
-  // Also grab main chatInput if it has text
-  var inp = document.getElementById('chatInput');
-  var mainVal = inp ? inp.value.trim() : '';
-  if (mainVal) parts.unshift(mainVal);
-  if (!parts.length) { ta.focus(); return; }
-  var combined = parts.join('\n\n');
-  if (inp) inp.value = combined;
   sendChat();
 }
 
@@ -6156,13 +6178,36 @@ async function sendChat(){
   const inp=document.getElementById('chatInput');
   if(!inp) return;
   const msg=inp.value.trim();
-  if(!msg && !pendingAttachments.length) return;
+
+  // ── Recolectar respuestas inline de las preguntas guía ──
+  var inlineAnswers = [];
+  document.querySelectorAll('.q-inline-answer').forEach(function(el) {
+    var val = el.value.trim();
+    if (val) {
+      inlineAnswers.push({ question: el.getAttribute('data-question'), answer: val });
+    }
+  });
+
+  if(!msg && !pendingAttachments.length && !inlineAnswers.length) return;
   inp.value='';
+
+  // Construir contenido combinado: respuestas inline + mensaje libre
+  var combinedParts = [];
+  if (inlineAnswers.length) {
+    inlineAnswers.forEach(function(ia) {
+      combinedParts.push('**' + ia.question + '**\n' + ia.answer);
+    });
+    // Limpiar los inputs inline tras enviar
+    document.querySelectorAll('.q-inline-answer').forEach(function(el){ el.value=''; });
+  }
+  if (msg) combinedParts.push(msg);
+  var finalMsg = combinedParts.join('\n\n');
+
   const area=document.getElementById('chatArea');
 
   // Build user bubble showing text + file names
   const fileNames = pendingAttachments.map(a=>`<span style="font-size:9px;background:var(--dim1);border-radius:10px;padding:1px 6px;margin-left:4px">${a.name}</span>`).join('');
-  const userHtml = (msg||'📎 Archivos adjuntos') + fileNames;
+  const userHtml = (finalMsg.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')||'📎 Archivos adjuntos') + fileNames;
   // Hide welcome screen and show chat area on first message
   var ws = document.getElementById('agentWelcomeScreen');
   if (ws) { ws.style.display = 'none'; }
@@ -6173,7 +6218,7 @@ async function sendChat(){
 
   // Memory context hints — shown as LIAX assistant bubble before AI responds
   try {
-    var _memCtxStr = buildMemoryContext(msg, currentAgent.id);
+    var _memCtxStr = buildMemoryContext(finalMsg, currentAgent.id);
     if (_memCtxStr) {
       var _MEM1 = '[LIAX MEMORIA]', _MEM2 = '[FIN MEMORIA]';
       var _mi1  = _memCtxStr.indexOf(_MEM1);
@@ -6186,7 +6231,6 @@ async function sendChat(){
           '<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0">' +
             '<div style="width:28px;height:28px;border-radius:50%;background:var(--dim2);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;border:1px solid var(--accent2)33">💡</div>' +
             '<div style="flex:1">' +
-              '<div style="font-size:9px;font-weight:800;color:var(--accent2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">LIAX recuerda</div>' +
               '<div style="background:var(--dim2);border:1px solid var(--accent2)22;border-radius:10px;padding:9px 13px;display:flex;flex-direction:column;gap:6px">' +
               _lines.map(function(line) {
                 return '<div style="font-size:12px;color:var(--text);line-height:1.5">' + line + '</div>';
@@ -6293,12 +6337,12 @@ async function sendChat(){
       ? 'CL'  // default — extend when multi-country login is added
       : 'CL';
     var colegioId = DB.directores[0]?.establecimiento || '';
-    ragCtx = searchRags(msg, currentAgent.id, colegioId, userPais, 3);
+    ragCtx = searchRags(finalMsg, currentAgent.id, colegioId, userPais, 3);
   } catch(e) { /* RAG search error — continue without context */ }
 
   // Memory context — BM25 local, $0 cost
   var memCtx = '';
-  try { memCtx = buildMemoryContext(msg, currentAgent.id); } catch(e) {}
+  try { memCtx = buildMemoryContext(finalMsg, currentAgent.id); } catch(e) {}
 
   // 10. Memoria compartida entre agentes
   var interAgentCtx = '';
@@ -6329,7 +6373,7 @@ async function sendChat(){
   // Build content array (multimodal if files present)
   let userContent;
   if (!pendingAttachments.length) {
-    userContent = msg;
+    userContent = finalMsg;
   } else {
     userContent = [];
     // Add each attachment first
@@ -6344,7 +6388,7 @@ async function sendChat(){
       }
     });
     // Add the user message text
-    if (msg) userContent.push({ type:'text', text: msg });
+    if (finalMsg) userContent.push({ type:'text', text: finalMsg });
     else userContent.push({ type:'text', text:'Analiza los archivos adjuntos en el contexto de mi consulta.' });
   }
 
@@ -6354,7 +6398,7 @@ async function sendChat(){
   pendingAttachments = [];
 
   // ── Decidir modelo y tokens ANTES de llamar ──────────────
-  var _msgLower = (msg||'').toLowerCase();
+  var _msgLower = (finalMsg||'').toLowerCase();
 
   // Detectar tipo de tarea por keywords para elegir modelo y tokens
   var _hasExcel   = pendingAttachments.some(function(a){ return a.name && (a.name.match(/\.xlsx?$/i) || a.name.match(/\.csv$/i)); }) ||
@@ -6435,11 +6479,10 @@ function closeModal(){
   var app3   = document.querySelector('.app');
   if (modal3) modal3.classList.remove('open','rsz-full','rsz-large','rsz-normal');
   if (app3)   app3.classList.remove('agent-open');
-  // Reset sidebar — but keep hidden for docente role
+  // Reset any inline styles set by resizeAgentModal
   var sb3 = document.querySelector('.sidebar');
-  var isDocente = document.body.classList.contains('is-docente');
-  if (sb3) sb3.style.display = isDocente ? 'none' : '';
-  if (app3) app3.style.gridTemplateColumns = isDocente ? '0 1fr' : '';
+  if (sb3) sb3.style.display = '';
+  if (app3) app3.style.gridTemplateColumns = '';
   // Clear cache for closed agent
   if (currentAgent) delete _chatHistoryCache[currentAgent.id];
   currentAgent=null; chatHistory=[];
@@ -13374,11 +13417,9 @@ function resizeAgentModal(size, silent) {
   var overlay = document.getElementById('agentModal');
   if (!overlay || !app) return;
 
-  var isDocente = document.body.classList.contains('is-docente');
-
   overlay.classList.remove('rsz-normal','rsz-large','rsz-full');
 
-  if (size === 'full' || isDocente) {
+  if (size === 'full') {
     if (sidebar) sidebar.style.display = 'none';
     app.style.gridTemplateColumns = '0 1fr';
   } else {
@@ -13442,7 +13483,8 @@ function initAgentCtxSelectors() {
     var asignados = doc ? (doc.cursosAsignados || []) : [];
     if (asignados.length) {
       cursoList = asignados.map(function(c){ return c.curso; });
-      asigList  = [...new Set(asignados.flatMap(function(c){ return c.asignaturas; }))];
+      // Always show full ASIGS list regardless of assigned subjects
+      asigList = ASIGS.slice();
     }
   } else if (currentRole === 'director') {
     var estab = typeof getDirectorEstablecimiento === 'function' ? getDirectorEstablecimiento() : null;
