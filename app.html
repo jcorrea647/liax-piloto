@@ -828,6 +828,10 @@
   /* ── DOCENTE VIEW BANNER ── */
   .docente-view-banner{background:var(--dim2);border-bottom:2px solid var(--accent2)44;padding:7px 16px;font-size:11px;color:var(--accent2);display:none;align-items:center;gap:8px;flex-shrink:0;}
   body.is-docente .docente-view-banner{display:flex;}
+  body.is-docente .sidebar{display:none !important;}
+  body.is-docente .app{grid-template-columns:0 1fr !important;}
+  body.is-docente.agent-open .sidebar{display:none !important;}
+  body.is-docente.agent-open .app{grid-template-columns:0 1fr !important;}
 
   .agent-panel-btn.active-ajustar{background:var(--dim4);border-color:var(--accent4)66;color:var(--accent4);}
   /* ── VISOR DE RESULTADOS ── */
