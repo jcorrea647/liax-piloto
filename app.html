@@ -5479,6 +5479,8 @@ function renderAgents(){
     </div>`;
   }).join('') + createCard;
 }
+
+function openAgent(id, autoPrompt, sessionToRestore){
   // p6 = Análisis de Resultados → opens dashboard overlay instead
   if(id==='p6'){ openDashboard(); return; }
 
@@ -9181,7 +9183,7 @@ function openDocViewer(idx) {
 let viewingDocIdx = 0;
 function closeDocViewer() { document.getElementById('docViewer').classList.remove('open'); viewingDoc = null; }
 function copyDoc() { if(viewingDoc) navigator.clipboard.writeText(viewingDoc.content).then(()=>showSaveToast('✅ Copiado al portapapeles')); }
-function downloadDoc() {
+async function downloadDoc() {
   if (!viewingDoc) return;
   await exportDocToPDF(viewingDoc.title, viewingDoc.content, viewingDoc.agentName || (currentAgent?.nombre||''), viewingDoc.savedAt);
 }
@@ -9189,7 +9191,7 @@ function copyDocByIndex(i) {
   const d = AGENT_STORE.getDocs(currentAgent.id)[i];
   if(d) navigator.clipboard.writeText(d.content).then(()=>showSaveToast('✅ Copiado al portapapeles'));
 }
-function downloadDocByIndex(i) {
+async function downloadDocByIndex(i) {
   const d = AGENT_STORE.getDocs(currentAgent.id)[i];
   if (!d) return;
   await exportDocToPDF(d.title, d.content, d.agentName || (currentAgent?.nombre||''), d.savedAt);
@@ -17714,7 +17716,7 @@ function renderRepositorioDocs() {
 
 
 
-function openDocFromRepo(agentId, title) {
+async function openDocFromRepo(agentId, title) {
   var docs = AGENT_STORE.getDocs(agentId) || [];
   var doc  = docs.find(function(d){ return d.title === title; });
   if (!doc) return;
@@ -17737,7 +17739,7 @@ function copyDocFromRepo(agentId, title) {
   if (doc) navigator.clipboard.writeText(doc.content||'').then(function(){ showSaveToast('✅ Copiado al portapapeles'); });
 }
 
-function downloadDocFromRepo(agentId, title) {
+async function downloadDocFromRepo(agentId, title) {
   var docs  = AGENT_STORE.getDocs(agentId) || [];
   var doc   = docs.find(function(d){ return d.title === title; });
   var agent = AGENTS.find(function(a){ return a.id === agentId; });
@@ -32928,7 +32930,7 @@ async function denGenerarInforme(denId) {
     navigator.clipboard.writeText(document.getElementById('informeTexto').value);
     showSaveToast('Copiado al portapapeles');
   };
-  document.getElementById('informePDFBtn').onclick = function() {
+  document.getElementById('informePDFBtn').onclick = async function() {
     var txt = document.getElementById('informeTexto').value;
     await exportDocToPDF('Informe ' + den.id, txt, 'LIAX Denuncias', hoy.toISOString());
     portal.remove();
@@ -33374,7 +33376,7 @@ async function denInformeGeneral() {
     navigator.clipboard.writeText(_igTexto);
     showSaveToast('✅ Copiado');
   };
-  document.getElementById('igPDFBtn').onclick = function() {
+  document.getElementById('igPDFBtn').onclick = async function() {
     await exportDocToPDF('Informe General Denuncias', _igTexto, 'LIAX', hoy.toISOString());
     portal.remove();
   };
