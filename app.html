@@ -3363,23 +3363,33 @@ async function _supaLoadPerfil() {
 async function _supaLoadAgentes() {
   if (!_supaUser) return;
   try {
-    var { data } = await _supa.from('agentes_custom').select('*').eq('user_id', _supaUser.id);
+    var { data, error } = await _supa.from('agentes_custom').select('*').eq('user_id', _supaUser.id);
+    if (error) throw error;
     if (data && data.length) {
+      var changed = false;
       data.forEach(function(ag) {
         var agente = {
           id: ag.id, dim: ag.dim, nombre: ag.nombre,
           icon: ag.icon, desc: ag.desc, prompt: ag.prompt,
           preguntas: ag.preguntas || [], custom: true, _fromSupabase: true,
         };
-        if (!AGENTS.find(function(a) { return a.id === agente.id; })) {
+        var existing = AGENTS.find(function(a) { return a.id === agente.id; });
+        if (!existing) {
           AGENTS.push(agente);
+          changed = true;
         } else {
-          Object.assign(AGENTS.find(function(a) { return a.id === agente.id; }), agente);
+          Object.assign(existing, agente);
+          changed = true;
         }
       });
-      renderAgents();
-      if (typeof renderSAAgentGrid === 'function') renderSAAgentGrid();
-      if (typeof updateAgentCounts === 'function') updateAgentCounts();
+      if (changed) {
+        renderAgents();
+        if (typeof renderSAAgentGrid === 'function') renderSAAgentGrid();
+        if (typeof updateAgentCounts === 'function') updateAgentCounts();
+        // Also persist to local storage so they survive offline
+        saveToStorage();
+        _backupCustomAgents();
+      }
       console.log('[Supabase] Cargados', data.length, 'agentes desde la nube');
     }
   } catch(e) { console.warn('[Supabase] Error cargando agentes:', e.message); }
@@ -7963,7 +7973,8 @@ function deleteAgent(id){
   COLEGIOS.forEach(c=>schoolAgents[c.id]?.delete(id));
   Object.values(userAgents).forEach(s=>s.delete(id));
   renderAgents(); renderSAAgentGrid(); updateAgentCounts();
-  saveToStorage(); _backupCustomAgents(); _vaultSaveAgents();
+  // saveToStorage already calls _vaultSaveAgents internally
+  saveToStorage(); _backupCustomAgents();
   // Sync delete to Supabase
   if (typeof _supaDeleteAgente === 'function') {
     _supaDeleteAgente(id).catch(function(){});
@@ -10986,6 +10997,9 @@ function loadFromStorage() {
 function clearStorage() {
   if (!confirm('¿Borrar todos los datos guardados y volver a los datos de ejemplo?\n\nEsta acción no se puede deshacer.')) return;
   localStorage.removeItem(LS_KEY);
+  localStorage.removeItem('liax_custom_agents_backup');
+  // Also clear IndexedDB vault so agents don't resurrect
+  AGENT_VAULT.saveAgents([]).catch(function(){});
   location.reload();
 }
 
@@ -11011,7 +11025,20 @@ function importData(file) {
     try {
       const snap = JSON.parse(e.target.result);
       if (!snap.version) throw new Error('Formato inválido');
+      // Merge current custom agents into snapshot before saving
+      // so import never destroys existing agents
+      var existingCustom = AGENTS.filter(function(a){ return a.custom; });
+      if (existingCustom.length > 0) {
+        snap.customAgents = snap.customAgents || [];
+        existingCustom.forEach(function(ag) {
+          if (!snap.customAgents.find(function(x){ return x.id === ag.id; })) {
+            snap.customAgents.push(ag);
+          }
+        });
+      }
       localStorage.setItem(LS_KEY, JSON.stringify(snap));
+      // Also preserve agents in backup key before reload
+      _backupCustomAgents();
       location.reload();
     } catch(err) { alert('Error al importar: ' + err.message); }
   };
@@ -20378,6 +20405,8 @@ var BACKUP = {
             if (data.agentes[id].docs) AGENT_STORE.saveDocs(id, data.agentes[id].docs);
           });
         }
+        // Preserve custom agents before reload - backup format doesn't include agent definitions
+        _backupCustomAgents();
         AUDIT.log('BACKUP_IMPORT', 'Backup restaurado: ' + data.exportadoEn, 'critical');
         showSaveToast('✅ Backup restaurado correctamente');
         setTimeout(function(){ location.reload(); }, 1500);
@@ -28412,9 +28441,9 @@ const AGENTS_BACKUP_KEY = 'liax_custom_agents_backup';
 function _backupCustomAgents() {
   try {
     var customs = AGENTS.filter(function(a){ return a.custom; });
-    if (customs.length) {
-      localStorage.setItem(AGENTS_BACKUP_KEY, JSON.stringify({ v:1, agents: customs, savedAt: new Date().toISOString() }));
-    }
+    // Always write, even empty, so stale data doesn't resurrect deleted agents
+    // Use v:2 to match _vaultSaveAgents format - no more format race condition
+    localStorage.setItem(AGENTS_BACKUP_KEY, JSON.stringify({ v:2, agents: customs, savedAt: new Date().toISOString() }));
   } catch(e) {}
 }
 
@@ -29605,39 +29634,40 @@ function naWizardSave() {
   }
 
   var preguntas = (s.preguntas||[]).filter(function(p){ return p.trim(); });
+  var savedAg = null;
 
   if (s.editId) {
     var ag = AGENTS.find(function(a){ return a.id === s.editId; });
-    if (ag) Object.assign(ag, { nombre:s.nombre, icon:s.icon, desc:s.desc, prompt:s.prompt, preguntas:preguntas, dim:s.dim });
+    if (ag) {
+      Object.assign(ag, { nombre:s.nombre, icon:s.icon, desc:s.desc, prompt:s.prompt, preguntas:preguntas, dim:s.dim, custom:true });
+      savedAg = ag;
+    }
   } else {
-    var id = 'custom_' + Date.now();
-    AGENTS.push({ id, dim:s.dim, nombre:s.nombre, icon:s.icon, desc:s.desc, prompt:s.prompt, preguntas:preguntas, custom:true });
-    COLEGIOS.forEach(function(c){ if (schoolAgents[c.id]) schoolAgents[c.id].add(id); });
+    var newId = 'custom_' + Date.now();
+    savedAg = { id:newId, dim:s.dim, nombre:s.nombre, icon:s.icon||'🤖', desc:s.desc, prompt:s.prompt, preguntas:preguntas, custom:true };
+    AGENTS.push(savedAg);
+    COLEGIOS.forEach(function(c){ if (schoolAgents[c.id]) schoolAgents[c.id].add(newId); });
   }
 
   closeNewAgent();
   renderAgents();
   if (typeof renderSAAgentGrid === 'function') renderSAAgentGrid();
   if (typeof updateAgentCounts === 'function') updateAgentCounts();
+  // saveToStorage already calls _vaultSaveAgents internally
   saveToStorage();
   _backupCustomAgents();
-  _vaultSaveAgents();
 
-  // ── Guardado directo en Supabase (no depender del hook genérico) ──
-  (function() {
-    var agId = s.editId || ('custom_' + Date.now());
-    // Find the agent we just saved/created
-    var savedAg = AGENTS.find(function(a){ return a.id === agId; }) ||
-                  AGENTS.find(function(a){ return a.nombre === s.nombre && a.custom; });
-    if (savedAg && typeof _supaSaveAgente === 'function') {
-      _supaSaveAgente(savedAg).catch(function(e){
-        console.warn('[LIAX] Retry Supabase save in 3s...', e);
-        setTimeout(function(){
-          _supaSaveAgente(savedAg).catch(function(){});
-        }, 3000);
-      });
-    }
-  })();
+  // ── Guardado directo en Supabase con el objeto correcto ──
+  if (savedAg && typeof _supaSaveAgente === 'function') {
+    _supaSaveAgente(savedAg).catch(function(e){
+      console.warn('[LIAX] Supabase save falló, reintentando en 4s...', e);
+      setTimeout(function(){
+        _supaSaveAgente(savedAg).catch(function(e2){
+          console.warn('[LIAX] Segundo intento fallido:', e2);
+        });
+      }, 4000);
+    });
+  }
 
   showSaveToast('✅ Agente "' + s.nombre + '" ' + (s.editId ? 'actualizado' : 'creado') + ' correctamente');
   setTimeout(checkNiveles, 300);
@@ -30079,6 +30109,11 @@ function bancoUsar(id) {
         _fromBanco: id,
       });
       saveToStorage(); _backupCustomAgents(); renderAgents();
+      // Sync clone to Supabase
+      if (typeof _supaSaveAgente === 'function') {
+        var clonedAg = AGENTS.find(function(a){ return a.id === newId; });
+        if (clonedAg) _supaSaveAgente(clonedAg).catch(function(){});
+      }
       showSaveToast('✅ Agente clonado — lo encontrarás en tus agentes');
       checkNiveles();
     }
@@ -30868,13 +30903,12 @@ var AGENT_VAULT = (function() {
 // ── Hook: save to IndexedDB every time agents change ──────────
 function _vaultSaveAgents() {
   var customs = AGENTS.filter(function(a){ return a.custom; });
-  if (customs.length > 0) {
-    AGENT_VAULT.saveAgents(customs).catch(function(){});
-    try {
-      localStorage.setItem('liax_custom_agents_backup',
-        JSON.stringify({ v:2, agents: customs, savedAt: new Date().toISOString() }));
-    } catch(e) {}
-  }
+  // Always save - even empty - so stale backup is cleared after deletes
+  AGENT_VAULT.saveAgents(customs).catch(function(){});
+  try {
+    localStorage.setItem('liax_custom_agents_backup',
+      JSON.stringify({ v:2, agents: customs, savedAt: new Date().toISOString() }));
+  } catch(e) {}
   // Sync to Supabase
   if (typeof _vaultSaveAgents_supaSync === 'function') _vaultSaveAgents_supaSync();
 }
@@ -33936,8 +33970,19 @@ updateDashStats(); renderAgents(); initCtx(); switchRole('superadmin');
 liaxInitAuth();
 // Restore custom agents + API keys from all available sources
 setTimeout(async function(){
-  // Restore agents
+  // Restore agents from local storage / IndexedDB
   await _vaultRestoreAgents();
+  // After restoring locally, push any custom agents that may not be in Supabase yet
+  // (covers the case where agent was created offline or before session was ready)
+  if (_supaUser && typeof _supaSaveAgente === 'function') {
+    var pendingSync = AGENTS.filter(function(a){ return a.custom && !a._fromSupabase; });
+    pendingSync.forEach(function(ag) {
+      _supaSaveAgente(ag).catch(function(){});
+    });
+    if (pendingSync.length > 0) {
+      console.log('[LIAX] Syncing', pendingSync.length, 'local agent(s) to Supabase');
+    }
+  }
   // Restore API keys from IndexedDB if localStorage is empty
   var keys = ['anthropic_key','gemini_key','openai_key'];
   var lsKeys = ['liax_anthropic_key','liax_gemini_key','liax_openai_key'];
