@@ -1417,7 +1417,10 @@
   <div class="docente-view-banner" id="docenteBanner" style="grid-column:1/-1">
     <span>👩‍🏫</span>
     <span id="docenteBannerText">Vista Docente — solo verás tus cursos y asignaturas asignados</span>
-    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap" id="docenteBannerCursos"></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <button onclick="showPanel('favoritos')" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:4px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;">🏠 Inicio</button>
+      <div id="docenteBannerCursos" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    </div>
   </div>
 
   <!-- SOSTENEDOR BANNER -->
