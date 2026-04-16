@@ -751,8 +751,11 @@
   .agent-welcome-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px;text-align:center;}
   .agent-welcome-sub{font-size:13px;color:var(--muted);margin-bottom:22px;text-align:center;}
   .agent-q-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;max-width:680px;}
-  .agent-q-card{display:flex;align-items:flex-start;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px;cursor:pointer;transition:border-color .15s,background .15s;min-height:46px;}
+  .agent-q-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0;transition:border-color .15s,background .15s;overflow:hidden;}
   .agent-q-card:hover{border-color:var(--accent1)66;background:var(--surface2);}
+  .agent-q-card-top{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;cursor:pointer;min-height:46px;}
+  .agent-q-answer{padding:0 15px 12px;display:none;}
+  .agent-q-card.expanded .agent-q-answer{display:block;}
   .agent-q-dot{width:8px;height:8px;border-radius:50%;background:var(--accent1);flex-shrink:0;margin-top:5px;}
   .agent-q-text{font-size:13px;color:var(--text);line-height:1.5;font-weight:500;}
   @media(max-width:560px){.agent-q-grid{grid-template-columns:1fr;}}
@@ -1667,56 +1670,10 @@
     <!-- FAVORITOS -->
     <div class="panel" id="panel-favoritos" style="padding:0">
 
-      <!-- ══ HERO SECTION — compacto ══ -->
-      <div style="background:linear-gradient(160deg,var(--surface) 0%,var(--bg) 100%);border-bottom:1px solid var(--border);padding:16px 24px 14px;text-align:center">
-
-        <!-- Saludo -->
-        <div id="homeGreeting"
-          style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;
-                 line-height:1.2;margin-bottom:4px;color:var(--text)">
-        </div>
-
-        <!-- Botones acción en una fila compacta -->
-        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px">
-
-          <button onclick="liaxPrepararDia()" id="btnLiaxDia"
-            style="display:inline-flex;align-items:center;gap:8px;
-                   background:linear-gradient(135deg,var(--accent1) 0%,var(--accent2) 100%);
-                   color:#fff;border:none;border-radius:10px;
-                   padding:9px 18px;font-size:12px;font-weight:800;
-                   cursor:pointer;font-family:DM Sans,sans-serif;
-                   box-shadow:0 4px 16px rgba(0,180,150,.3)">
-            <span style="font-size:16px">🌅</span>
-            <span>Prepárame el día</span>
-          </button>
-
-          <button onclick="showPanel('historial-global')"
-            style="display:inline-flex;align-items:center;gap:6px;
-                   background:var(--surface);border:1.5px solid var(--border);
-                   color:var(--text);border-radius:10px;
-                   padding:9px 14px;font-size:12px;font-weight:600;
-                   cursor:pointer;font-family:DM Sans,sans-serif">
-            <span>🕐</span><span>Retomar chat</span>
-          </button>
-
-          <button onclick="openNewAgent()"
-            style="display:inline-flex;align-items:center;gap:6px;
-                   background:var(--surface);border:1.5px solid var(--accent1);
-                   color:var(--accent1);border-radius:10px;
-                   padding:9px 14px;font-size:12px;font-weight:600;
-                   cursor:pointer;font-family:DM Sans,sans-serif">
-            <span>🤖</span><span>Crear agente</span>
-          </button>
-
-          <button onclick="showPanel('repositorio-docs')"
-            style="display:inline-flex;align-items:center;gap:6px;
-                   background:var(--surface);border:1.5px solid var(--border);
-                   color:var(--text);border-radius:10px;
-                   padding:9px 14px;font-size:12px;font-weight:600;
-                   cursor:pointer;font-family:DM Sans,sans-serif">
-            <span>📄</span><span>Mis documentos</span>
-          </button>
-
+      <!-- ══ TÍTULO PRINCIPAL ══ -->
+      <div style="padding:20px 24px 14px;border-bottom:1px solid var(--border)">
+        <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--text);line-height:1.2">
+          Consejero Educativo Liax - Indi
         </div>
       </div>
 
@@ -3608,8 +3565,13 @@ function _saveCursosCustom() {
   var custom = CURSOS.filter(function(c){ return _CURSOS_DEFAULT.indexOf(c) === -1; });
   localStorage.setItem('liax_cursos_custom', JSON.stringify(custom));
 }
-const ASIGS  = ['Castellano como Segunda Lengua','Ciencias y Tecnología','Comunicación','Descubrimiento del Mundo','Matemáticas','Personal y Social','Psicomotriz'];
-const COMPETENCIAS = ['Socialmente Activo','Interesado','Perseverante'];
+const ASIGS  = ['Lenguaje','Matemáticas','Descentramiento','F. Ejecutivo','Cognitivo (global)','Motor (global)','S. Externalizante','S. Internalizante','Habilidades Sociales','Disp. Aprendizaje'];
+const COMPETENCIAS = [
+  'L1 - Comprensión del Lenguaje','L2 - Expresión Oral','L3 - Vocabulario','L4 - Conciencia Fonológica',
+  'M5 - Conteo y Cardinalidad','M6 - Reconocimiento de Números','M7 - Seriación y Patrones','M8 - Comparación de Cantidades','M9 - Nociones de Espacio','M10 - Nociones de Tiempo','M11 - Pensamiento Lógico',
+  'MF1 - Coordinación Mano-Ojo','MF2 - Manipulación de Objetos','MF3 - Trazo y Prerrafismo',
+  'MG1 - Control Cefálico y Postural','MG2 - Locomoción','MG3 - Equilibrio','MG4 - Coordinación Gruesa','MG5 - Flexibilidad'
+];
 
 const COLORS = {
   liderazgo: {bg:'var(--dim1)',text:'var(--accent1)',border:'#4f7bff44'},
@@ -5630,9 +5592,18 @@ function _buildChatView() {
 
   var gridCards = qs.map(function(q) {
     var safe = q.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<div class="agent-q-card" onclick="useQuestion(\'' + safe + '\',true)">' +
-             '<span class="agent-q-dot"></span>' +
-             '<span class="agent-q-text">' + q + '</span>' +
+    return '<div class="agent-q-card" onclick="toggleAgentQCard(this,\'' + safe + '\')">' +
+             '<div class="agent-q-card-top">' +
+               '<span class="agent-q-dot"></span>' +
+               '<span class="agent-q-text">' + q + '</span>' +
+             '</div>' +
+             '<div class="agent-q-answer">' +
+               '<textarea class="reply-field" rows="2" placeholder="Escribe tu respuesta aquí..." onclick="event.stopPropagation()" style="width:100%;box-sizing:border-box"></textarea>' +
+               '<div style="display:flex;gap:6px;margin-top:6px">' +
+                 '<button onclick="event.stopPropagation();sendQCardAnswer(this,\'' + safe + '\')" style="background:var(--accent2);border:none;color:#000;border-radius:7px;padding:5px 14px;cursor:pointer;font-size:11px;font-weight:800;font-family:DM Sans,sans-serif">Enviar →</button>' +
+                 '<button onclick="event.stopPropagation();useQuestion(\'' + safe + '\',true)" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 14px;cursor:pointer;font-size:11px;font-family:DM Sans,sans-serif">Usar directamente</button>' +
+               '</div>' +
+             '</div>' +
            '</div>';
   }).join('');
 
@@ -5678,7 +5649,7 @@ function _buildChatView() {
           '+<input type="file" id="fileAttach" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.png,.jpg,.jpeg,.gif,.webp,.bmp" style="display:none" onchange="handleAttachFiles(this.files)">' +
         '</label>' +
         '<button title="Usar documento guardado como contexto" onclick="openDocPickerForChat()" style="flex-shrink:0;width:30px;height:30px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor=\'var(--accent2)\';this.style.color=\'var(--accent2)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--muted)\'">📄</button>' +
-        '<input class="chat-input" id="chatInput" placeholder="Escribe aquí o elige una opción..." onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendChat()}" style="flex:1">' +
+        '<input class="chat-input" id="chatInput" placeholder="Escribe aquí o elige una opción..." onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendChat()}" style="flex:1;min-height:48px;height:48px;background:#ffffff;color:#1a1a2e;border-color:var(--border)">' +
         '<button class="btn-send" onclick="sendChat()">Enviar →</button>' +
       '</div>' +
       '<div style="font-size:9px;color:var(--muted);margin-top:3px">📎 Word, Excel, PPT, PDF, imágenes · Enter para enviar</div>' +
@@ -5891,6 +5862,27 @@ function removeAttach(idx, chipEl) {
 function useQuestion(q,autoSend=false){
   const inp=document.getElementById('chatInput');
   if(inp){inp.value=q; if(autoSend)sendChat();}
+}
+
+function toggleAgentQCard(card, q) {
+  var isExpanded = card.classList.contains('expanded');
+  // Close all others
+  document.querySelectorAll('.agent-q-card.expanded').forEach(function(c){ c.classList.remove('expanded'); });
+  if (!isExpanded) {
+    card.classList.add('expanded');
+    var ta = card.querySelector('textarea');
+    if (ta) setTimeout(function(){ ta.focus(); }, 50);
+  }
+}
+
+function sendQCardAnswer(btn, q) {
+  var card = btn.closest('.agent-q-card');
+  var ta = card ? card.querySelector('textarea') : null;
+  var answer = ta ? ta.value.trim() : '';
+  var finalMsg = answer ? q + '\n\n' + answer : q;
+  var inp = document.getElementById('chatInput');
+  if (inp) { inp.value = finalMsg; sendChat(); }
+  if (card) card.classList.remove('expanded');
 }
 
 function formatMsg(text) {
@@ -6149,7 +6141,7 @@ async function sendChat(){
           '<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0">' +
             '<div style="width:28px;height:28px;border-radius:50%;background:var(--dim2);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;border:1px solid var(--accent2)33">💡</div>' +
             '<div style="flex:1">' +
-              '<div style="font-size:9px;font-weight:800;color:var(--accent2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">LIAX recuerda</div>' +
+              '<div style="font-size:9px;font-weight:800;color:var(--accent2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px"></div>' +
               '<div style="background:var(--dim2);border:1px solid var(--accent2)22;border-radius:10px;padding:9px 13px;display:flex;flex-direction:column;gap:6px">' +
               _lines.map(function(line) {
                 return '<div style="font-size:12px;color:var(--text);line-height:1.5">' + line + '</div>';
@@ -6169,8 +6161,11 @@ async function sendChat(){
   const preview=document.getElementById('attachPreview');
   if(preview){ preview.innerHTML=''; preview.style.display='none'; }
 
-  // Build message content for Claude
-  const userCtx=[...DB.directores,...DB.docentes,...DB.alumnos]
+  // Build user context — only alumnos in active context (max 30) to reduce noise
+  var _ctxAlus = CTX.alumnos.size
+    ? DB.alumnos.filter(function(a){ return CTX.alumnos.has(a.id); }).slice(0, 30)
+    : DB.alumnos.slice(0, 30);
+  const userCtx = [...DB.directores, ...DB.docentes, ..._ctxAlus]
     .map(u=>`- ${u.nombre} (${u.rol}, ${u.establecimiento}, ${u.esp}${u.exp?', '+u.exp+' años':''}${u.nee?', NEE: '+u.nee:''}${u.neeT?', NEE-T: '+u.neeT:''})`)
     .join('\n');
   const STYLE_RULES = [
@@ -6268,8 +6263,10 @@ async function sendChat(){
   try { interAgentCtx = buildInterAgentContext(currentAgent.id); } catch(e) {}
 
   const system =
-    // 1. ROL DEL AGENTE — máxima prioridad
+    // 1. ROL DEL AGENTE — máxima prioridad con delimitadores fuertes
+    '=== ROL ABSOLUTO — NUNCA IGNORAR ===\n' +
     currentAgent.prompt +
+    '\n=== FIN ROL ABSOLUTO ===\n' +
     // 2. Instrucciones técnicas del sistema (formato, herramientas)
     STYLE_RULES +
     // 3. Contexto de alumnos con NEE (si hay)
@@ -6287,7 +6284,9 @@ async function sendChat(){
     // 9. Datasets académicos activos
     buildDatosContext() +
     // 10. Memoria compartida: docs/archivos/convs de otros agentes
-    interAgentCtx;
+    interAgentCtx +
+    // 11. Recordatorio final de rol (sandwich technique)
+    '\n\nRECUERDA: Eres ' + currentAgent.nombre + '. Mantén tu rol en todo momento.';
 
   // Build content array (multimodal if files present)
   let userContent;
@@ -6357,6 +6356,16 @@ async function sendChat(){
     _historyToSend = _aiMsgs.concat([_lastUser]);
   }
 
+  // Role reminder every 3 turns — prevents model from drifting in long conversations
+  var _userTurns = chatHistory.filter(function(m){ return m.role === 'user'; }).length;
+  if (_userTurns >= 3 && _userTurns % 3 === 0 && currentAgent) {
+    var _roleReminder = [
+      { role: 'user',      content: 'Recuerda: ¿quién eres y cuál es tu rol?' },
+      { role: 'assistant', content: 'Soy ' + currentAgent.nombre + '. ' + (currentAgent.prompt || '').slice(0, 200) + '...' }
+    ];
+    _historyToSend = _roleReminder.concat(_historyToSend);
+  }
+
   try{
     const data = await callClaude({
       model:      _selectedModel,
@@ -6398,10 +6407,11 @@ function closeModal(){
   var app3   = document.querySelector('.app');
   if (modal3) modal3.classList.remove('open','rsz-full','rsz-large','rsz-normal');
   if (app3)   app3.classList.remove('agent-open');
-  // Reset any inline styles set by resizeAgentModal
+  // Reset sidebar — but keep hidden for docente role
   var sb3 = document.querySelector('.sidebar');
-  if (sb3) sb3.style.display = '';
-  if (app3) app3.style.gridTemplateColumns = '';
+  var isDocente = document.body.classList.contains('is-docente');
+  if (sb3) sb3.style.display = isDocente ? 'none' : '';
+  if (app3) app3.style.gridTemplateColumns = isDocente ? '0 1fr' : '';
   // Clear cache for closed agent
   if (currentAgent) delete _chatHistoryCache[currentAgent.id];
   currentAgent=null; chatHistory=[];
@@ -6855,7 +6865,7 @@ async function callGemini(payload) {
     contents: geminiContents,
     generationConfig: {
       maxOutputTokens: payload.max_tokens || 4000,
-      temperature: 0.7,
+      temperature: 0.2,
     }
   };
 
@@ -6922,7 +6932,7 @@ async function callOpenAI(payload) {
         model: payload.model || 'gpt-4o-mini',
         messages: messages,
         max_tokens: payload.max_tokens || 1500,
-        temperature: 0.7,
+        temperature: 0.2,
       })
     });
   } catch(e) {
@@ -13342,8 +13352,9 @@ function resizeAgentModal(size, silent) {
     if (sidebar) sidebar.style.display = 'none';
     app.style.gridTemplateColumns = '0 1fr';
   } else {
-    if (sidebar) sidebar.style.display = '';
-    app.style.gridTemplateColumns = '280px 1fr';
+    var isDocente = document.body.classList.contains('is-docente');
+    if (sidebar) sidebar.style.display = isDocente ? 'none' : '';
+    app.style.gridTemplateColumns = isDocente ? '0 1fr' : '280px 1fr';
   }
 
   overlay.classList.add('rsz-' + size);
@@ -13395,14 +13406,14 @@ var _ctxPickerOpen = null;  // which picker is open: 'curso'|'asig'|'alu'
 
 function initAgentCtxSelectors() {
   var cursoList = CURSOS.slice();
-  var asigList  = ASIGS.slice();
+  var asigList  = ASIGS.slice(); // always full list
 
   if (currentRole === 'docente' && currentDocenteId) {
     var doc = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
     var asignados = doc ? (doc.cursosAsignados || []) : [];
     if (asignados.length) {
       cursoList = asignados.map(function(c){ return c.curso; });
-      asigList  = [...new Set(asignados.flatMap(function(c){ return c.asignaturas; }))];
+      // asigList stays as full ASIGS — do not filter by docente assignments
     }
   } else if (currentRole === 'director') {
     var estab = typeof getDirectorEstablecimiento === 'function' ? getDirectorEstablecimiento() : null;
