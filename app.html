@@ -3116,16 +3116,7 @@
           <div class="modal-title" id="mTitle" style="font-size:13px;margin:0;white-space:nowrap"></div>
           <span class="modal-dim" id="mDim" style="font-size:9px"></span>
         </div>
-        <!-- Separador -->
-        <div style="width:1px;height:28px;background:var(--border);flex-shrink:0;margin:0 2px"></div>
-        <!-- Label + input "¿Qué quieres hacer?" -->
-        <span style="font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0">¿Qué quieres hacer?</span>
-        <input id="smartAgentInput" placeholder="Escribe aquí…"
-          style="width:120px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:5px 9px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;flex-shrink:0"
-          onkeydown="if(event.key==='Enter'&&this.value.trim()){var ci=document.getElementById('chatInput');if(ci){ci.value=this.value.trim();this.value='';sendChat();}}"
-          onfocus="this.style.borderColor='var(--accent1)66'" onblur="this.style.borderColor='var(--border)'">
-        <!-- Separador -->
-        <div style="width:1px;height:28px;background:var(--border);flex-shrink:0;margin:0 2px"></div>
+
         <!-- Tabs de navegación -->
         <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;flex-wrap:nowrap">
           <button class="agent-panel-btn active" id="apbtn-chat"    onclick="switchAgentPanel('chat')"    >💬 Chat</button>
