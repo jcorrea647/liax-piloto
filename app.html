@@ -10908,6 +10908,16 @@ const LS_KEY = 'liax_main_v1';
 
 function saveToStorage() {
   try {
+    // Collect per-agent docs and history for all custom agents
+    const agentData = {};
+    AGENTS.filter(function(a){ return a.custom; }).forEach(function(a) {
+      var docs = JSON.parse(localStorage.getItem('liax_docs_' + a.id) || '[]');
+      var hist = JSON.parse(localStorage.getItem('liax_hist_' + a.id) || '[]');
+      var ajColegio = localStorage.getItem('liax_ajuste_colegio_' + a.id) || '';
+      var ajUsuario = localStorage.getItem('liax_ajuste_usuario_' + a.id) || '';
+      agentData[a.id] = { docs, hist, ajColegio, ajUsuario };
+    });
+
     const snapshot = {
       version: 1,
       savedAt: new Date().toISOString(),
@@ -10917,7 +10927,12 @@ function saveToStorage() {
         alumnos:    DB.alumnos,
       },
       COLEGIOS,
+      cursosCustom: CURSOS.filter(function(c){ return _CURSOS_DEFAULT.indexOf(c) === -1; }),
       customAgents: AGENTS.filter(a => a.custom),
+      agentData,
+      tareas:    JSON.parse(localStorage.getItem('liax_tareas')   || '[]'),
+      cargos:    JSON.parse(localStorage.getItem('liax_cargos')   || '[]'),
+      umbrales:  JSON.parse(localStorage.getItem('liax_umbrales') || '{}'),
       schoolAgents: Object.fromEntries(
         Object.entries(schoolAgents).map(([k,v]) => [k, [...v]])
       ),
@@ -10953,12 +10968,36 @@ function loadFromStorage() {
       snap.COLEGIOS.forEach(c => COLEGIOS.push(c));
     }
 
+    // Restore cursos custom
+    if (snap.cursosCustom?.length) {
+      snap.cursosCustom.forEach(function(c) {
+        if (CURSOS.indexOf(c) === -1) CURSOS.push(c);
+      });
+      _saveCursosCustom(); // keep liax_cursos_custom in sync
+    }
+
     // Restore custom agents
     if (snap.customAgents?.length) {
       snap.customAgents.forEach(a => {
         if (!AGENTS.find(x => x.id === a.id)) AGENTS.push(a);
       });
     }
+
+    // Restore per-agent docs, history, ajustes
+    if (snap.agentData) {
+      Object.keys(snap.agentData).forEach(function(agId) {
+        var d = snap.agentData[agId];
+        if (d.docs  && d.docs.length)  localStorage.setItem('liax_docs_'           + agId, JSON.stringify(d.docs));
+        if (d.hist  && d.hist.length)  localStorage.setItem('liax_hist_'           + agId, JSON.stringify(d.hist));
+        if (d.ajColegio) localStorage.setItem('liax_ajuste_colegio_' + agId, d.ajColegio);
+        if (d.ajUsuario) localStorage.setItem('liax_ajuste_usuario_' + agId, d.ajUsuario);
+      });
+    }
+
+    // Restore tareas, cargos, umbrales
+    if (snap.tareas   && snap.tareas.length)   localStorage.setItem('liax_tareas',   JSON.stringify(snap.tareas));
+    if (snap.cargos   && snap.cargos.length)   localStorage.setItem('liax_cargos',   JSON.stringify(snap.cargos));
+    if (snap.umbrales && Object.keys(snap.umbrales).length) localStorage.setItem('liax_umbrales', JSON.stringify(snap.umbrales));
 
     // Restore schoolAgents
     if (snap.schoolAgents) {
@@ -10998,6 +11037,7 @@ function clearStorage() {
   if (!confirm('¿Borrar todos los datos guardados y volver a los datos de ejemplo?\n\nEsta acción no se puede deshacer.')) return;
   localStorage.removeItem(LS_KEY);
   localStorage.removeItem('liax_custom_agents_backup');
+  localStorage.removeItem('liax_cursos_custom');
   // Also clear IndexedDB vault so agents don't resurrect
   AGENT_VAULT.saveAgents([]).catch(function(){});
   location.reload();
@@ -31767,10 +31807,16 @@ async function _loadPlatformKey() {
 // ══════════════════════════════════════════════════════════════
 
 async function _supaLoadCursos() {
-  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  if (!_supaUser) return;
   try {
-    var { data } = await _supa.from('cursos').select('*')
-      .eq('colegio_id', _supaPerfil.colegio_id);
+    // Load by colegio_id if available, otherwise by user_id
+    var query = _supa.from('cursos').select('*');
+    if (_supaPerfil?.colegio_id) {
+      query = query.eq('colegio_id', _supaPerfil.colegio_id);
+    } else {
+      query = query.eq('user_id', _supaUser.id);
+    }
+    var { data } = await query;
     if (data && data.length) {
       data.forEach(function(c) {
         if (CURSOS.indexOf(c.nombre) === -1) CURSOS.push(c.nombre);
@@ -31784,12 +31830,12 @@ async function _supaLoadCursos() {
 }
 
 async function _supaSaveCurso(nombre) {
-  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  if (!_supaUser) return;
   try {
     await _supa.from('cursos').upsert({
-      id: 'curso_' + nombre.toLowerCase().replace(/\s+/g,'_'),
+      id: 'curso_' + (_supaPerfil?.colegio_id || _supaUser.id) + '_' + nombre.toLowerCase().replace(/[^a-z0-9]/g,'_'),
       nombre: nombre,
-      colegio_id: _supaPerfil.colegio_id,
+      colegio_id: _supaPerfil?.colegio_id || '',
       user_id: _supaUser.id,
     });
   } catch(e) { console.warn('[Supabase] Error saving curso:', e.message); }
