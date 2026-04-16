@@ -6172,6 +6172,10 @@ async function sendChat(){
   if (msg) combinedParts.push(msg);
   var finalMsg = combinedParts.join('\n\n');
 
+  // Pre-calcular memCtx aquí para usarlo tanto en el hint visual como en el system prompt
+  var memCtx = '';
+  try { memCtx = buildMemoryContext(finalMsg, currentAgent.id); } catch(e) {}
+
   const area=document.getElementById('chatArea');
 
   // Build user bubble showing text + file names
@@ -6185,9 +6189,10 @@ async function sendChat(){
 
   area.insertAdjacentHTML('beforeend', makeBubbleUser(userHtml));
 
-  // Memory context hints — shown as LIAX assistant bubble before AI responds
+  // Memory context hints — shown as assistant bubble before AI responds
+  // Usa memCtx ya calculado arriba — no llamar buildMemoryContext dos veces
   try {
-    var _memCtxStr = buildMemoryContext(finalMsg, currentAgent.id);
+    var _memCtxStr = memCtx;
     if (_memCtxStr) {
       var _MEM1 = '[LIAX MEMORIA]', _MEM2 = '[FIN MEMORIA]';
       var _mi1  = _memCtxStr.indexOf(_MEM1);
@@ -6221,20 +6226,19 @@ async function sendChat(){
 
   // ── SYSTEM PROMPT ─────────────────────────────────────────
   // Construir userCtx solo con usuarios relevantes al contexto activo
-  // (no enviar lista completa en cada mensaje — reduce ruido y tokens)
   var _ctxCursos   = [...CTX.cursos];
   var _ctxAlumnos  = [...CTX.alumnos];
   var _relevantAlumnos = DB.alumnos.filter(function(a){
     return _ctxAlumnos.includes(a.id) ||
            (_ctxCursos.length && _ctxCursos.some(function(c){ return a.esp === c || (a.curso && a.curso === c); }));
-  }).slice(0, 30); // max 30 alumnos relevantes
+  }).slice(0, 30);
   var userCtx = _relevantAlumnos.length
     ? _relevantAlumnos.map(function(u){
         return '- ' + u.nombre + ' (' + (u.esp||u.curso||'') +
                (u.nee ? ', NEE: '+u.nee : '') +
                (u.neeT ? ', NEE-T: '+u.neeT : '') + ')';
       }).join('\n')
-    : ''; // si no hay contexto activo, no enviar usuarios
+    : '';
 
   const STYLE_RULES = [
     '',
@@ -6262,42 +6266,59 @@ async function sendChat(){
     'IMÁGENES: [IMG: tema] para fotos reales, [GENERA: descripción] para imágenes IA.',
   ].join('\n');
 
-  // RAG context — search across applicable knowledge bases
+  // ── Calcular contextos una sola vez (no duplicar llamadas) ──
   var ragCtx = '';
   try {
-    var userPais = 'CL';
-    var colegioId = DB.directores[0]?.establecimiento || '';
-    ragCtx = searchRags(finalMsg, currentAgent.id, colegioId, userPais, 3);
+    ragCtx = searchRags(finalMsg, currentAgent.id, DB.directores[0]?.establecimiento || '', 'CL', 3);
   } catch(e) {}
 
-  // Memory context — BM25 local, $0 cost
-  var memCtx = '';
-  try { memCtx = buildMemoryContext(finalMsg, currentAgent.id); } catch(e) {}
-
-  // Memoria compartida entre agentes
   var interAgentCtx = '';
   try { interAgentCtx = buildInterAgentContext(currentAgent.id); } catch(e) {}
 
+  var classCtx    = '';
+  try { classCtx = buildClassContext(); } catch(e) {}
+
+  var ajusteCtx   = '';
+  try { ajusteCtx = buildAjusteContext(currentAgent.id); } catch(e) {}
+
+  var datosCtx    = '';
+  try { datosCtx = buildDatosContext(); } catch(e) {}
+
   // ── Construir system prompt con delimitadores fuertes ─────
-  // El rol del agente va PRIMERO y ÚLTIMO — técnica sandwich para Gemini
   const agentRoleBlock =
     '=== ROL ABSOLUTO — NUNCA IGNORAR ===\n' +
     currentAgent.prompt + '\n' +
     '=== FIN ROL ABSOLUTO ===';
 
-  const system =
+  var systemRaw =
     agentRoleBlock +
     STYLE_RULES +
     (window._aluCtxExtra || '') +
     (ragCtx ? '\n\n' + ragCtx : '') +
     (memCtx || '') +
     (userCtx ? '\n\nALUMNOS EN CONTEXTO ACTIVO:\n' + userCtx : '') +
-    buildClassContext() +
-    buildAjusteContext(currentAgent.id) +
-    buildDatosContext() +
+    classCtx +
+    ajusteCtx +
+    datosCtx +
     interAgentCtx +
-    // Repetir rol al FINAL del system — Gemini da más peso al inicio y al final
     '\n\n=== RECUERDA: eres ' + currentAgent.nombre + '. Tu rol absoluto está definido arriba. No lo abandones. ===';
+
+  // ── Limitar tamaño del system prompt — máx ~12.000 chars ──
+  // Si supera ese límite, recortar interAgentCtx y datosCtx (menos críticos)
+  var MAX_SYSTEM = 12000;
+  var system = systemRaw;
+  if (systemRaw.length > MAX_SYSTEM) {
+    system =
+      agentRoleBlock +
+      STYLE_RULES +
+      (window._aluCtxExtra || '') +
+      (userCtx ? '\n\nALUMNOS EN CONTEXTO ACTIVO:\n' + userCtx : '') +
+      classCtx +
+      ajusteCtx +
+      // Truncar datos y memoria si el prompt es muy largo
+      (datosCtx ? datosCtx.slice(0, 800) : '') +
+      '\n\n=== RECUERDA: eres ' + currentAgent.nombre + '. Tu rol absoluto está definido arriba. No lo abandones. ===';
+  }
 
   // Build content array (multimodal if files present)
   let userContent;
@@ -6371,7 +6392,16 @@ async function sendChat(){
     var _lastUserMsg = chatHistory[chatHistory.length - 1];
     _historyToSend = [_lastUserMsg];
   } else {
-    _historyToSend = chatHistory.slice();
+    // Para conversaciones normales: máx últimos 10 turnos (5 user + 5 assistant)
+    // Esto evita que el historial crezca indefinidamente y compita con el system prompt
+    var _maxTurns = 10;
+    _historyToSend = chatHistory.length > _maxTurns
+      ? chatHistory.slice(-_maxTurns)
+      : chatHistory.slice();
+    // Garantizar que el primer mensaje sea de usuario (Gemini requiere alternancia)
+    while (_historyToSend.length > 0 && _historyToSend[0].role === 'assistant') {
+      _historyToSend = _historyToSend.slice(1);
+    }
   }
 
   // ── Inyectar recordatorio del rol en el SYSTEM, no en el historial ──
