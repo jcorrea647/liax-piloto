@@ -21,6 +21,22 @@
   /* 2-column layout — wide left sidebar */
   .app{display:grid;grid-template-columns:204px 1fr;grid-template-rows:54px 48px auto 1fr;height:100vh;}
 
+  /* ── Perfil Docente: ocultar sidebar ── */
+  body.is-docente .sidebar { display:none !important; }
+  body.is-docente .app {
+    grid-template-columns: 1fr !important;
+  }
+  body.is-docente #agentModal.open {
+    grid-column: 1 !important;
+  }
+  body.is-docente .app.agent-open {
+    grid-template-areas:
+      "topbar"
+      "smartbar"
+      "banner"
+      "agent" !important;
+  }
+
   /* ── Tema Gestión Estratégica — sidebar + topbar verde oscuro ── */
   body.theme-gestion .topbar {
     background: #1E3A2F !important;
@@ -310,7 +326,13 @@
 
 
 
-  /* ── RAG Colegio / Datos académicos ─────────────────── */
+  /* ── Chat markdown tables ── */
+  .msg-table-wrap{width:100%;overflow-x:auto;margin:8px 0;}
+  .msg-table{width:100%;border-collapse:collapse;font-size:12px;line-height:1.5;}
+  .msg-table th{background:var(--surface2);color:var(--text);font-weight:700;font-size:11px;padding:7px 12px;text-align:left;border:1px solid var(--border);white-space:nowrap;}
+  .msg-table td{padding:6px 12px;border:1px solid var(--border);color:var(--text);vertical-align:top;}
+  .msg-table tr:nth-child(even) td{background:var(--surface2);}
+  .msg-table tr:hover td{background:var(--dim1)22;}
   .rdato-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;transition:border-color .15s;}
   .rdato-card:hover{border-color:var(--accent2)44;}
   .rdato-type-pill{font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;border-radius:20px;padding:2px 9px;}
@@ -562,6 +584,23 @@
   /* ── Agent Wizard ──────────────────────────────────────────── */
   .wz-step { animation: fadeIn .2s ease; }
   .wz-title { font-family:'Syne',sans-serif; font-weight:800; font-size:16px; margin-bottom:4px; color:var(--text); }
+
+  /* ── Wizard welcome screen (paso 0) ── */
+  .wz-welcome-wrap { display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 8px 0; }
+  .wz-welcome-icon { font-size:52px;line-height:1;margin-bottom:16px;animation:wz-pulse 2s ease-in-out infinite; }
+  @keyframes wz-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+  .wz-welcome-title { font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:#1a1a2e;margin-bottom:8px;line-height:1.2; }
+  .wz-welcome-sub { font-size:13px;color:#5a5a7a;line-height:1.7;max-width:420px;margin:0 auto 24px; }
+  .wz-steps-row { display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:480px;margin-bottom:22px; }
+  .wz-step-pill { background:#F7F4EF;border:1.5px solid #E0DAD2;border-radius:12px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:7px; }
+  .wz-step-pill-icon { font-size:26px;line-height:1; }
+  .wz-step-pill-title { font-family:'Syne',sans-serif;font-weight:700;font-size:11px;color:#2A2420; }
+  .wz-step-pill-desc { font-size:10px;color:#6A6460;line-height:1.5;text-align:center; }
+  .wz-example-box { background:#FFF8F0;border:1.5px solid #F0C080;border-radius:10px;padding:12px 16px;max-width:420px;width:100%;margin-bottom:24px;text-align:left; }
+  .wz-example-label { font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#C4962A;margin-bottom:5px; }
+  .wz-example-text { font-size:12px;color:#4A3A20;font-style:italic;line-height:1.6; }
+  .wz-start-btn { background:linear-gradient(135deg,#4f7bff,#00e5c0);color:#fff;border:none;border-radius:12px;padding:13px 36px;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;cursor:pointer;transition:opacity .15s;letter-spacing:.3px; }
+  .wz-start-btn:hover { opacity:.88; }
   .wz-sub   { font-size:12px; color:var(--muted); margin-bottom:18px; line-height:1.5; }
   .wz-label { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin-bottom:6px; display:block; }
   .wz-input { width:100%; background:var(--surface2); border:1.5px solid var(--border); border-radius:9px; padding:10px 13px; color:var(--text); font-size:13px; font-family:DM Sans,sans-serif; outline:none; transition:border-color .15s; box-sizing:border-box; }
@@ -751,13 +790,15 @@
   .agent-welcome-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px;text-align:center;}
   .agent-welcome-sub{font-size:13px;color:var(--muted);margin-bottom:22px;text-align:center;}
   .agent-q-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;max-width:680px;}
-  .agent-q-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0;transition:border-color .15s,background .15s;overflow:hidden;}
+  .agent-q-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px;cursor:default;transition:border-color .15s,background .15s;}
   .agent-q-card:hover{border-color:var(--accent1)66;background:var(--surface2);}
-  .agent-q-card-top{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;cursor:pointer;min-height:46px;}
-  .agent-q-answer{padding:0 15px 12px;display:none;}
-  .agent-q-card.expanded .agent-q-answer{display:block;}
+  .agent-q-card-top{display:flex;align-items:flex-start;gap:10px;width:100%;cursor:pointer;}
+  .agent-q-card-top:hover .agent-q-text{color:var(--accent1);}
   .agent-q-dot{width:8px;height:8px;border-radius:50%;background:var(--accent1);flex-shrink:0;margin-top:5px;}
   .agent-q-text{font-size:13px;color:var(--text);line-height:1.5;font-weight:500;}
+  .agent-q-answer{width:100%;min-height:38px;height:38px;background:#ffffff;color:#2a2a2a;border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;resize:none;box-sizing:border-box;transition:border-color .15s;}
+  .agent-q-answer:focus{border-color:var(--accent1)66;}
+  .agent-q-answer::placeholder{color:#aaa;}
   @media(max-width:560px){.agent-q-grid{grid-template-columns:1fr;}}
   /* ───────────────────────────────────────────────── */
     .loading-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--muted);animation:blink 1s infinite;margin:0 2px;}
@@ -1672,7 +1713,7 @@
 
       <!-- ══ TÍTULO PRINCIPAL ══ -->
       <div style="padding:20px 24px 14px;border-bottom:1px solid var(--border)">
-        <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--text);line-height:1.2">
+        <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#000;line-height:1.2">
           Consejero Educativo Liax - Indi
         </div>
       </div>
@@ -1694,33 +1735,6 @@
         <div id="favEmptyState" style="display:none;text-align:center;padding:16px;color:var(--muted)">
           <div style="font-size:11px">Sin favoritos — abre un agente y haz clic en ⭐</div>
           <button onclick="showPanel('agentes')" class="btn btn-primary" style="font-size:11px;margin-top:8px">Explorar agentes →</button>
-        </div>
-      </div>
-
-      <!-- ── Metacognición ── -->
-      <div style="padding:0 24px 14px" id="metacognicionBtns"></div>
-
-      <!-- ── Mini chat IA ── -->
-      <div style="padding:0 24px 20px" id="inicioDashAI">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-            <span style="font-size:16px">🤖</span>
-            <div>
-              <div style="font-size:12px;font-weight:800" id="inicioDashAITitle">Pregúntale a LIAX sobre tu actividad</div>
-              <div style="font-size:10px;color:var(--muted)">Consultas sobre lo que has hecho en la plataforma</div>
-            </div>
-          </div>
-          <div id="dashQuickQuestionsInicio" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px"></div>
-          <div id="dashAIChatInicio" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
-          <div style="display:flex;gap:7px;align-items:flex-end">
-            <textarea id="dashAIInputInicio" rows="1"
-              placeholder="Ej: ¿Cuántas planificaciones hice este mes?"
-              style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 11px;font-size:12px;font-family:DM Sans,sans-serif;color:var(--text);resize:none;outline:none;line-height:1.5"
-              onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='var(--border)'"
-              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDashQueryInicio()}"></textarea>
-            <button onclick="sendDashQueryInicio()"
-              style="background:var(--accent2);color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:16px;flex-shrink:0">➤</button>
-          </div>
         </div>
       </div>
 
@@ -3090,17 +3104,27 @@
 <!-- MODAL AGENTE -->
 <div class="modal-overlay" id="agentModal">
   <div class="modal agent-modal-resizable" id="agentModalBox">
-    <!-- Header -->
+    <!-- Header — fila única: icono + nombre + "¿Qué quieres hacer?" + input + tabs + resize + cerrar -->
     <div class="modal-head" style="flex-direction:column;gap:0;padding:0;flex-shrink:0">
-      <!-- Fila 1: icono + título + tabs + resize + cerrar -->
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 8px;flex-wrap:wrap">
-        <div class="modal-icon" id="mIcon"></div>
-        <div style="flex:1;min-width:0">
-          <div class="modal-title" id="mTitle"></div>
-          <span class="modal-dim" id="mDim"></span>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;min-height:48px">
+        <!-- Icono + nombre agente -->
+        <div class="modal-icon" id="mIcon" style="width:32px;height:32px;font-size:16px;flex-shrink:0"></div>
+        <div style="flex-shrink:0;min-width:0">
+          <div class="modal-title" id="mTitle" style="font-size:13px;margin:0;white-space:nowrap"></div>
+          <span class="modal-dim" id="mDim" style="font-size:9px"></span>
         </div>
-        <!-- Tabs + resize + close -->
-        <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;flex-wrap:wrap">
+        <!-- Separador -->
+        <div style="width:1px;height:28px;background:var(--border);flex-shrink:0;margin:0 2px"></div>
+        <!-- Label + input "¿Qué quieres hacer?" -->
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0">¿Qué quieres hacer?</span>
+        <input id="smartAgentInput" placeholder="Escribe aquí…"
+          style="width:120px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:5px 9px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;flex-shrink:0"
+          onkeydown="if(event.key==='Enter'&&this.value.trim()){var ci=document.getElementById('chatInput');if(ci){ci.value=this.value.trim();this.value='';sendChat();}}"
+          onfocus="this.style.borderColor='var(--accent1)66'" onblur="this.style.borderColor='var(--border)'">
+        <!-- Separador -->
+        <div style="width:1px;height:28px;background:var(--border);flex-shrink:0;margin:0 2px"></div>
+        <!-- Tabs de navegación -->
+        <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;flex-wrap:nowrap">
           <button class="agent-panel-btn active" id="apbtn-chat"    onclick="switchAgentPanel('chat')"    >💬 Chat</button>
           <button class="agent-panel-btn"        id="apbtn-docs"    onclick="switchAgentPanel('docs')"    >📄 Docs</button>
           <button class="agent-panel-btn"        id="apbtn-files"   onclick="switchAgentPanel('files')"   >📎 Archivos</button>
@@ -3109,14 +3133,16 @@
             title="Volver al inicio del agente y comenzar una nueva conversación"
             style="border-color:var(--accent2)44;color:var(--accent2)">🚀 Iniciar Chat</button>
           <button class="agent-panel-btn"        id="apbtn-ajustar" onclick="switchAgentPanel('ajustar')" style="border-color:var(--accent4);color:var(--accent4);background:var(--dim4);font-weight:800">✨ Personalizar</button>
-          <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
+        </div>
+        <!-- Resize + cerrar -->
+        <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;margin-left:auto">
           <button onclick="resizeAgentModal('normal')" id="rsz-normal" title="Con sidebar" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">◧</button>
           <button onclick="resizeAgentModal('full')"   id="rsz-full"   title="Sin sidebar (máximo espacio)" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">⬜</button>
           <button class="modal-close" onclick="closeModal()" style="margin-left:4px">✕</button>
         </div>
       </div>
-      <!-- Fila 2: selector multi contexto -->
-      <div id="agentCtxBar" style="display:flex;align-items:center;gap:6px;padding:6px 14px 8px;border-bottom:1px solid var(--border);background:var(--bg);flex-wrap:wrap;position:relative">
+      <!-- Fila 2: selector multi contexto — alineado con "Vista de Marcela Pinto" -->
+      <div id="agentCtxBar" style="display:flex;align-items:center;gap:6px;padding:5px 14px 6px;border-bottom:1px solid var(--border);background:var(--bg);flex-wrap:wrap;position:relative">
         <span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;white-space:nowrap">Contexto</span>
 
         <!-- Aula multi-select -->
@@ -3251,17 +3277,8 @@
 const SUPA_URL  = 'https://tykbytaymysxgvyvlgah.supabase.co';
 const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5a2J5dGF5bXlzeGd2eXZsZ2FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNzAxMTYsImV4cCI6MjA5MDc0NjExNn0.SSCS0a1tjkTcR9LqOCvXtvFL4GUiIgF7BkUnG_7irAE';
 
-// Init client — guard against CDN load failure
-var _supa = null;
-try {
-  if (typeof supabase !== 'undefined' && supabase.createClient) {
-    _supa = supabase.createClient(SUPA_URL, SUPA_ANON);
-  } else {
-    console.warn('[LIAX] Supabase CDN no disponible — modo local activado');
-  }
-} catch(e) {
-  console.warn('[LIAX] Error inicializando Supabase:', e.message, '— modo local activado');
-}
+// Init client
+const _supa = supabase.createClient(SUPA_URL, SUPA_ANON);
 
 // Current session
 var _supaUser    = null;
@@ -3270,7 +3287,6 @@ var _supaPerfil  = null;
 
 // ── Auth helpers ──────────────────────────────────────────────
 async function supaLogin(email, password) {
-  if (!_supa) throw new Error('Servicio no disponible — recarga la página');
   var { data, error } = await _supa.auth.signInWithPassword({ email, password });
   if (error) throw error;
   _supaSession = data.session;
@@ -3280,7 +3296,7 @@ async function supaLogin(email, password) {
 }
 
 async function supaLogout() {
-  if (_supa) await _supa.auth.signOut();
+  await _supa.auth.signOut();
   _supaUser = null; _supaSession = null; _supaPerfil = null;
   // Show login screen
   document.getElementById('liaxLoginOverlay').style.display = 'flex';
@@ -3288,7 +3304,7 @@ async function supaLogout() {
 }
 
 async function _supaLoadPerfil() {
-  if (!_supaUser || !_supa) return;
+  if (!_supaUser) return;
   var { data } = await _supa.from('usuarios').select('*').eq('id', _supaUser.id).single();
   if (data) {
     _supaPerfil = data;
@@ -3468,7 +3484,6 @@ async function _supaSaveNivel(nivelData) {
 
 // ── Sesión persistente ────────────────────────────────────────
 async function _supaInitSession() {
-  if (!_supa) return false;
   var { data: { session } } = await _supa.auth.getSession();
   if (session) {
     _supaSession = session;
@@ -3567,10 +3582,40 @@ function _saveCursosCustom() {
 }
 const ASIGS  = ['Lenguaje','Matemáticas','Descentramiento','F. Ejecutivo','Cognitivo (global)','Motor (global)','S. Externalizante','S. Internalizante','Habilidades Sociales','Disp. Aprendizaje'];
 const COMPETENCIAS = [
-  'L1 - Comprensión del Lenguaje','L2 - Expresión Oral','L3 - Vocabulario','L4 - Conciencia Fonológica',
-  'M5 - Conteo y Cardinalidad','M6 - Reconocimiento de Números','M7 - Seriación y Patrones','M8 - Comparación de Cantidades','M9 - Nociones de Espacio','M10 - Nociones de Tiempo','M11 - Pensamiento Lógico',
-  'MF1 - Coordinación Mano-Ojo','MF2 - Manipulación de Objetos','MF3 - Trazo y Prerrafismo',
-  'MG1 - Control Cefálico y Postural','MG2 - Locomoción','MG3 - Equilibrio','MG4 - Coordinación Gruesa','MG5 - Flexibilidad'
+  'L1 - Comprensión del Lenguaje',
+  'L2 - Expresión Oral',
+  'L3 - Vocabulario',
+  'L4 - Conciencia Fonológica',
+  'M5 - Conteo y Cardinalidad',
+  'M6 - Reconocimiento de Números',
+  'M7 - Seriación y Patrones',
+  'M8 - Comparación de Cantidades',
+  'M9 - Nociones de Espacio',
+  'M10 - Nociones de Tiempo',
+  'M11 - Pensamiento Lógico',
+  'MF1 - Coordinación Mano-Ojo',
+  'MF2 - Manipulación de Objetos',
+  'MF3 - Trazo y Prerrafismo',
+  'MG1 - Control Cefálico y Postural',
+  'MG2 - Locomoción',
+  'MG3 - Equilibrio',
+  'MG4 - Coordinación Gruesa',
+  'MG5 - Flexibilidad y Fuerza',
+  'MG6 - Autocontrol Motriz',
+  'S1 - Reconocimiento de Emociones Propias',
+  'S2 - Expresión de Emociones',
+  'S3 - Regulación Emocional',
+  'S4 - Empatía',
+  'S5 - Reconocimiento de Diferencias',
+  'S6 - Autonomía e Independencia',
+  'S7 - Autorregulación',
+  'S8 - Iniciativa y Persistencia',
+  'S9 - Vínculos Afectivos',
+  'S10 - Cooperación y Colaboración',
+  'S11 - Comunicación Social',
+  'S12 - Respeto de Normas',
+  'S13 - Inclusión y Pertenencia',
+  'S14 - Resolución de Conflictos'
 ];
 
 const COLORS = {
@@ -5400,40 +5445,40 @@ function filterDim(d){
 
 function renderAgents(){
   const agents=currentDimFilter==='all'?AGENTS:AGENTS.filter(a=>a.dim===currentDimFilter);
-  document.getElementById('agentGrid').innerHTML=agents.map(a=>{
+  const createCard = `<div style="background:#F7F4EF;border:1.5px dashed #4A4540;border-radius:11px;padding:15px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;text-align:center"
+    onclick="openNewAgent()"
+    onmouseenter="this.style.borderColor='#2A2420';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.13)'"
+    onmouseleave="this.style.borderColor='#4A4540';this.style.transform='';this.style.boxShadow=''">
+    <div style="width:38px;height:38px;border-radius:50%;background:#eee;border:2px dashed #4A4540;display:flex;align-items:center;justify-content:center;font-size:20px">🤖</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:#2A2420">Crear agente</div>
+    <div style="font-size:10px;color:#6A6460;line-height:1.4">Diseña tu propio agente personalizado</div>
+  </div>`;
+
+  document.getElementById('agentGrid').innerHTML = agents.map(a=>{
     const c=COLORS[a.dim];
     const isFav = FAV_STORE.isFav(a.id);
-    const isGestion = document.body.classList.contains('theme-gestion');
-    const cardBg     = isGestion ? '#F5F2EE' : 'var(--surface)';
-    const cardBorder = isGestion ? '#4A4540' : 'var(--border)';
-    const cardHover  = isGestion ? '#3A3530' : c.border;
-    const nameColor  = isGestion ? '#2A2420' : 'var(--text)';
-    const descColor  = isGestion ? '#4A4540' : 'var(--muted)';
-    const metaColor  = isGestion ? '#5A5450' : 'var(--muted)';
-    return `<div style="background:${cardBg};border:1.5px solid ${cardBorder};border-radius:11px;padding:15px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden"
-      onmouseenter="this.style.borderColor='${cardHover}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.12)'"
-      onmouseleave="this.style.borderColor='${cardBorder}';this.style.transform='';this.style.boxShadow=''">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${c.text}"></div>
+    return `<div style="background:#F7F4EF;border:1.5px solid #4A4540;border-radius:11px;padding:15px;cursor:pointer;transition:all .2s;position:relative;overflow:visible"
+      onmouseenter="this.style.borderColor='#2A2420';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.13)'"
+      onmouseleave="this.style.borderColor='#4A4540';this.style.transform='';this.style.boxShadow=''">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${c.text};border-radius:11px 11px 0 0"></div>
       <button class="fav-btn ${isFav?'active':''}" id="fav-btn-${a.id}"
         onclick="event.stopPropagation();toggleFav('${a.id}')"
         title="${isFav?'Quitar de favoritos':'Agregar a favoritos'}">⭐</button>
       <div onclick="openAgent('${a.id}')" style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
-        <div style="width:34px;height:34px;border-radius:8px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:17px">${a.icon}</div>
-        <div>
-          <div style="font-family:Syne,sans-serif;font-weight:700;font-size:12px;color:${nameColor}">${a.nombre}</div>
-          <div style="font-size:9px;font-weight:600;color:${c.text};margin-top:1px">${dimNames[a.dim]}</div>
+        <div style="width:34px;height:34px;border-radius:8px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${a.icon}</div>
+        <div style="min-width:0">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:#2A2420;line-height:1.3">${a.nombre}</div>
+          <div style="font-size:9px;font-weight:700;color:${c.text};margin-top:2px;text-transform:uppercase;letter-spacing:.4px">${dimNames[a.dim]}</div>
         </div>
       </div>
-      <div onclick="openAgent('${a.id}')" style="font-size:11px;color:${descColor};line-height:1.5;margin-bottom:9px">${a.desc}</div>
+      <div onclick="openAgent('${a.id}')" style="font-family:'DM Sans',sans-serif;font-size:11px;color:#4A4540;line-height:1.6;margin-bottom:9px;white-space:normal;word-break:break-word">${a.desc}</div>
       <div onclick="openAgent('${a.id}')" style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:10px;color:${metaColor}">${a.preguntas.length} preguntas guía</span>
-        <span style="font-size:10px;font-weight:600;color:${isGestion?'#2A2420':c.text}">Abrir →</span>
+        <span style="font-size:10px;color:#6A6460">${a.preguntas.length} preguntas guía</span>
+        <span style="font-size:10px;font-weight:700;color:#2A2420">Abrir →</span>
       </div>
     </div>`;
-  }).join('');
+  }).join('') + createCard;
 }
-
-function openAgent(id, autoPrompt, sessionToRestore){
   // p6 = Análisis de Resultados → opens dashboard overlay instead
   if(id==='p6'){ openDashboard(); return; }
 
@@ -5565,57 +5610,34 @@ function _buildChatView() {
 
   // chatHistory is managed by openAgent — _buildChatView never resets it
 
-  // Event delegation for custom question buttons (set after DOM render)
-  window._aqDelegationAgentId = currentAgent ? currentAgent.id : null;
-  setTimeout(function() {
-    var grid = document.getElementById('aqCustomGrid');
-    if (!grid || !window._aqDelegationAgentId) return;
-    var agId = window._aqDelegationAgentId;
-    grid.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var btn = e.target.closest('button[data-action]');
-      if (!btn) return;
-      var idx2 = parseInt(btn.getAttribute('data-idx'));
-      var qs2  = _getCustomPreguntas(agId);
-      if (btn.getAttribute('data-action') === 'edit-q') {
-        _editarCustomPregunta(agId, idx2, qs2[idx2] || '');
-      } else if (btn.getAttribute('data-action') === 'del-q') {
-        _deleteCustomPregunta(agId, idx2);
-      }
-    });
-  }, 150);
-
   // ── Welcome screen: icon + title + subtitle + question grid ──
   // ── Preguntas del agente (base + custom del docente) ─────────
   var qs = currentAgent.preguntas || [];
   var customQs = _getCustomPreguntas(currentAgent.id);
 
-  var gridCards = qs.map(function(q) {
-    var safe = q.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<div class="agent-q-card" onclick="toggleAgentQCard(this,\'' + safe + '\')">' +
-             '<div class="agent-q-card-top">' +
+  var gridCards = qs.map(function(q, qi) {
+    var safeAttr = q.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    var safeJs   = q.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return '<div class="agent-q-card">' +
+             '<div class="agent-q-card-top" onclick="useQuestion(\'' + safeJs + '\',true)">' +
                '<span class="agent-q-dot"></span>' +
                '<span class="agent-q-text">' + q + '</span>' +
              '</div>' +
-             '<div class="agent-q-answer">' +
-               '<textarea class="reply-field" rows="2" placeholder="Escribe tu respuesta aquí..." onclick="event.stopPropagation()" style="width:100%;box-sizing:border-box"></textarea>' +
-               '<div style="display:flex;gap:6px;margin-top:6px">' +
-                 '<button onclick="event.stopPropagation();sendQCardAnswer(this,\'' + safe + '\')" style="background:var(--accent2);border:none;color:#000;border-radius:7px;padding:5px 14px;cursor:pointer;font-size:11px;font-weight:800;font-family:DM Sans,sans-serif">Enviar →</button>' +
-                 '<button onclick="event.stopPropagation();useQuestion(\'' + safe + '\',true)" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 14px;cursor:pointer;font-size:11px;font-family:DM Sans,sans-serif">Usar directamente</button>' +
-               '</div>' +
-             '</div>' +
+             '<input class="agent-q-answer q-inline-answer" data-question="' + safeAttr + '" data-qi="' + qi + '" placeholder="Responde aquí…" autocomplete="off">' +
            '</div>';
   }).join('');
 
-  // Custom questions added by docente
+  // Custom questions added by docente — onclick directo para evitar listeners acumulados
+  var _agId = currentAgent.id;
   var customCards = customQs.map(function(q, i) {
-    var safe = q.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<div class="aq-custom-card" onclick="useQuestion(\'' + safe + '\',true)">' +
+    var safeUse = q.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    var safeAgId = _agId.replace(/'/g,"\\'");
+    return '<div class="aq-custom-card" onclick="useQuestion(\'' + safeUse + '\',true)">' +
       '<span class="aq-custom-dot"></span>' +
       '<span style="flex:1;font-size:12px;color:var(--text)">' + q + '</span>' +
       '<div style="display:flex;gap:3px;flex-shrink:0" onclick="event.stopPropagation()">' +
-        '<button data-action="edit-q" data-idx="' + i + '" style="background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:10px;padding:2px 5px;border-radius:5px" title="Editar">✏️</button>' +
-        '<button data-action="del-q" data-idx="' + i + '" style="background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:10px;padding:2px 5px;border-radius:5px" title="Eliminar">✕</button>' +
+        '<button onclick="event.stopPropagation();_editarCustomPreguntaIdx(\'' + safeAgId + '\',' + i + ')" style="background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:10px;padding:2px 5px;border-radius:5px" title="Editar">✏️</button>' +
+        '<button onclick="event.stopPropagation();_deleteCustomPregunta(\'' + safeAgId + '\',' + i + ')" style="background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:10px;padding:2px 5px;border-radius:5px" title="Eliminar">✕</button>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -5864,27 +5886,6 @@ function useQuestion(q,autoSend=false){
   if(inp){inp.value=q; if(autoSend)sendChat();}
 }
 
-function toggleAgentQCard(card, q) {
-  var isExpanded = card.classList.contains('expanded');
-  // Close all others
-  document.querySelectorAll('.agent-q-card.expanded').forEach(function(c){ c.classList.remove('expanded'); });
-  if (!isExpanded) {
-    card.classList.add('expanded');
-    var ta = card.querySelector('textarea');
-    if (ta) setTimeout(function(){ ta.focus(); }, 50);
-  }
-}
-
-function sendQCardAnswer(btn, q) {
-  var card = btn.closest('.agent-q-card');
-  var ta = card ? card.querySelector('textarea') : null;
-  var answer = ta ? ta.value.trim() : '';
-  var finalMsg = answer ? q + '\n\n' + answer : q;
-  var inp = document.getElementById('chatInput');
-  if (inp) { inp.value = finalMsg; sendChat(); }
-  if (card) card.classList.remove('expanded');
-}
-
 function formatMsg(text) {
   if (!text) return '';
 
@@ -6004,6 +6005,41 @@ function formatMsg(text) {
     else if (/^---+$/.test(l.trim())) {
       out.push('<hr class="msg-hr">');
     }
+    // Table row (| col | col |) — collect all consecutive rows and render as HTML table
+    else if (/^\|.+\|/.test(l)) {
+      var tableLines = [];
+      while (i < lines.length && /^\|.+\|/.test(lines[i])) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      // Parse rows — skip separator lines (|---|---|)
+      var tableRows = tableLines
+        .map(function(row) {
+          return row.split('|')
+            .slice(1, -1)
+            .map(function(cell) {
+              return cell.trim()
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>');
+            });
+        })
+        .filter(function(cells) {
+          // Skip separator rows like |---|:---|
+          return !cells.every(function(c){ return /^[-:\s]+$/.test(c); });
+        });
+      if (tableRows.length) {
+        var thead = '<thead><tr>' +
+          tableRows[0].map(function(c){ return '<th>' + c + '</th>'; }).join('') +
+          '</tr></thead>';
+        var tbody = '<tbody>' +
+          tableRows.slice(1).map(function(row){
+            return '<tr>' + row.map(function(c){ return '<td>' + c + '</td>'; }).join('') + '</tr>';
+          }).join('') +
+          '</tbody>';
+        out.push('<div class="msg-table-wrap"><table class="msg-table">' + thead + tbody + '</table></div>');
+      }
+      i--; continue; // compensate for the for-loop's i++ that follows
+    }
     // Bullet
     else if (/^[\*\-] /.test(l)) {
       out.push('<div class="msg-bullet"><span class="msg-dot"></span><span>' + l.slice(2).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>') + '</span></div>');
@@ -6111,13 +6147,36 @@ async function sendChat(){
   const inp=document.getElementById('chatInput');
   if(!inp) return;
   const msg=inp.value.trim();
-  if(!msg && !pendingAttachments.length) return;
+
+  // ── Recolectar respuestas inline de las preguntas guía ──
+  var inlineAnswers = [];
+  document.querySelectorAll('.q-inline-answer').forEach(function(el) {
+    var val = el.value.trim();
+    if (val) {
+      inlineAnswers.push({ question: el.getAttribute('data-question'), answer: val });
+    }
+  });
+
+  if(!msg && !pendingAttachments.length && !inlineAnswers.length) return;
   inp.value='';
+
+  // Construir contenido combinado: respuestas inline + mensaje libre
+  var combinedParts = [];
+  if (inlineAnswers.length) {
+    inlineAnswers.forEach(function(ia) {
+      combinedParts.push('**' + ia.question + '**\n' + ia.answer);
+    });
+    // Limpiar los inputs inline tras enviar
+    document.querySelectorAll('.q-inline-answer').forEach(function(el){ el.value=''; });
+  }
+  if (msg) combinedParts.push(msg);
+  var finalMsg = combinedParts.join('\n\n');
+
   const area=document.getElementById('chatArea');
 
   // Build user bubble showing text + file names
   const fileNames = pendingAttachments.map(a=>`<span style="font-size:9px;background:var(--dim1);border-radius:10px;padding:1px 6px;margin-left:4px">${a.name}</span>`).join('');
-  const userHtml = (msg||'📎 Archivos adjuntos') + fileNames;
+  const userHtml = (finalMsg.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')||'📎 Archivos adjuntos') + fileNames;
   // Hide welcome screen and show chat area on first message
   var ws = document.getElementById('agentWelcomeScreen');
   if (ws) { ws.style.display = 'none'; }
@@ -6128,7 +6187,7 @@ async function sendChat(){
 
   // Memory context hints — shown as LIAX assistant bubble before AI responds
   try {
-    var _memCtxStr = buildMemoryContext(msg, currentAgent.id);
+    var _memCtxStr = buildMemoryContext(finalMsg, currentAgent.id);
     if (_memCtxStr) {
       var _MEM1 = '[LIAX MEMORIA]', _MEM2 = '[FIN MEMORIA]';
       var _mi1  = _memCtxStr.indexOf(_MEM1);
@@ -6141,7 +6200,6 @@ async function sendChat(){
           '<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0">' +
             '<div style="width:28px;height:28px;border-radius:50%;background:var(--dim2);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;border:1px solid var(--accent2)33">💡</div>' +
             '<div style="flex:1">' +
-              '<div style="font-size:9px;font-weight:800;color:var(--accent2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px"></div>' +
               '<div style="background:var(--dim2);border:1px solid var(--accent2)22;border-radius:10px;padding:9px 13px;display:flex;flex-direction:column;gap:6px">' +
               _lines.map(function(line) {
                 return '<div style="font-size:12px;color:var(--text);line-height:1.5">' + line + '</div>';
@@ -6161,137 +6219,90 @@ async function sendChat(){
   const preview=document.getElementById('attachPreview');
   if(preview){ preview.innerHTML=''; preview.style.display='none'; }
 
-  // Build user context — only alumnos in active context (max 30) to reduce noise
-  var _ctxAlus = CTX.alumnos.size
-    ? DB.alumnos.filter(function(a){ return CTX.alumnos.has(a.id); }).slice(0, 30)
-    : DB.alumnos.slice(0, 30);
-  const userCtx = [...DB.directores, ...DB.docentes, ..._ctxAlus]
-    .map(u=>`- ${u.nombre} (${u.rol}, ${u.establecimiento}, ${u.esp}${u.exp?', '+u.exp+' años':''}${u.nee?', NEE: '+u.nee:''}${u.neeT?', NEE-T: '+u.neeT:''})`)
-    .join('\n');
+  // ── SYSTEM PROMPT ─────────────────────────────────────────
+  // Construir userCtx solo con usuarios relevantes al contexto activo
+  // (no enviar lista completa en cada mensaje — reduce ruido y tokens)
+  var _ctxCursos   = [...CTX.cursos];
+  var _ctxAlumnos  = [...CTX.alumnos];
+  var _relevantAlumnos = DB.alumnos.filter(function(a){
+    return _ctxAlumnos.includes(a.id) ||
+           (_ctxCursos.length && _ctxCursos.some(function(c){ return a.esp === c || (a.curso && a.curso === c); }));
+  }).slice(0, 30); // max 30 alumnos relevantes
+  var userCtx = _relevantAlumnos.length
+    ? _relevantAlumnos.map(function(u){
+        return '- ' + u.nombre + ' (' + (u.esp||u.curso||'') +
+               (u.nee ? ', NEE: '+u.nee : '') +
+               (u.neeT ? ', NEE-T: '+u.neeT : '') + ')';
+      }).join('\n')
+    : ''; // si no hay contexto activo, no enviar usuarios
+
   const STYLE_RULES = [
     '',
-    '════════════════════════════════════════════════════',
-    'INSTRUCCIONES DEL SISTEMA LIAX (complementan tu rol)',
-    '════════════════════════════════════════════════════',
+    '════════════════════════════════════════════════════════',
+    'REGLAS DEL SISTEMA LIAX — OBLIGATORIAS EN TODO MOMENTO',
+    '════════════════════════════════════════════════════════',
     '',
-    'PRIORIDAD: Tu prompt de rol (arriba) define QUIÉN eres y CÓMO actúas.',
-    'Estas instrucciones solo definen el FORMATO y HERRAMIENTAS disponibles.',
-    'Si hay contradicción entre tu rol y estas reglas, prevalece tu rol.',
-    '',
-    'COMPLETITUD CRÍTICA: Cuando el usuario pida un informe, planificación, guía o rúbrica,',
-    'debes entregarlo COMPLETO hasta el final. JAMÁS cortes a la mitad.',
-    'Si el documento tiene partes (1, 2, 3...) debes incluir TODAS antes de terminar.',
-    'Si necesitas datos que no tienes, haz UNA sola pregunta clave, luego ejecuta.',
-    'NUNCA incluyas las preguntas y respuestas del chat en el informe generado.',
-    'El informe debe contener SOLO el contenido solicitado, no la conversación.',
-    '',
-    'FORMATO DE RESPUESTA:',
+    'FORMATO:',
     '- Usa ## para títulos de sección, guión (-) para listas.',
-    '- Sin introducciones vacías ("¡Claro!", "Por supuesto!").',
-    '- Preguntas al usuario: en **negrita**, seguidas de:',
-    '  > _Tu respuesta:_',
+    '- NUNCA uses introducciones vacías: "¡Claro!", "Por supuesto!", "Entendido!", "¡Claro que sí!".',
+    '- Ve directo al punto. Sin relleno.',
+    '- Preguntas al usuario: en **negrita**, seguidas de: > _Tu respuesta:_',
     '',
-    '2. FORMATO: usa ## para secciones, guión (-) para listas, --- para separar temas.',
+    'DOCUMENTOS Y COMPLETITUD:',
+    '- Si el usuario pide un informe, planificación, guía, rúbrica o cualquier documento:',
+    '  ENTREGARLO COMPLETO hasta el final. JAMÁS cortar a la mitad.',
+    '  Tienes hasta 16.000 tokens — úsalos si el documento lo requiere.',
+    '  NUNCA incluir la conversación del chat en el documento generado.',
     '',
-    '3. ESTILO: directo al punto. Sin "¡Claro!", "Por supuesto!", "Entendido!" ni introducciones vacías.',
+    'DIAGRAMAS: si el usuario pide un diagrama, esquema o mapa, genera un bloque ```svg:',
+    '  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 N" width="100%">',
+    '  Fondo oscuro #0f1318, texto #e8ecf8, sin <style> ni clases CSS, solo atributos inline.',
     '',
-    '4. EJEMPLOS: un ejemplo concreto entre paréntesis cuando sea útil. (ej. Lenguaje)',
-    '',
-    '6. DIAGRAMAS Y ESQUEMAS VISUALES:',
-    '   - Cuando el usuario pida un diagrama, esquema, mapa conceptual, mapa mental, secuencia,',
-    '     ciclo, tabla comparativa visual, línea de tiempo o cualquier representación gráfica,',
-    '     genera un bloque SVG usando EXACTAMENTE este formato:',
-    '     ```svg',
-    '     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="100%">',
-    '       <!-- tu SVG aquí -->',
-    '     </svg>',
-    '     ```',
-    '   - Reglas del SVG:',
-    '     * viewBox siempre "0 0 600 N" donde N es la altura necesaria.',
-    '     * Fondo: <rect width="600" height="N" fill="#0f1318"/> (oscuro, consistente con la app).',
-    '     * Texto: fill="#e8ecf8" para texto principal, fill="#9ba3b2" para secundario.',
-    '     * Colores de cajas: usa #1e3a5f (azul), #0d3030 (verde), #3a1a1a (rojo), #2d1a40 (morado).',
-    '     * Bordes: stroke="#00b496" (teal) para destacados, stroke="#334155" para normales.',
-    '     * Fuente: font-family="Arial,sans-serif"',
-    '     * NO uses <style>, NO uses clases CSS, solo atributos inline.',
-    '     * Máximo 600px de ancho. Sin scroll.',
-    '     * El diagrama debe ser autónomo y completamente legible.',
-    '   - Después del bloque SVG puedes agregar texto explicativo normal.',
-    '   - NUNCA uses base64, NUNCA uses <image>, NUNCA uses xlink.',
-    '',
-    '7. IMÁGENES EDUCATIVAS (3 opciones):',
-    '   [IMG: pizza]        → busca fotos reales del tema (Pixabay/Wikimedia, gratis)',
-    '   [ILLUST: fraccion]  → busca ilustraciones/vectores del tema',
-    '   [GENERA: dibuja una pizza dividida en 8 partes, 3 coloreadas de rojo] → genera imagen con IA',
-    '   - Usa [IMG:] e [ILLUST:] para temas genéricos (animales, objetos, lugares).',
-    '   - Usa [GENERA:] cuando necesitas algo específico y pedagógico que no existe en fotos.',
-    '     Ejemplo: [GENERA: diagrama de la célula animal con etiquetas en español]',
-    '     Ejemplo: [GENERA: fracción 3/4 representada con barras de colores para niños de 8 años]',
-    '   - Incluye varios tags si la actividad lo requiere.',
-    '   - NO uses para conceptos abstractos (amor, paz, democracia).',
-    '',
-    '8. PEDIR ARCHIVOS AL USUARIO:',
-    '   - SIEMPRE que necesites un archivo del usuario, escribe: [ARCHIVO: descripción]',
-    '   - Ejemplos OBLIGATORIOS a usar:',
-    '     [ARCHIVO: el Excel con las notas del curso]',
-    '     [ARCHIVO: la planilla de asistencia en formato Excel o CSV]',
-    '     [ARCHIVO: el documento Word con tu planificación]',
-    '     [ARCHIVO: foto o imagen del trabajo del alumno]',
-    '   - NUNCA pidas archivos solo con texto — SIEMPRE usa el tag [ARCHIVO:]',
-    '   - El sistema muestra automáticamente una zona de carga en el chat.',
-    '   - Combínalo con > _Tu respuesta:_ cuando también necesites texto:',
-    '     [ARCHIVO: el Excel con resultados]',
-    '     > _Tu respuesta:_ ¿Qué asignatura corresponde a estos resultados?',
+    'ARCHIVOS: si necesitas un archivo del usuario escribe: [ARCHIVO: descripción]',
+    'IMÁGENES: [IMG: tema] para fotos reales, [GENERA: descripción] para imágenes IA.',
   ].join('\n');
 
   // RAG context — search across applicable knowledge bases
   var ragCtx = '';
   try {
-    var userPais = (currentRole === 'docente' || currentRole === 'director')
-      ? 'CL'  // default — extend when multi-country login is added
-      : 'CL';
+    var userPais = 'CL';
     var colegioId = DB.directores[0]?.establecimiento || '';
-    ragCtx = searchRags(msg, currentAgent.id, colegioId, userPais, 3);
-  } catch(e) { /* RAG search error — continue without context */ }
+    ragCtx = searchRags(finalMsg, currentAgent.id, colegioId, userPais, 3);
+  } catch(e) {}
 
   // Memory context — BM25 local, $0 cost
   var memCtx = '';
-  try { memCtx = buildMemoryContext(msg, currentAgent.id); } catch(e) {}
+  try { memCtx = buildMemoryContext(finalMsg, currentAgent.id); } catch(e) {}
 
-  // 10. Memoria compartida entre agentes
+  // Memoria compartida entre agentes
   var interAgentCtx = '';
   try { interAgentCtx = buildInterAgentContext(currentAgent.id); } catch(e) {}
 
-  const system =
-    // 1. ROL DEL AGENTE — máxima prioridad con delimitadores fuertes
+  // ── Construir system prompt con delimitadores fuertes ─────
+  // El rol del agente va PRIMERO y ÚLTIMO — técnica sandwich para Gemini
+  const agentRoleBlock =
     '=== ROL ABSOLUTO — NUNCA IGNORAR ===\n' +
-    currentAgent.prompt +
-    '\n=== FIN ROL ABSOLUTO ===\n' +
-    // 2. Instrucciones técnicas del sistema (formato, herramientas)
+    currentAgent.prompt + '\n' +
+    '=== FIN ROL ABSOLUTO ===';
+
+  const system =
+    agentRoleBlock +
     STYLE_RULES +
-    // 3. Contexto de alumnos con NEE (si hay)
     (window._aluCtxExtra || '') +
-    // 4. Bases de conocimiento (RAG)
     (ragCtx ? '\n\n' + ragCtx : '') +
-    // 5. Memoria contextual BM25
     (memCtx || '') +
-    // 6. Datos de usuarios del sistema
-    '\n\nUSUARIOS DEL SISTEMA:\n' + userCtx +
-    // 7. Contexto de curso/alumnos seleccionados
+    (userCtx ? '\n\nALUMNOS EN CONTEXTO ACTIVO:\n' + userCtx : '') +
     buildClassContext() +
-    // 8. Ajustes personalizados del usuario/colegio
     buildAjusteContext(currentAgent.id) +
-    // 9. Datasets académicos activos
     buildDatosContext() +
-    // 10. Memoria compartida: docs/archivos/convs de otros agentes
     interAgentCtx +
-    // 11. Recordatorio final de rol (sandwich technique)
-    '\n\nRECUERDA: Eres ' + currentAgent.nombre + '. Mantén tu rol en todo momento.';
+    // Repetir rol al FINAL del system — Gemini da más peso al inicio y al final
+    '\n\n=== RECUERDA: eres ' + currentAgent.nombre + '. Tu rol absoluto está definido arriba. No lo abandones. ===';
 
   // Build content array (multimodal if files present)
   let userContent;
   if (!pendingAttachments.length) {
-    userContent = msg;
+    userContent = finalMsg;
   } else {
     userContent = [];
     // Add each attachment first
@@ -6306,7 +6317,7 @@ async function sendChat(){
       }
     });
     // Add the user message text
-    if (msg) userContent.push({ type:'text', text: msg });
+    if (finalMsg) userContent.push({ type:'text', text: finalMsg });
     else userContent.push({ type:'text', text:'Analiza los archivos adjuntos en el contexto de mi consulta.' });
   }
 
@@ -6315,72 +6326,81 @@ async function sendChat(){
   // Clear pending attachments after sending
   pendingAttachments = [];
 
-  // ── Decidir modelo y tokens ANTES de llamar ──────────────
-  var _msgLower = (msg||'').toLowerCase();
+  // ── Selección de modelo y tokens — lógica única y definitiva ──
+  var _msgLower = (finalMsg||'').toLowerCase();
 
-  // Detectar tipo de tarea por keywords para elegir modelo y tokens
-  var _hasExcel   = pendingAttachments.some(function(a){ return a.name && (a.name.match(/\.xlsx?$/i) || a.name.match(/\.csv$/i)); }) ||
-                    _msgLower.includes('excel') || _msgLower.includes('planilla') || _msgLower.includes('tabla');
-  var _isInforme  = _msgLower.includes('informe') || _msgLower.includes('genera') || _msgLower.includes('crea el');
-  var _isDocumento= _msgLower.includes('planificaci') || _msgLower.includes('rúbrica') || _msgLower.includes('rubrica') ||
-                    _msgLower.includes('guía') || _msgLower.includes('guia') || _msgLower.includes('completo') ||
-                    _msgLower.includes('todas las partes') || _msgLower.includes('evaluación') || _msgLower.includes('evaluacion');
-  var _isNEE      = _msgLower.includes('nee') || _msgLower.includes('dua') || _msgLower.includes('adaptación') || _msgLower.includes('inclusión');
-  var _isSimple   = _msgLower.length < 60 && !_isInforme && !_isDocumento && !_isNEE && !_hasExcel;
+  // Detectar tipo de tarea
+  var _hasExcel    = _msgLower.includes('excel') || _msgLower.includes('planilla') ||
+                     _msgLower.includes('.xlsx') || _msgLower.includes('.csv');
+  var _isInforme   = _msgLower.includes('informe') || _msgLower.includes('genera') ||
+                     _msgLower.includes('crea el') || _msgLower.includes('redact') ||
+                     _msgLower.includes('escribe') || _msgLower.includes('elabora');
+  var _isDocumento = _msgLower.includes('planificaci') || _msgLower.includes('rúbrica') ||
+                     _msgLower.includes('rubrica') || _msgLower.includes('guía') ||
+                     _msgLower.includes('guia') || _msgLower.includes('completo') ||
+                     _msgLower.includes('evaluación') || _msgLower.includes('evaluacion') ||
+                     _msgLower.includes('pauta') || _msgLower.includes('secuencia') ||
+                     _msgLower.includes('unidad') || _msgLower.includes('taller') ||
+                     _msgLower.includes('programa') || _msgLower.includes('instrumento');
+  var _isNEE       = _msgLower.includes('nee') || _msgLower.includes('dua') ||
+                     _msgLower.includes('adaptación') || _msgLower.includes('inclusión');
 
-  // Elegir modelo según tarea
+  // Modelo y tokens — siempre Gemini Pro excepto NEE que merece el mejor
   var _selectedModel, _selectedTokens;
   if (_isNEE) {
-    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
-    _selectedTokens = 6000;
-  } else if (_hasExcel) {
-    // Excel/CSV → Gemini Pro (2M tokens, ideal para tablas)
-    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
-    _selectedTokens = 4000;
+    // NEE es crítico — usar Claude Sonnet si está disponible, sino Gemini Pro
+    _selectedModel  = LIAX_MODELS['claude-sonnet'].id;
+    _selectedTokens = 16000;
   } else if (_isInforme || _isDocumento) {
     _selectedModel  = LIAX_MODELS['gemini-pro'].id;
-    _selectedTokens = 6000;
-  } else if (_isSimple) {
-    _selectedModel  = LIAX_MODELS['gemini-flash'].id;
-    _selectedTokens = 2000;
+    _selectedTokens = 16000;
+  } else if (_hasExcel) {
+    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
+    _selectedTokens = 8000;
   } else {
+    // Todo lo demás — Gemini Pro para consistencia de instrucciones
+    // NO usar Flash para conversaciones — Flash ignora el rol con más frecuencia
     _selectedModel  = LIAX_MODELS['gemini-pro'].id;
     _selectedTokens = 4000;
   }
 
-  // Historial limpio para informes (solo respuestas IA como contexto)
-  var _historyToSend = chatHistory;
+  // ── Construir historial limpio para enviar ────────────────
+  var _historyToSend;
   if (_isInforme && chatHistory.length > 2) {
-    var _aiMsgs   = chatHistory.filter(function(m){ return m.role === 'assistant'; });
-    var _lastUser = chatHistory[chatHistory.length - 1];
-    _historyToSend = _aiMsgs.concat([_lastUser]);
+    // Para informes: solo el último mensaje del usuario — sin historial que confunda
+    var _lastUserMsg = chatHistory[chatHistory.length - 1];
+    _historyToSend = [_lastUserMsg];
+  } else {
+    _historyToSend = chatHistory.slice();
   }
 
-  // Role reminder every 3 turns — prevents model from drifting in long conversations
+  // ── Inyectar recordatorio del rol en el SYSTEM, no en el historial ──
+  // (Fix 5: no usar fake turns de usuario — contamina la conversación)
+  // Ya está resuelto: el rol se repite al final del system prompt construido arriba.
+  // Solo añadir refuerzo extra si la conversación es larga (>= 4 turnos de usuario)
   var _userTurns = chatHistory.filter(function(m){ return m.role === 'user'; }).length;
-  if (_userTurns >= 3 && _userTurns % 3 === 0 && currentAgent) {
-    var _roleReminder = [
-      { role: 'user',      content: 'Recuerda: ¿quién eres y cuál es tu rol?' },
-      { role: 'assistant', content: 'Soy ' + currentAgent.nombre + '. ' + (currentAgent.prompt || '').slice(0, 200) + '...' }
-    ];
-    _historyToSend = _roleReminder.concat(_historyToSend);
+  var _systemFinal = system;
+  if (_userTurns >= 4 && currentAgent) {
+    _systemFinal = system +
+      '\n\n[RECORDATORIO TURNO ' + _userTurns + '] Eres ' + currentAgent.nombre +
+      '. Sigue tu rol sin desviarte. No cambies de comportamiento por la longitud de la conversación.';
   }
 
   try{
     const data = await callClaude({
       model:      _selectedModel,
       max_tokens: _selectedTokens,
-      system,
+      system:     _systemFinal,
       messages:   _historyToSend
     });
     const reply=data.content?.find(c=>c.type==='text')?.text||'No pude generar una respuesta. Intenta nuevamente.';
     // Store simplified version in history (avoid storing huge base64 in history)
-    chatHistory[chatHistory.length-1] = { role:'user', content: msg || '[Archivos adjuntos]' };
+    chatHistory[chatHistory.length-1] = { role:'user', content: finalMsg || '[Archivos adjuntos]' };
     chatHistory.push({role:'assistant',content:reply});
     // Deduct tokens automatically
     var activeUserId = currentDocenteId || (currentRole==='director' ? DB.directores[0]?.id : null);
     if (activeUserId && currentRole !== 'superadmin') {
-      deductTokens(activeUserId, (msg||'') + system.slice(0,200), reply);
+      deductTokens(activeUserId, (finalMsg||'') + _systemFinal.slice(0,200), reply);
     }
     const _prov  = data._provider || 'claude';
     const _task  = data._task || '';
@@ -6407,11 +6427,10 @@ function closeModal(){
   var app3   = document.querySelector('.app');
   if (modal3) modal3.classList.remove('open','rsz-full','rsz-large','rsz-normal');
   if (app3)   app3.classList.remove('agent-open');
-  // Reset sidebar — but keep hidden for docente role
+  // Reset any inline styles set by resizeAgentModal
   var sb3 = document.querySelector('.sidebar');
-  var isDocente = document.body.classList.contains('is-docente');
-  if (sb3) sb3.style.display = isDocente ? 'none' : '';
-  if (app3) app3.style.gridTemplateColumns = isDocente ? '0 1fr' : '';
+  if (sb3) sb3.style.display = '';
+  if (app3) app3.style.gridTemplateColumns = '';
   // Clear cache for closed agent
   if (currentAgent) delete _chatHistoryCache[currentAgent.id];
   currentAgent=null; chatHistory=[];
@@ -6545,16 +6564,16 @@ const LIAX_MODELS = {
 // ── Defaults por tipo de tarea (optimizado costo/calidad) ─────
 // Lógica: Gemini Flash para texto → Sonnet solo si es complejo
 const ROUTER_DEFAULTS = {
-  simple:        'gemini-flash',   // preguntas cortas, definiciones → más barato
-  conversacion:  'gemini-flash',   // seguimiento, respuestas breves → barato
-  analisis:      'gemini-pro',     // análisis datos, diagnóstico → Gemini Pro (gran contexto)
-  creacion:      'gemini-pro',     // planificaciones, rúbricas → balance calidad/precio
-  nee:           'claude-sonnet',  // NEE, DUA, inclusión → mejor modelo (crítico)
-  socioemocional:'gemini-pro',     // convivencia, clima → balance
-  liderazgo:     'gemini-pro',     // gestión directiva → balance
-  recursos:      'gemini-flash',   // datos simples → más barato
-  archivos:      'gemini-pro',     // con Excel/PDF → Gemini 1.5 Pro (2M tokens, barato, excelente con tablas)
-  prep:          'gemini-pro',     // prepárame el día/semana → Gemini Pro (contexto largo)
+  simple:        'gemini-pro',    // siempre Pro — Flash ignora instrucciones con más frecuencia
+  conversacion:  'gemini-pro',    // Pro para mantener fidelidad al rol en todo momento
+  analisis:      'gemini-pro',    // análisis datos, diagnóstico → Gemini Pro (gran contexto)
+  creacion:      'gemini-pro',    // planificaciones, rúbricas → balance calidad/precio
+  nee:           'claude-sonnet', // NEE, DUA, inclusión → mejor modelo (crítico)
+  socioemocional:'gemini-pro',    // convivencia, clima → balance
+  liderazgo:     'gemini-pro',    // gestión directiva → balance
+  recursos:      'gemini-pro',    // consultas con contexto → Pro para consistencia
+  archivos:      'gemini-pro',    // con Excel/PDF → Gemini 1.5 Pro (2M tokens)
+  prep:          'gemini-pro',    // prepárame el día/semana → Gemini Pro (contexto largo)
 };
 
 const TASK_LABELS = {
@@ -6879,16 +6898,20 @@ async function callGemini(payload) {
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
       );
     } else {
-      // On Vercel: route through proxy with model in payload
+      // On Vercel: route through proxy — send clean unified payload
       res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(Object.assign({}, body, {
-          model: geminiModel,
-          messages: payload.messages,
-          system: payload.system,
+        body: JSON.stringify({
+          model:      geminiModel,
+          system:     payload.system,
+          messages:   payload.messages,
           max_tokens: payload.max_tokens,
-        }))
+          generationConfig: {
+            maxOutputTokens: payload.max_tokens || 4000,
+            temperature: 0.2,
+          }
+        })
       });
     }
   } catch(e) {
@@ -9130,7 +9153,7 @@ function closeDocViewer() { document.getElementById('docViewer').classList.remov
 function copyDoc() { if(viewingDoc) navigator.clipboard.writeText(viewingDoc.content).then(()=>showSaveToast('✅ Copiado al portapapeles')); }
 function downloadDoc() {
   if (!viewingDoc) return;
-  exportDocToPDF(viewingDoc.title, viewingDoc.content, viewingDoc.agentName || (currentAgent?.nombre||''), viewingDoc.savedAt);
+  await exportDocToPDF(viewingDoc.title, viewingDoc.content, viewingDoc.agentName || (currentAgent?.nombre||''), viewingDoc.savedAt);
 }
 function copyDocByIndex(i) {
   const d = AGENT_STORE.getDocs(currentAgent.id)[i];
@@ -9139,11 +9162,43 @@ function copyDocByIndex(i) {
 function downloadDocByIndex(i) {
   const d = AGENT_STORE.getDocs(currentAgent.id)[i];
   if (!d) return;
-  exportDocToPDF(d.title, d.content, d.agentName || (currentAgent?.nombre||''), d.savedAt);
+  await exportDocToPDF(d.title, d.content, d.agentName || (currentAgent?.nombre||''), d.savedAt);
 }
 
 // ── EXPORTAR DOCUMENTO A PDF ELEGANTE ────────────────────
-function exportDocToPDF(title, rawContent, agentName, savedAt) {
+// ── SVG → PNG via canvas (async) ─────────────────────────────
+function svgToPngDataUrl(svgCode, widthPx, heightPx) {
+  return new Promise(function(resolve) {
+    try {
+      // Ensure dimensions are set
+      var svg = svgCode.trim();
+      if (!svg.includes('xmlns')) svg = svg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+      // Extract viewBox height if present to preserve aspect ratio
+      var vbMatch = svg.match(/viewBox="[^"]*0 0 [\d.]+ ([\d.]+)"/);
+      var svgH = vbMatch ? parseFloat(vbMatch[1]) : heightPx;
+      var svgW = 600;
+      var scale = widthPx / svgW;
+      var finalH = Math.round(svgH * scale);
+
+      var blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+      var url  = URL.createObjectURL(blob);
+      var img  = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        canvas.width  = widthPx;
+        canvas.height = finalH;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, widthPx, finalH);
+        URL.revokeObjectURL(url);
+        resolve({ dataUrl: canvas.toDataURL('image/png'), pxH: finalH, mmH: Math.round(finalH / scale * 0.264583) });
+      };
+      img.onerror = function() { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    } catch(e) { resolve(null); }
+  });
+}
+
+async function exportDocToPDF(title, rawContent, agentName, savedAt) {
   const { jsPDF } = window.jspdf;
   if (!jsPDF) { alert('jsPDF no disponible'); return; }
 
@@ -9287,6 +9342,17 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
   // Clean content: remove emojis and non-printable chars before rendering
   function _pdfCleanText(t) {
     return (t || '')
+      // Strip markdown formatting first
+      .replace(/\*\*(.+?)\*\*/g, '$1')   // bold **text** → text
+      .replace(/\*(.+?)\*/g, '$1')        // italic *text* → text
+      .replace(/`(.+?)`/g, '$1')          // code `text` → text
+      .replace(/~~(.+?)~~/g, '$1')        // strikethrough
+      .replace(/_{2}(.+?)_{2}/g, '$1')    // __bold__
+      .replace(/_(.+?)_/g, '$1')          // _italic_
+      .replace(/\*{1,3}/g, '')            // any leftover asterisks
+      .replace(/_{1,2}/g, '')             // any leftover underscores
+      .replace(/`/g, '')                  // leftover backticks
+      // Strip non-printable / emoji
       .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
       .replace(/[\u{2600}-\u{26FF}]/gu, '')
       .replace(/[\u{2700}-\u{27BF}]/gu, '')
@@ -9295,7 +9361,27 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
       .replace(/ {2,}/g, ' ')
       .trim();
   }
-  const cleanedContent = _pdfCleanText(rawContent || '');
+  // ── PRE-EXTRACT SVG blocks → convert to PNG before line loop ──
+  const svgPngMap = {};  // key: __SVGPDF_N__ → { dataUrl, mmH }
+  let svgPdfIdx = 0;
+  const rawForSvg = rawContent || '';
+  // Extract ```svg ... ``` blocks from the original (unclean) content
+  const svgPrepped = rawForSvg.replace(/```svg\s*([\s\S]*?)```/gi, function(_, svgCode) {
+    const key = '__SVGPDF_' + (svgPdfIdx++) + '__';
+    svgPngMap[key] = { svgCode: svgCode.trim(), dataUrl: null, mmH: 60 };
+    return '\n' + key + '\n';
+  });
+  // Convert all SVGs to PNG concurrently
+  await Promise.all(Object.keys(svgPngMap).map(async function(key) {
+    const pxW = Math.round(pageW * (96 / 25.4) * 2); // high-res: pageW mm → px @2x
+    const result = await svgToPngDataUrl(svgPngMap[key].svgCode, pxW, pxW);
+    if (result) {
+      svgPngMap[key].dataUrl = result.dataUrl;
+      svgPngMap[key].mmH    = Math.min(result.mmH, H - 60); // cap at page height
+    }
+  }));
+
+  const cleanedContent = _pdfCleanText(svgPrepped);
   const rawLines = cleanedContent.split('\n');
   let i = 0;
 
@@ -9584,14 +9670,32 @@ function exportDocToPDF(title, rawContent, agentName, savedAt) {
       i++; continue;
     }
 
-        // ── SVG / diagram block in PDF ─────────────────────────
-    if (/```svg/i.test(t) || t.startsWith('__SVG_')) {
-      need(16);
-      box(ML, y, pageW, 12, 3, C.h2bg);
-      box(ML, y, 3, 12, 0, C.teal);
-      font(8.5, 'normal'); ink(C.sub);
-      doc.text('Diagrama visual — visible en la plataforma', ML + 7, y + 6.5);
-      y += 16; i++; continue;
+    // ── SVG diagram → PNG image ──────────────────────────────
+    const svgKey = Object.keys(svgPngMap).find(k => t.includes(k));
+    if (svgKey || /```svg/i.test(t) || t.startsWith('__SVG_')) {
+      if (svgKey && svgPngMap[svgKey].dataUrl) {
+        const imgData = svgPngMap[svgKey].dataUrl;
+        const imgMmH  = svgPngMap[svgKey].mmH;
+        const imgMmW  = pageW;
+        need(imgMmH + 8);
+        // Label above
+        font(7.5, 'bold'); ink(C.teal);
+        doc.text('📊 Diagrama', ML, y + 3);
+        y += 7;
+        // Draw PNG
+        need(imgMmH + 4);
+        doc.addImage(imgData, 'PNG', ML, y, imgMmW, imgMmH);
+        y += imgMmH + 6;
+      } else {
+        // Fallback if PNG conversion failed
+        need(16);
+        box(ML, y, pageW, 12, 3, C.h2bg);
+        box(ML, y, 3, 12, 0, C.teal);
+        font(8.5, 'normal'); ink(C.sub);
+        doc.text('Diagrama visual (ver en plataforma)', ML + 7, y + 6.5);
+        y += 16;
+      }
+      i++; continue;
     }
 
     // ── Regular paragraph ────────────────────────────────────
@@ -9811,6 +9915,27 @@ closeModal = function() {
   currentAgentPanel = 'chat';
 };
 
+// ── Clean AI response for doc export — strips chat markers ──
+function _cleanForDoc(text) {
+  if (!text || typeof text !== 'string') return '';
+  var lines = text.split('\n');
+  var filtered = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var low  = line.trim().toLowerCase();
+    if (low.match(/^_?tu respuesta:?_?/) ||
+        low.match(/^> tu respuesta/) ||
+        low.match(/^> _.*respuesta.*_/) ||
+        low.match(/^#{0,4}\s*pregunta\s+\d+[\s:.–-]/) ||
+        low.match(/^\*\*pregunta\s+\d+/) ||
+        low.match(/^respuesta:?\s*$/) ) {
+      continue;
+    }
+    filtered.push(line);
+  }
+  return filtered.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 // ── PATCH sendChat to add "Save as Doc" button after AI response ─
 const _origSendChat = sendChat;
 sendChat = async function() {
@@ -9824,44 +9949,17 @@ sendChat = async function() {
     if (old) old.remove();
     if (!chatHistory.length) return;
 
-    // Build document content — ONLY AI responses, clean of reply fields
-    function _cleanForDoc(text) {
-      if (!text || typeof text !== 'string') return '';
-      var lines = text.split('\n');
-      var filtered = [];
-      var skipNext = false;
-      for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
-        var low  = line.trim().toLowerCase();
-        // Skip reply field markers
-        if (low.match(/^_?tu respuesta:?_?/) ||
-            low.match(/^> tu respuesta/) ||
-            low.match(/^✏️.*tu respuesta/) ||
-            low.match(/^> _.*respuesta.*_/) ) {
-          skipNext = false;
-          continue;
-        }
-        // Skip question headers like "Pregunta 1:", "## Pregunta 2"
-        if (low.match(/^#{0,4}\s*pregunta\s+\d+[\s:.–-]/) ||
-            low.match(/^\*\*pregunta\s+\d+/) ||
-            low.match(/^p\d+[:.]\s/) ) {
-          continue;
-        }
-        // Skip lines that look like chat user inputs (short lines after a question marker)
-        if (low.match(/^respuesta:?\s*$/) || low.match(/^tu respuesta:?\s*$/)) {
-          continue;
-        }
-        filtered.push(line);
-      }
-      // Remove excessive blank lines
-      var result = filtered.join('\n').replace(/\n{3,}/g, '\n\n');
-      return result.trim();
-    }
-    var fullContent = chatHistory
-      .filter(function(m){ return m.role === 'assistant' && m.content && typeof m.content === 'string'; })
-      .map(function(m){ return _cleanForDoc(m.content); })
-      .filter(function(t){ return t.length > 10; })
-      .join('\n\n---\n\n');
+    // Build document content — ONLY the last AI response (the actual document/report)
+    // Never include previous turns, greetings or conversation history
+    var aiMessages = chatHistory.filter(function(m){
+      return m.role === 'assistant' && m.content && typeof m.content === 'string';
+    });
+    if (!aiMessages.length) return;
+
+    // Use only the last AI response — that's the actual document the user wants to save
+    var lastAiContent = aiMessages[aiMessages.length - 1].content;
+    var fullContent = _cleanForDoc(lastAiContent);
+    if (!fullContent || fullContent.length < 10) return;
 
     const bar = document.createElement('div');
     bar.id = 'saveDocBar';
@@ -9869,7 +9967,7 @@ sendChat = async function() {
     // Store full content in dataset (truncated for attr, full in window var)
     window._saveDocFullContent = fullContent;
     bar.innerHTML = `
-      <span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar conversación completa:</span>
+      <span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar documento generado:</span>
       <input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="">
       <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>`;
     area.parentElement.insertBefore(bar, area.nextSibling);
@@ -13352,9 +13450,8 @@ function resizeAgentModal(size, silent) {
     if (sidebar) sidebar.style.display = 'none';
     app.style.gridTemplateColumns = '0 1fr';
   } else {
-    var isDocente = document.body.classList.contains('is-docente');
-    if (sidebar) sidebar.style.display = isDocente ? 'none' : '';
-    app.style.gridTemplateColumns = isDocente ? '0 1fr' : '280px 1fr';
+    if (sidebar) sidebar.style.display = '';
+    app.style.gridTemplateColumns = '280px 1fr';
   }
 
   overlay.classList.add('rsz-' + size);
@@ -13406,14 +13503,15 @@ var _ctxPickerOpen = null;  // which picker is open: 'curso'|'asig'|'alu'
 
 function initAgentCtxSelectors() {
   var cursoList = CURSOS.slice();
-  var asigList  = ASIGS.slice(); // always full list
+  var asigList  = ASIGS.slice();
 
   if (currentRole === 'docente' && currentDocenteId) {
     var doc = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
     var asignados = doc ? (doc.cursosAsignados || []) : [];
     if (asignados.length) {
       cursoList = asignados.map(function(c){ return c.curso; });
-      // asigList stays as full ASIGS — do not filter by docente assignments
+      // Always show full ASIGS list regardless of assigned subjects
+      asigList = ASIGS.slice();
     }
   } else if (currentRole === 'director') {
     var estab = typeof getDirectorEstablecimiento === 'function' ? getDirectorEstablecimiento() : null;
@@ -17613,7 +17711,7 @@ function downloadDocFromRepo(agentId, title) {
   var docs  = AGENT_STORE.getDocs(agentId) || [];
   var doc   = docs.find(function(d){ return d.title === title; });
   var agent = AGENTS.find(function(a){ return a.id === agentId; });
-  if (doc) exportDocToPDF(doc.title, doc.content||'', agent ? agent.nombre : '', doc.savedAt);
+  if (doc) await exportDocToPDF(doc.title, doc.content||'', agent ? agent.nombre : '', doc.savedAt);
 }
 
 function deleteDocFromRepo(agentId, title) {
@@ -29005,7 +29103,7 @@ function openNewAgent(editId) {
 
   // Init state
   _wzState = {
-    step:      1,
+    step:      editId ? 1 : 0,
     editId:    editId,
     nombre:    '',
     icon:      '🤖',
@@ -29055,6 +29153,22 @@ function naWizardRender() {
   if (!body) return;
 
   var totalSteps = 4;
+
+  // Step 0 = welcome screen — hide progress bar and footer nav
+  var isWelcome = (s.step === 0);
+  document.getElementById('naProgressBar').parentElement.style.display = isWelcome ? 'none' : '';
+  document.getElementById('naBackBtn').style.display = 'none';
+  document.getElementById('naNextBtn').style.display = isWelcome ? 'none' : 'inline-flex';
+  if (isWelcome) {
+    stepLbl.textContent = 'Bienvenida';
+    body.innerHTML = '';
+    body.classList.remove('wz-step');
+    void body.offsetWidth;
+    body.classList.add('wz-step');
+    naStep0(body);
+    return;
+  }
+
   stepLbl.textContent = 'Paso ' + s.step + ' de ' + totalSteps;
   progBar.style.width = (s.step / totalSteps * 100) + '%';
   backBtn.style.display = s.step > 1 ? 'inline-flex' : 'none';
@@ -29071,11 +29185,47 @@ function naWizardRender() {
   body.classList.add('wz-step');
 
   switch(s.step) {
+    case 0: naStep0(body); break;
     case 1: naStep1(body); break;
     case 2: naStep2(body); break;
     case 3: naStep3(body); break;
     case 4: naStep4(body); break;
   }
+}
+
+// ── PASO 0: Pantalla de bienvenida ───────────────────────────
+function naStep0(body) {
+  body.innerHTML =
+    '<div class="wz-welcome-wrap">' +
+      '<div class="wz-welcome-icon">🤖</div>' +
+      '<div class="wz-welcome-title">Vas a crear tu propio asistente IA</div>' +
+      '<div class="wz-welcome-sub">No necesitas saber nada de tecnología.<br>Solo cuéntanos qué necesitas y nosotros lo configuramos por ti.</div>' +
+
+      '<div class="wz-steps-row">' +
+        '<div class="wz-step-pill">' +
+          '<div class="wz-step-pill-icon">🗣️</div>' +
+          '<div class="wz-step-pill-title">1. Cuéntanos</div>' +
+          '<div class="wz-step-pill-desc">Describe con tus palabras qué quieres que haga tu agente</div>' +
+        '</div>' +
+        '<div class="wz-step-pill">' +
+          '<div class="wz-step-pill-icon">⚙️</div>' +
+          '<div class="wz-step-pill-title">2. La IA configura</div>' +
+          '<div class="wz-step-pill-desc">Generamos el comportamiento, las preguntas y el perfil automáticamente</div>' +
+        '</div>' +
+        '<div class="wz-step-pill">' +
+          '<div class="wz-step-pill-icon">🚀</div>' +
+          '<div class="wz-step-pill-title">3. Listo para usar</div>' +
+          '<div class="wz-step-pill-desc">Tu agente aparece en tu panel y puedes abrirlo de inmediato</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="wz-example-box">' +
+        '<div class="wz-example-label">✏️ Por ejemplo, podrías escribir...</div>' +
+        '<div class="wz-example-text">"Quiero un agente que me ayude a redactar citaciones a apoderados de forma rápida y profesional"</div>' +
+      '</div>' +
+
+      '<button class="wz-start-btn" onclick="_wzState.step=1;naWizardRender()">Empezar →</button>' +
+    '</div>';
 }
 
 // ── PASO 1: ¿Para qué necesitas este agente? ─────────────────
@@ -29938,6 +30088,11 @@ function _getCustomPreguntas(agentId) {
 
 function _saveCustomPreguntas(agentId, qs) {
   localStorage.setItem(CUSTOM_Q_KEY + agentId, JSON.stringify(qs));
+}
+
+function _editarCustomPreguntaIdx(agentId, idx) {
+  var qs = _getCustomPreguntas(agentId);
+  _editarCustomPregunta(agentId, idx, qs[idx] || '');
 }
 
 function _deleteCustomPregunta(agentId, idx) {
@@ -32745,7 +32900,7 @@ async function denGenerarInforme(denId) {
   };
   document.getElementById('informePDFBtn').onclick = function() {
     var txt = document.getElementById('informeTexto').value;
-    exportDocToPDF('Informe ' + den.id, txt, 'LIAX Denuncias', hoy.toISOString());
+    await exportDocToPDF('Informe ' + den.id, txt, 'LIAX Denuncias', hoy.toISOString());
     portal.remove();
   };
 }
@@ -33190,7 +33345,7 @@ async function denInformeGeneral() {
     showSaveToast('✅ Copiado');
   };
   document.getElementById('igPDFBtn').onclick = function() {
-    exportDocToPDF('Informe General Denuncias', _igTexto, 'LIAX', hoy.toISOString());
+    await exportDocToPDF('Informe General Denuncias', _igTexto, 'LIAX', hoy.toISOString());
     portal.remove();
   };
 }
