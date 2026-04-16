@@ -3378,6 +3378,8 @@ async function _supaLoadAgentes() {
         }
       });
       renderAgents();
+      if (typeof renderSAAgentGrid === 'function') renderSAAgentGrid();
+      if (typeof updateAgentCounts === 'function') updateAgentCounts();
       console.log('[Supabase] Cargados', data.length, 'agentes desde la nube');
     }
   } catch(e) { console.warn('[Supabase] Error cargando agentes:', e.message); }
@@ -7961,6 +7963,11 @@ function deleteAgent(id){
   COLEGIOS.forEach(c=>schoolAgents[c.id]?.delete(id));
   Object.values(userAgents).forEach(s=>s.delete(id));
   renderAgents(); renderSAAgentGrid(); updateAgentCounts();
+  saveToStorage(); _backupCustomAgents(); _vaultSaveAgents();
+  // Sync delete to Supabase
+  if (typeof _supaDeleteAgente === 'function') {
+    _supaDeleteAgente(id).catch(function(){});
+  }
 }
 function updateAgentCounts(){
   document.getElementById('nav-agent-count').textContent=AGENTS.length;
@@ -11041,11 +11048,12 @@ function patchAutoSave() {
   const orig_deleteColegio = deleteColegio;
   window.deleteColegio = function() { orig_deleteColegio.apply(this, arguments); saveToStorage(); };
 
-  const orig_saveNewAgent = saveNewAgent;
-  window.saveNewAgent = function() { orig_saveNewAgent.apply(this, arguments); saveToStorage(); };
+  // saveNewAgent (naWizardSave) ya incluye saveToStorage, backup y sync a Supabase
+  window.saveNewAgent = saveNewAgent;
 
-  const orig_deleteAgent = deleteAgent;
-  window.deleteAgent = function() { orig_deleteAgent.apply(this, arguments); saveToStorage(); };
+  // deleteAgent ya incluye saveToStorage, _backupCustomAgents, _vaultSaveAgents y _supaDeleteAgente
+  // No necesitamos wrapearlo de nuevo, solo asegurar que window.deleteAgent apunte al correcto
+  window.deleteAgent = deleteAgent;
 
   const orig_saveSchool = saveSchoolAssignment;
   window.saveSchoolAssignment = function() { orig_saveSchool.apply(this, arguments); saveToStorage(); };
@@ -29615,6 +29623,22 @@ function naWizardSave() {
   _backupCustomAgents();
   _vaultSaveAgents();
 
+  // ── Guardado directo en Supabase (no depender del hook genérico) ──
+  (function() {
+    var agId = s.editId || ('custom_' + Date.now());
+    // Find the agent we just saved/created
+    var savedAg = AGENTS.find(function(a){ return a.id === agId; }) ||
+                  AGENTS.find(function(a){ return a.nombre === s.nombre && a.custom; });
+    if (savedAg && typeof _supaSaveAgente === 'function') {
+      _supaSaveAgente(savedAg).catch(function(e){
+        console.warn('[LIAX] Retry Supabase save in 3s...', e);
+        setTimeout(function(){
+          _supaSaveAgente(savedAg).catch(function(){});
+        }, 3000);
+      });
+    }
+  })();
+
   showSaveToast('✅ Agente "' + s.nombre + '" ' + (s.editId ? 'actualizado' : 'creado') + ' correctamente');
   setTimeout(checkNiveles, 300);
 }
@@ -31145,10 +31169,18 @@ async function liaxInitAuth() {
 
 // Hook: sync agente to Supabase when saved
 // Supabase sync is handled inside _vaultSaveAgents directly
-var _vaultSaveAgents_supaSync = function() {
+var _vaultSaveAgents_supaSync = function(retries) {
   if (_supaUser) {
     var customs = AGENTS.filter(function(a){ return a.custom; });
     customs.forEach(function(ag) { _supaSaveAgente(ag).catch(function(){}); });
+  } else {
+    // Usuario aun no listo — reintentar hasta 5 veces con backoff
+    var attempt = retries || 0;
+    if (attempt < 5) {
+      setTimeout(function() {
+        _vaultSaveAgents_supaSync(attempt + 1);
+      }, 2000 * (attempt + 1));
+    }
   }
 };
 
