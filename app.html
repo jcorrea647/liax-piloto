@@ -8448,7 +8448,8 @@ async function saLoadUsuarios(){
   try {
     const { data, error } = await _supa
       .from('usuarios')
-      .select('id, nombre, apellido, email, rol, colegio_id, estado, ultimo_acceso, tokens_usados, notas, curso')
+      .select('id, nombre, apellido, email, rol, colegio_id, estado, ultimo_acceso, tokens_usados, notas, curso, app')
+      .eq('app', 'liax')
       .order('nombre', { ascending: true });
     if(error) throw error;
     SA_USUARIOS = (data||[]).map(u=>({
@@ -8499,9 +8500,19 @@ function saPopulateColegioFilter(){
   const sel = document.getElementById('saUsuarioFiltroColegio');
   if(!sel) return;
   const saved = sel.value;
-  sel.innerHTML = '<option value="">Todos los colegios</option>' +
-    COLEGIOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
-  sel.value = saved;
+  // Cargar colegios reales desde Supabase
+  sel.innerHTML = '<option value="">Todos los colegios</option>';
+  if (_supaUser && _supa) {
+    _supa.from('colegios').select('id,nombre').eq('app','liax').then(function(r) {
+      var items = (r.data && r.data.length) ? r.data : COLEGIOS;
+      sel.innerHTML = '<option value="">Todos los colegios</option>' +
+        items.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+      sel.value = saved;
+    });
+  } else {
+    sel.innerHTML += COLEGIOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+    sel.value = saved;
+  }
 }
 
 function saRenderUsuarios(){
@@ -8662,14 +8673,16 @@ async function saGuardarUsuario(){
 
   const payload={
     nombre,
-    apellido:   document.getElementById('saU-apellido').value.trim()||null,
+    apellido:      document.getElementById('saU-apellido').value.trim()||null,
     email,
-    rol:        document.getElementById('saU-rol').value,
-    estado:     document.getElementById('saU-estado').value,
-    colegio_id: document.getElementById('saU-colegio').value||null,
-    curso:      document.getElementById('saU-curso').value.trim()||null,
-    notas:      document.getElementById('saU-notas').value.trim()||null,
-    updated_at: new Date().toISOString(),
+    rol:           document.getElementById('saU-rol').value,
+    estado:        document.getElementById('saU-estado').value,
+    colegio_id:    document.getElementById('saU-colegio').value||null,
+    curso:         document.getElementById('saU-curso').value.trim()||null,
+    notas:         document.getElementById('saU-notas').value.trim()||null,
+    updated_at:    new Date().toISOString(),
+    app:           'liax',
+    password_hash: 'managed_by_supabase_auth',
   };
 
   const btn=document.querySelector('#saUsuarioModal .btn-primary');
