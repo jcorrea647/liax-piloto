@@ -3635,9 +3635,12 @@ async function _supaLoadAgentes() {
 
     if (allData.length) {
       allData.forEach(function(ag) {
+        var dim = ag.dimension || '';
+        // Normalizar dim — si no coincide con los válidos, usar 'pedagogica'
+        if (!COLORS[dim]) dim = 'pedagogica';
         var agente = {
           id:        ag.id,
-          dim:       ag.dimension || '',
+          dim:       dim,
           nombre:    ag.nombre,
           icon:      ag.icono || '🤖',
           desc:      ag.descripcion || '',
@@ -5787,6 +5790,7 @@ function filterDim(d){
 
 function renderAgents(){
   const agents=currentDimFilter==='all'?AGENTS:AGENTS.filter(a=>a.dim===currentDimFilter);
+  const FALLBACK_COLOR = {bg:'var(--surface2)',text:'var(--muted)',border:'var(--border)'};
   const createCard = `<div style="background:#F7F4EF;border:1.5px dashed #4A4540;border-radius:11px;padding:15px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;text-align:center"
     onclick="openNewAgent()"
     onmouseenter="this.style.borderColor='#2A2420';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.13)'"
@@ -5797,7 +5801,7 @@ function renderAgents(){
   </div>`;
 
   document.getElementById('agentGrid').innerHTML = agents.map(a=>{
-    const c=COLORS[a.dim];
+    const c = COLORS[a.dim] || FALLBACK_COLOR;
     const isFav = FAV_STORE.isFav(a.id);
     return `<div style="background:#F7F4EF;border:1.5px solid #4A4540;border-radius:11px;padding:15px;cursor:pointer;transition:all .2s;position:relative;overflow:visible"
       onmouseenter="this.style.borderColor='#2A2420';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.13)'"
