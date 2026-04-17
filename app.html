@@ -722,7 +722,12 @@
   #calGrid [onclick]:hover { transform: scale(1.02); }
 
     /* ── Mis Cursos editable table ──────────────────────── */
-  #mcTable th{background:var(--surface2);padding:8px 10px;text-align:left;font-weight:700;font-size:11px;border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2;}
+    /* Fuente aumentada 1.5x para toda la vista Mis Cursos */
+    #panel-mis-cursos { font-size: 1.5em; }
+    #panel-mis-cursos .page-title { font-size: 1.4em; }
+    #panel-mis-cursos .page-sub   { font-size: 0.9em; }
+    #panel-mis-cursos .btn        { font-size: 0.85em; }
+  #mcTable th{background:var(--surface2);padding:10px 14px;text-align:left;font-weight:700;font-size:16px;border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2;}
   #mcTable th.mc-col-header{background:var(--dim1);color:var(--accent1);position:relative;}
   #mcTable th.mc-col-asist{background:var(--dim2);color:var(--accent2);}
   #mcTable th.mc-col-anot{background:rgba(139,92,246,.1);color:#8b5cf6;}
@@ -871,7 +876,7 @@
   /* ── ASIGNAR CURSOS DOCENTE ── */
   .curso-row{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px 14px;}
   .curso-row-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-  .curso-badge{background:var(--dim2);color:var(--accent2);font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;}
+  .curso-badge{background:var(--dim2);color:var(--accent2);font-size:16px;font-weight:700;padding:4px 14px;border-radius:12px;}
   .asig-tag{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:11px;padding:2px 9px;border-radius:14px;margin:2px;}
   .asig-tag-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:0 0 0 2px;}
   .asig-tag-del:hover{color:var(--accent3);}
@@ -908,7 +913,7 @@
   /* ── DATOS DEL CURSO ── */
   .dc-filter{font-size:10px;padding:4px 10px;transition:all .15s;}
   .dc-filter.active{border-color:var(--accent2);color:var(--accent2);background:var(--dim2);}
-  .curso-chip{display:inline-flex;align-items:center;padding:5px 13px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:var(--muted);background:var(--surface);transition:all .15s;user-select:none;}
+  .curso-chip{display:inline-flex;align-items:center;padding:7px 18px;border-radius:20px;font-size:16px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:var(--muted);background:var(--surface);transition:all .15s;user-select:none;}
   .curso-chip:hover{border-color:var(--accent2);color:var(--accent2);}
   .curso-chip.sel{border-color:var(--accent2);color:var(--accent2);background:var(--dim2);font-weight:700;}
   .chip-all{border-style:dashed;}
@@ -919,7 +924,7 @@
   .resumen-tipo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;}
   .resumen-tipo-block{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:border-color .15s;}
   .resumen-tipo-block:hover{border-color:var(--accent2)88;}
-  .resumen-stat-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:11px;border-bottom:1px solid var(--border)33;}
+  .resumen-stat-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:16px;border-bottom:1px solid var(--border)33;}
   .resumen-stat-row:last-child{border-bottom:none;}
   .stat-val-ok{color:#3ecf8e;font-weight:700;}
   .stat-val-warn{color:#ffd166;font-weight:700;}
@@ -3563,7 +3568,7 @@ async function _supaLoadPerfil() {
     var rol = data.rol || 'docente';
     _origSwitchRole(rol);
 
-    // Si es docente, sincronizar su perfil con DB.docentes
+    // Si es docente, crear entrada en DB.docentes (cursos se cargan después)
     if (rol === 'docente') {
       var docenteExistente = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
       if (!docenteExistente) {
@@ -3582,24 +3587,6 @@ async function _supaLoadPerfil() {
         DB.docentes.push(docenteExistente);
       }
       currentDocenteId = _supaUser.id;
-
-      // Cargar cursos asignados desde docente_cursos en Supabase
-      try {
-        console.log('[LIAX] Cargando cursos del docente:', _supaUser.id);
-        var { data: dcData, error: dcError } = await _supa.from('docente_cursos')
-          .select('curso_nombre, asignatura')
-          .eq('docente_id', _supaUser.id);
-        if (dcError) throw dcError;
-        console.log('[LIAX] docente_cursos resultado:', dcData);
-        if (dcData && dcData.length) {
-          docenteExistente.cursosAsignados = dcData.map(function(dc) {
-            return { curso: dc.curso_nombre, asignaturas: dc.asignatura ? [dc.asignatura] : [] };
-          });
-          console.log('[LIAX] Cursos del docente cargados:', docenteExistente.cursosAsignados);
-        } else {
-          console.log('[LIAX] Docente sin cursos asignados en docente_cursos');
-        }
-      } catch(e) { console.warn('[LIAX] Error cargando docente_cursos:', e.message); }
     }
 
     var HIERARCHY = {
@@ -3628,8 +3615,10 @@ async function _supaLoadPerfil() {
     // Load cloud data con perfil
     await _loadPlatformKey();
     await _supaLoadColegios();
-    await _supaLoadCursosEliminados(); // cargar primero para filtrar correctamente
+    await _supaLoadCursosEliminados();
     await _supaLoadCursos();
+    // Cargar cursos del docente DESPUÉS de que CURSOS esté poblado
+    if (rol === 'docente') await _supaLoadDocenteCursos();
     await _supaLoadAlumnos();
     await _supaLoadRags();
     await denLoad();
@@ -32799,6 +32788,37 @@ async function _supaLoadColegios() {
       console.log('[LIAX] Colegios cargados desde Supabase:', data.length);
     }
   } catch(e) { console.warn('[LIAX] Error cargando colegios:', e.message); }
+}
+
+// ── Cursos asignados al docente ───────────────────────────────
+async function _supaLoadDocenteCursos() {
+  if (!_supaUser) return;
+  try {
+    var { data, error } = await _supa.from('docente_cursos')
+      .select('curso_nombre, asignatura')
+      .eq('docente_id', _supaUser.id);
+    if (error) throw error;
+
+    var docente = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
+    if (!docente) return;
+
+    if (data && data.length) {
+      docente.cursosAsignados = data.map(function(dc) {
+        return { curso: dc.curso_nombre, asignaturas: dc.asignatura ? [dc.asignatura] : [] };
+      });
+      // Asegurarse que los cursos existen en el array CURSOS
+      data.forEach(function(dc) {
+        if (CURSOS.indexOf(dc.curso_nombre) === -1 && !_isCursoDeleted(dc.curso_nombre)) {
+          CURSOS.push(dc.curso_nombre);
+        }
+      });
+      console.log('[LIAX] Cursos docente cargados:', docente.cursosAsignados.map(function(c){ return c.curso; }));
+      renderCursoChips();
+      renderCursoResumen();
+    } else {
+      console.log('[LIAX] Docente sin cursos asignados');
+    }
+  } catch(e) { console.warn('[LIAX] Error cargando docente_cursos:', e.message); }
 }
 
 async function _supaLoadCursosEliminados() {
