@@ -3587,6 +3587,7 @@ async function _supaLoadPerfil() {
     }, 300);
     // Load cloud data con perfil
     await _loadPlatformKey();
+    await _supaLoadCursosEliminados(); // cargar primero para filtrar correctamente
     await _supaLoadCursos();
     await _supaLoadAlumnos();
     await _supaLoadRags();
@@ -3889,9 +3890,16 @@ function _getCursosEliminados() {
   return (window._CURSOS_ELIMINADOS||[]);
 }
 function _markCursoDeleted(curso) {
-  var lista = _getCursosEliminados();
+  var lista = _getCursosEliminados().slice();
   if (lista.indexOf(curso) === -1) lista.push(curso);
   window._CURSOS_ELIMINADOS = lista;
+  // Persistir en Supabase
+  if (_supaUser && _supa) {
+    _supa.from('config').upsert(
+      { key: 'cursos_eliminados_' + _supaUser.id, value: JSON.stringify(lista) },
+      { onConflict: 'key' }
+    ).catch(function(){});
+  }
 }
 function _isCursoDeleted(curso) {
   return (window._CURSOS_ELIMINADOS||[]).indexOf(curso) > -1;
@@ -32537,6 +32545,25 @@ async function _supaLoadCursos() {
     if (typeof renderCourseFilter === 'function') renderCourseFilter();
     console.log('[Supabase] Cursos cargados:', (data||[]).length);
   } catch(e) { console.warn('[Supabase] Error cursos:', e.message); }
+}
+
+async function _supaLoadCursosEliminados() {
+  if (!_supaUser) return;
+  try {
+    var { data } = await _supa.from('config')
+      .select('value')
+      .eq('key', 'cursos_eliminados_' + _supaUser.id)
+      .maybeSingle();
+    if (data && data.value) {
+      window._CURSOS_ELIMINADOS = JSON.parse(data.value);
+      // Aplicar inmediatamente al array CURSOS — quitar los eliminados
+      window._CURSOS_ELIMINADOS.forEach(function(c) {
+        var i = CURSOS.indexOf(c);
+        if (i > -1) CURSOS.splice(i, 1);
+      });
+      console.log('[LIAX] Cursos eliminados cargados:', window._CURSOS_ELIMINADOS.length);
+    }
+  } catch(e) { console.warn('[LIAX] Error cargando cursos eliminados:', e.message); }
 }
 
 async function _supaDeleteCurso(nombre) {
