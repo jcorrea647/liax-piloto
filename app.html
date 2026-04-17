@@ -245,6 +245,18 @@
     justify-content:stretch !important;
   }
   /* When open: take column 2, row 4 of the app grid — stays over panels */
+  /* Collapse smart-bar row when agent is open */
+  .app.agent-open {
+    grid-template-rows: 54px 0 auto 1fr !important;
+  }
+  .app.agent-open .smart-bar {
+    display:none !important;
+    height:0 !important;
+    overflow:hidden !important;
+  }
+  /* Hide original docente banner when agent is open (info moved to header) */
+  body.is-docente .app.agent-open .docente-view-banner { display:none !important; }
+
   #agentModal.open {
     display:flex !important;
     grid-column: 2 !important;
@@ -868,7 +880,7 @@
   .asig-quick-chip.selected{background:var(--dim2);color:var(--accent2);border-color:var(--accent2)66;}
 
   /* ── DOCENTE VIEW BANNER ── */
-  .docente-view-banner{background:var(--dim2);border-bottom:2px solid var(--accent2)44;padding:7px 16px;font-size:11px;color:var(--accent2);display:none;align-items:center;gap:8px;flex-shrink:0;}
+  .docente-view-banner{background:var(--surface);border-bottom:2px solid var(--border);padding:9px 20px;font-size:13px;color:var(--text);display:none;align-items:center;gap:12px;flex-shrink:0;}
   body.is-docente .docente-view-banner{display:flex;}
 
   .agent-panel-btn.active-ajustar{background:var(--dim4);border-color:var(--accent4)66;color:var(--accent4);}
@@ -1415,11 +1427,12 @@
 
   <!-- DOCENTE VIEW BANNER -->
   <div class="docente-view-banner" id="docenteBanner" style="grid-column:1/-1">
-    <span>👩‍🏫</span>
-    <span id="docenteBannerText">Vista Docente — solo verás tus cursos y asignaturas asignados</span>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <button onclick="showPanel('favoritos')" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:4px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;">🏠 Inicio</button>
-      <div id="docenteBannerCursos" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <span style="font-size:18px">👩‍🏫</span>
+    <span id="docenteBannerText" style="font-weight:700;font-size:14px;color:#4a5568"></span>
+    <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
+    <div id="docenteBannerCursos" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <div style="margin-left:auto">
+      <button onclick="showPanel('favoritos')" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:5px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;">🏠 Inicio</button>
     </div>
   </div>
 
@@ -1734,7 +1747,7 @@
                    color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;
                    font-family:DM Sans,sans-serif">Ver todos →</button>
         </div>
-        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px"></div>
+        <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
         <div id="favEmptyState" style="display:none;text-align:center;padding:16px;color:var(--muted)">
           <div style="font-size:11px">Sin favoritos — abre un agente y haz clic en ⭐</div>
           <button onclick="showPanel('agentes')" class="btn btn-primary" style="font-size:11px;margin-top:8px">Explorar agentes →</button>
@@ -3107,15 +3120,30 @@
 <!-- MODAL AGENTE -->
 <div class="modal-overlay" id="agentModal">
   <div class="modal agent-modal-resizable" id="agentModalBox">
-    <!-- Header — fila única: icono + nombre + "¿Qué quieres hacer?" + input + tabs + resize + cerrar -->
+    <!-- Header fusionado: info docente + agente + tabs en una sola línea (Línea 2) -->
     <div class="modal-head" style="flex-direction:column;gap:0;padding:0;flex-shrink:0">
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;min-height:48px">
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;min-height:44px;background:var(--surface)">
+
+        <!-- Sección docente (solo visible en is-docente) -->
+        <div id="agentDocenteInfo" style="display:none;align-items:center;gap:6px;flex-shrink:0">
+          <span style="font-size:13px">👩‍🏫</span>
+          <span id="agentDocenteName" style="font-size:11px;font-weight:700;color:var(--text);white-space:nowrap"></span>
+          <div id="agentDocenteCursos" style="display:flex;gap:4px;flex-wrap:nowrap"></div>
+          <button onclick="showPanel('favoritos')" style="background:var(--accent2);color:#000;border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap">🏠 Inicio</button>
+        </div>
+
+        <!-- Separador docente/agente (solo en docente) -->
+        <div id="agentDocenteSep" style="display:none;width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
+
         <!-- Icono + nombre agente -->
-        <div class="modal-icon" id="mIcon" style="width:32px;height:32px;font-size:16px;flex-shrink:0"></div>
+        <div class="modal-icon" id="mIcon" style="width:28px;height:28px;font-size:15px;flex-shrink:0"></div>
         <div style="flex-shrink:0;min-width:0">
-          <div class="modal-title" id="mTitle" style="font-size:13px;margin:0;white-space:nowrap"></div>
+          <div class="modal-title" id="mTitle" style="font-size:12px;margin:0;white-space:nowrap"></div>
           <span class="modal-dim" id="mDim" style="font-size:9px"></span>
         </div>
+
+        <!-- Separador -->
+        <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
 
         <!-- Tabs de navegación -->
         <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;flex-wrap:nowrap">
@@ -3128,10 +3156,11 @@
             style="border-color:var(--accent2)44;color:var(--accent2)">🚀 Iniciar Chat</button>
           <button class="agent-panel-btn"        id="apbtn-ajustar" onclick="switchAgentPanel('ajustar')" style="border-color:var(--accent4);color:var(--accent4);background:var(--dim4);font-weight:800">✨ Personalizar</button>
         </div>
+
         <!-- Resize + cerrar -->
         <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;margin-left:auto">
-          <button onclick="resizeAgentModal('normal')" id="rsz-normal" title="Con sidebar" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">◧</button>
-          <button onclick="resizeAgentModal('full')"   id="rsz-full"   title="Sin sidebar (máximo espacio)" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">⬜</button>
+          <button onclick="resizeAgentModal('normal')" id="rsz-normal" title="Con sidebar" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center">◧</button>
+          <button onclick="resizeAgentModal('full')"   id="rsz-full"   title="Sin sidebar (máximo espacio)" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center">⬜</button>
           <button class="modal-close" onclick="closeModal()" style="margin-left:4px">✕</button>
         </div>
       </div>
@@ -3585,6 +3614,17 @@ var CURSOS = _CURSOS_DEFAULT.concat(_CURSOS_CUSTOM.filter(function(c){ return _C
 function _saveCursosCustom() {
   var custom = CURSOS.filter(function(c){ return _CURSOS_DEFAULT.indexOf(c) === -1; });
   localStorage.setItem('liax_cursos_custom', JSON.stringify(custom));
+}
+
+// Track explicitly deleted courses so Supabase sync never resurrects them
+function _markCursoDeleted(curso) {
+  var deleted = JSON.parse(localStorage.getItem('liax_cursos_deleted') || '[]');
+  if (deleted.indexOf(curso) === -1) deleted.push(curso);
+  localStorage.setItem('liax_cursos_deleted', JSON.stringify(deleted));
+}
+function _isCursoDeleted(curso) {
+  var deleted = JSON.parse(localStorage.getItem('liax_cursos_deleted') || '[]');
+  return deleted.indexOf(curso) > -1;
 }
 const ASIGS  = ['Lenguaje','Matemáticas','Descentramiento','F. Ejecutivo','Cognitivo (global)','Motor (global)','S. Externalizante','S. Internalizante','Habilidades Sociales','Disp. Aprendizaje'];
 const COMPETENCIAS = [
@@ -5421,19 +5461,24 @@ function renderFavoritos() {
 
   grid.innerHTML = agents.map(a => {
     const c = COLORS[a.dim];
-    return `<div onclick="openAgent('${a.id}')"
-      style="background:var(--surface);border:1px solid ${c.border};border-radius:9px;
-             padding:10px 12px;cursor:pointer;transition:all .15s;position:relative;
-             display:flex;align-items:flex-start;gap:9px"
-      onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px #0002'"
-      onmouseleave="this.style.transform='';this.style.boxShadow=''">
-      <div style="position:absolute;top:0;left:0;bottom:0;width:3px;background:${c.text}"></div>
-      <div style="width:30px;height:30px;border-radius:7px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-left:4px">${a.icon}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:11px;line-height:1.3;word-break:break-word">${a.nombre}</div>
-        <div style="font-size:9px;color:${c.text};font-weight:600">${dimNames[a.dim]||''}</div>
+    return `<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:11px;padding:15px;cursor:pointer;transition:all .2s;position:relative;overflow:visible"
+      onmouseenter="this.style.borderColor='${c.text}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.2)'"
+      onmouseleave="this.style.borderColor='var(--border)';this.style.transform='';this.style.boxShadow=''">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${c.text};border-radius:11px 11px 0 0"></div>
+      <button onclick="event.stopPropagation();toggleFav('${a.id}')" title="Quitar de favoritos"
+        style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:13px;color:#f59e0b">⭐</button>
+      <div onclick="openAgent('${a.id}')" style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+        <div style="width:34px;height:34px;border-radius:8px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${a.icon}</div>
+        <div style="min-width:0">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--text);line-height:1.3">${a.nombre}</div>
+          <div style="font-size:9px;font-weight:700;color:${c.text};margin-top:2px;text-transform:uppercase;letter-spacing:.4px">${dimNames[a.dim]||''}</div>
+        </div>
       </div>
-      <button onclick="event.stopPropagation();toggleFav('${a.id}')" title="Quitar" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);flex-shrink:0;padding:2px">✕</button>
+      <div onclick="openAgent('${a.id}')" style="font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:9px;white-space:normal;word-break:break-word">${a.desc}</div>
+      <div onclick="openAgent('${a.id}')" style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:10px;color:var(--muted)">${a.preguntas.length} preguntas guía</span>
+        <span style="font-size:10px;font-weight:700;color:${c.text}">Abrir →</span>
+      </div>
     </div>`;
   }).join('');
 }
@@ -5575,6 +5620,29 @@ function openAgent(id, autoPrompt, sessionToRestore){
   initAgentCtxSelectors();
   window._agentMinimized = false;
   _updateRestoreBtn();
+
+  // ── Populate docente info in fused header ──────────────────
+  var docenteInfo = document.getElementById('agentDocenteInfo');
+  var docenteSep  = document.getElementById('agentDocenteSep');
+  var isDocente   = document.body.classList.contains('is-docente');
+  if (docenteInfo && docenteSep) {
+    if (isDocente) {
+      // Show docente section
+      docenteInfo.style.display = 'flex';
+      docenteSep.style.display  = 'block';
+      // Set name
+      var nameEl = document.getElementById('topUserName');
+      var docName = document.getElementById('agentDocenteName');
+      if (docName && nameEl) docName.textContent = nameEl.textContent;
+      // Set cursos chips
+      var cursosEl = document.getElementById('agentDocenteCursos');
+      var srcCursos = document.getElementById('docenteBannerCursos');
+      if (cursosEl && srcCursos) cursosEl.innerHTML = srcCursos.innerHTML;
+    } else {
+      docenteInfo.style.display = 'none';
+      docenteSep.style.display  = 'none';
+    }
+  }
 
   // If a session was requested to restore, do it now (modal is ready)
   if (window._pendingSessionRestore) {
@@ -10175,14 +10243,14 @@ function applyDocenteView() {
   const banner = document.getElementById('docenteBanner');
   banner.style.display = 'flex';
   document.getElementById('docenteBannerText').textContent =
-    `👩‍🏫 Vista de ${docente.nombre.split(' ').slice(0,2).join(' ')} — solo tus cursos asignados`;
+    docente.nombre.split(' ').slice(0,2).join(' ');
 
   const cursosEl = document.getElementById('docenteBannerCursos');
   if (!cursos.length) {
     cursosEl.innerHTML = `<span style="color:var(--accent3);font-size:10px">Sin cursos asignados — contacta al director</span>`;
   } else {
     cursosEl.innerHTML = cursos.map(c =>
-      `<span style="font-size:10px;background:var(--surface);border:1px solid var(--accent2)44;border-radius:10px;padding:2px 8px;color:var(--accent2)">${c.curso}: ${c.asignaturas.join(', ')||'—'}</span>`
+      `<span style="font-size:11px;font-weight:600;background:var(--dim2);border:1px solid var(--accent2)55;border-radius:10px;padding:3px 10px;color:var(--accent2)">${c.curso}: ${c.asignaturas.join(', ')||'—'}</span>`
     ).join('');
   }
 
@@ -10962,12 +11030,17 @@ function loadFromStorage() {
       snap.COLEGIOS.forEach(c => COLEGIOS.push(c));
     }
 
-    // Restore cursos custom
-    if (snap.cursosCustom?.length) {
-      snap.cursosCustom.forEach(function(c) {
+    // Restore cursos custom — rebuild CURSOS completely from snapshot
+    // This ensures deleted courses don't come back from liax_cursos_custom
+    if (snap.hasOwnProperty('cursosCustom')) {
+      // Remove all non-default courses first
+      var toRemove = CURSOS.filter(function(c){ return _CURSOS_DEFAULT.indexOf(c) === -1; });
+      toRemove.forEach(function(c){ var i = CURSOS.indexOf(c); if(i>-1) CURSOS.splice(i,1); });
+      // Add back only what's in the snapshot
+      (snap.cursosCustom || []).forEach(function(c) {
         if (CURSOS.indexOf(c) === -1) CURSOS.push(c);
       });
-      _saveCursosCustom(); // keep liax_cursos_custom in sync
+      _saveCursosCustom(); // keep liax_cursos_custom in sync with snapshot
     }
 
     // Restore custom agents
@@ -11032,6 +11105,7 @@ function clearStorage() {
   localStorage.removeItem(LS_KEY);
   localStorage.removeItem('liax_custom_agents_backup');
   localStorage.removeItem('liax_cursos_custom');
+  localStorage.removeItem('liax_cursos_deleted');
   // Also clear IndexedDB vault so agents don't resurrect
   AGENT_VAULT.saveAgents([]).catch(function(){});
   location.reload();
@@ -31340,9 +31414,8 @@ function renderGestionCursos() {
   html += '</div>';
   container.innerHTML = html;
 
-  // Event delegation for all gc buttons
-  container.onclick = null;
-  container.addEventListener('click', function(e) {
+  // Event delegation for all gc buttons — use onclick to avoid accumulating listeners
+  container.onclick = function(e) {
     var btn = e.target.closest('[data-gc-action]');
     if (!btn) return;
     var action = btn.getAttribute('data-gc-action');
@@ -31351,7 +31424,7 @@ function renderGestionCursos() {
     if (action === 'asignar-docente') gcAsignarDocente(curso);
     if (action === 'ver-alumnos')     gcVerAlumnos(curso);
     if (action === 'eliminar-curso')  gcEliminarCurso(curso);
-  });
+  };
 }
 
 // ── Crear nuevo curso ─────────────────────────────────────────
@@ -31399,7 +31472,10 @@ function gcEliminarCurso(curso) {
   if (!confirm(msg)) return;
   var idx = CURSOS.indexOf(curso);
   if (idx > -1) CURSOS.splice(idx, 1);
-  saveToStorage();
+  _markCursoDeleted(curso);  // prevent Supabase from resurrecting it
+  _saveCursosCustom();        // update liax_cursos_custom
+  saveToStorage();            // update main snapshot
+  if (typeof _supaDeleteCurso === 'function') _supaDeleteCurso(curso).catch(function(){});
   renderGestionCursos();
   showSaveToast('🗑️ Curso eliminado');
 }
@@ -31812,15 +31888,41 @@ async function _supaLoadCursos() {
     }
     var { data } = await query;
     if (data && data.length) {
+      // Only add courses that are in current local state (don't resurrect deleted ones)
+      // Local CURSOS (from loadFromStorage + liax_cursos_custom) is the source of truth
+      var localCustom = JSON.parse(localStorage.getItem('liax_cursos_custom') || '[]');
       data.forEach(function(c) {
-        if (CURSOS.indexOf(c.nombre) === -1) CURSOS.push(c.nombre);
+        // Add only if it's already known locally OR if local has no record of it at all
+        var knownLocally = localCustom.indexOf(c.nombre) > -1;
+        var inDefault    = _CURSOS_DEFAULT.indexOf(c.nombre) > -1;
+        var alreadyIn    = CURSOS.indexOf(c.nombre) > -1;
+        var wasDeleted   = _isCursoDeleted(c.nombre);
+        if (!alreadyIn && !wasDeleted && (knownLocally || inDefault)) CURSOS.push(c.nombre);
+        else if (!alreadyIn && !knownLocally && !inDefault) {
+          // Course is in Supabase but not local — only add if NOT explicitly deleted
+          if (!_isCursoDeleted(c.nombre)) {
+            CURSOS.push(c.nombre);
+            localCustom.push(c.nombre);
+          }
+        }
       });
-      if (typeof _saveCursosCustom === 'function') _saveCursosCustom();
+      localStorage.setItem('liax_cursos_custom', JSON.stringify(
+        localCustom.filter(function(c){ return _CURSOS_DEFAULT.indexOf(c) === -1; })
+      ));
       if (typeof renderGestionCursos === 'function') renderGestionCursos();
       if (typeof renderCourseFilter === 'function') renderCourseFilter();
       console.log('[Supabase] Cursos cargados:', data.length);
     }
   } catch(e) { console.warn('[Supabase] Error cursos:', e.message); }
+}
+
+async function _supaDeleteCurso(nombre) {
+  if (!_supaUser) return;
+  try {
+    var id1 = 'curso_' + nombre.toLowerCase().replace(/[^a-z0-9]/g,'_');
+    var id2 = 'curso_' + (_supaPerfil?.colegio_id || _supaUser.id) + '_' + nombre.toLowerCase().replace(/[^a-z0-9]/g,'_');
+    await _supa.from('cursos').delete().eq('user_id', _supaUser.id).eq('nombre', nombre);
+  } catch(e) { console.warn('[Supabase] Error deleting curso:', e.message); }
 }
 
 async function _supaSaveCurso(nombre) {
