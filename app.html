@@ -3641,25 +3641,37 @@ const DB = {
 
 // Load custom courses from localStorage, merged with defaults
 var _CURSOS_DEFAULT = ['1°A','1°B','2°A','2°B','3°A','3°B','4°A','5°A','5°B','6°A','6°B','7°A','7°B','8°A','8°B','1° Medio A','2° Medio A','3° Medio A','4° Medio A'];
-// Cursos custom live in Supabase as source of truth.
-// localStorage is only a boot-time cache — always overwritten by Supabase on load.
-var _CURSOS_CACHE = JSON.parse(localStorage.getItem('liax_cursos_cache') || '[]');
-var CURSOS = _CURSOS_DEFAULT.concat(_CURSOS_CACHE.filter(function(c){
-  return _CURSOS_DEFAULT.indexOf(c) === -1;
-}));
 
-// Write cache (used only as fallback when Supabase is unavailable)
+// Lista de cursos eliminados por el usuario (persiste en localStorage)
+// Funciona tanto para cursos default como custom
+function _getCursosEliminados() {
+  return JSON.parse(localStorage.getItem('liax_cursos_eliminados') || '[]');
+}
+function _markCursoDeleted(curso) {
+  var lista = _getCursosEliminados();
+  if (lista.indexOf(curso) === -1) lista.push(curso);
+  localStorage.setItem('liax_cursos_eliminados', JSON.stringify(lista));
+}
+function _isCursoDeleted(curso) {
+  return _getCursosEliminados().indexOf(curso) > -1;
+}
+
+// CURSOS = default (menos eliminados) + cache de Supabase (menos eliminados)
+var _CURSOS_CACHE = JSON.parse(localStorage.getItem('liax_cursos_cache') || '[]');
+var CURSOS = _CURSOS_DEFAULT
+  .filter(function(c){ return !_isCursoDeleted(c); })
+  .concat(_CURSOS_CACHE.filter(function(c){
+    return _CURSOS_DEFAULT.indexOf(c) === -1 && !_isCursoDeleted(c);
+  }));
+
+// Guarda caché local (solo como fallback cuando Supabase no está disponible)
 function _saveCursosCustom() {
-  var custom = CURSOS.filter(function(c){ return _CURSOS_DEFAULT.indexOf(c) === -1; });
-  localStorage.setItem('liax_cursos_cache', JSON.stringify(custom));
-  // Legacy key cleanup (only old keys, NOT the cache we just wrote)
+  // Save ALL current courses (default + custom) minus the deleted ones
+  localStorage.setItem('liax_cursos_cache', JSON.stringify(CURSOS));
+  // Legacy cleanup
   localStorage.removeItem('liax_cursos_custom');
   localStorage.removeItem('liax_cursos_deleted');
 }
-
-// No-op stubs kept for compatibility
-function _markCursoDeleted(curso) {}
-function _isCursoDeleted(curso) { return false; }
 const ASIGS  = ['Lenguaje','Matemáticas','Descentramiento','F. Ejecutivo','Cognitivo (global)','Motor (global)','S. Externalizante','S. Internalizante','Habilidades Sociales','Disp. Aprendizaje'];
 const COMPETENCIAS = [
   'L1 - Comprensión del Lenguaje',
@@ -11141,6 +11153,8 @@ function clearStorage() {
   localStorage.removeItem('liax_custom_agents_backup');
   localStorage.removeItem('liax_cursos_custom');
   localStorage.removeItem('liax_cursos_deleted');
+  localStorage.removeItem('liax_cursos_cache');
+  localStorage.removeItem('liax_cursos_eliminados');
   // Also clear IndexedDB vault so agents don't resurrect
   AGENT_VAULT.saveAgents([]).catch(function(){});
   location.reload();
@@ -31490,9 +31504,9 @@ function gcNuevoCurso() {
     if (!nombre) { showSaveToast('Escribe el nombre del curso'); return; }
     if (CURSOS.indexOf(nombre) > -1) { showSaveToast('Ese curso ya existe'); return; }
     // If user re-creates a previously deleted course, remove from deleted list
-    var _delArr = JSON.parse(localStorage.getItem('liax_cursos_deleted') || '[]');
-    var _delIdx = _delArr.indexOf(nombre);
-    if (_delIdx > -1) { _delArr.splice(_delIdx, 1); localStorage.setItem('liax_cursos_deleted', JSON.stringify(_delArr)); }
+    var _elimArr = _getCursosEliminados();
+    var _elimIdx = _elimArr.indexOf(nombre);
+    if (_elimIdx > -1) { _elimArr.splice(_elimIdx, 1); localStorage.setItem('liax_cursos_eliminados', JSON.stringify(_elimArr)); }
     CURSOS.push(nombre);
     if (typeof _saveCursosCustom === 'function') _saveCursosCustom();
     if (typeof _supaSaveCurso === 'function') _supaSaveCurso(nombre).catch(function(){});
@@ -31512,9 +31526,10 @@ function gcEliminarCurso(curso) {
   if (!confirm(msg)) return;
   var idx = CURSOS.indexOf(curso);
   if (idx > -1) CURSOS.splice(idx, 1);
-  _saveCursosCustom();   // update cache
-  saveToStorage();       // update snapshot
-  // Delete from Supabase — on next load, Supabase won't return this course
+  _markCursoDeleted(curso); // persiste eliminación — sobrevive recargas
+  _saveCursosCustom();      // actualiza caché
+  saveToStorage();          // actualiza snapshot
+  // También eliminar de Supabase si es custom
   if (typeof _supaDeleteCurso === 'function') {
     _supaDeleteCurso(curso).catch(function(e){
       console.warn('[LIAX] Retry delete curso in 3s...', e);
@@ -31934,9 +31949,11 @@ async function _supaLoadCursos() {
     var toRemove = CURSOS.filter(function(c){ return _CURSOS_DEFAULT.indexOf(c) === -1; });
     toRemove.forEach(function(c){ var i = CURSOS.indexOf(c); if(i>-1) CURSOS.splice(i,1); });
 
-    // Add exactly what Supabase returns
+    // Add exactly what Supabase returns, except deleted ones
     (data || []).forEach(function(c) {
-      if (CURSOS.indexOf(c.nombre) === -1) CURSOS.push(c.nombre);
+      if (CURSOS.indexOf(c.nombre) === -1 && !_isCursoDeleted(c.nombre)) {
+        CURSOS.push(c.nombre);
+      }
     });
 
     // Update cache
