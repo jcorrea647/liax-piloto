@@ -4314,6 +4314,18 @@ function getVisibleCursos(visible) {
   let base = visible || all;
   // Courses from DATOS_STORE
   var cursosData = base.map(d => d.curso).filter(Boolean);
+
+  // If docente, restrict to assigned courses only
+  if (currentRole === 'docente' && currentDocenteId) {
+    const doc = DB.docentes.find(d => d.id === currentDocenteId);
+    const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso));
+    if (misCursos.size > 0) {
+      return [...misCursos].sort();
+    }
+    // Docente without assigned courses: return empty
+    return [];
+  }
+
   // Also include courses from Supabase alumnos (DB.alumnos uses .esp as curso_nombre)
   var cursosAlumnos = (DB.alumnos || []).map(function(a){ return a.esp || a.curso_nombre; }).filter(Boolean);
   // Also from CURSOS array loaded from Supabase
