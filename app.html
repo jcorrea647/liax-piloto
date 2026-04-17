@@ -25194,7 +25194,8 @@ function xlFindColumns(rows, cols) {
     puntCol: puntCol, habCol: habCol, compCol: compCol,
     pctCol: pctCol, promCol: promCol, _groupKey: _groupKey,
   };
-  console.log('[LIAX Parser]', mapping);
+  // mapping detectado — log solo en modo debug
+  // console.log('[LIAX Parser]', mapping);
 
   return mapping;
 }
@@ -31649,77 +31650,65 @@ function _vaultSaveAgents() {
 async function _vaultRestoreAgents() {
   var restored = 0;
 
-  // 1. Supabase PRIMERO — fuente de verdad principal
-  // (ya se cargó en _supaLoadAgentes durante _supaLoadPerfil)
-  // Si hay agentes de Supabase, ya están en AGENTS con _fromSupabase:true
+  // 1. Supabase PRIMERO — si ya cargó, usar esos agentes
   var supaCount = AGENTS.filter(function(a){ return a.custom && a._fromSupabase; }).length;
   if (supaCount > 0) {
     console.log('[LIAX] Agentes ya cargados desde Supabase:', supaCount);
   }
 
-  // 2. IndexedDB — respaldo local para agentes que no llegaron a Supabase
+  // 2. IndexedDB — restaurar agentes que no llegaron desde Supabase
   try {
     var vaultAgents = await AGENT_VAULT.loadAgents();
     if (vaultAgents && vaultAgents.length > 0) {
       console.log('[LIAX Vault] IndexedDB tiene', vaultAgents.length, 'agente(s)');
+      var toSync = [];
       vaultAgents.forEach(function(a) {
         var existing = AGENTS.find(function(x){ return x.id === a.id; });
         if (!existing) {
-          // Está en IndexedDB pero no en Supabase — restaurar y sincronizar
           AGENTS.push(a);
           restored++;
-          // Sincronizar a Supabase ahora que tenemos sesión
-          if (_supaUser && typeof _supaSaveAgente === 'function') {
-            _supaSaveAgente(a).catch(function(e){
-              console.warn('[LIAX] No se pudo sincronizar agente a Supabase:', e.message);
-            });
-          }
+          toSync.push(a);
         } else if (!existing._fromSupabase) {
-          // Tenemos versión local más reciente — actualizar y sincronizar
           Object.assign(existing, a);
-          if (_supaUser && typeof _supaSaveAgente === 'function') {
-            _supaSaveAgente(existing).catch(function(){});
-          }
+          toSync.push(existing);
         }
       });
       if (restored > 0) {
-        console.log('[LIAX Vault] Restaurados', restored, 'agente(s) desde IndexedDB → sincronizando a Supabase');
+        console.log('[LIAX Vault] Restaurados', restored, 'agente(s) desde IndexedDB');
+        renderAgents();
+        if (typeof renderSAAgentGrid === 'function') renderSAAgentGrid();
+        if (typeof updateAgentCounts === 'function') updateAgentCounts();
+      }
+      // Sincronizar a Supabase — esperar sesión hasta 10 segundos
+      if (toSync.length > 0) {
+        _syncAgentsWhenReady(toSync, 0);
       }
     }
   } catch(e) { console.warn('[LIAX Vault] IndexedDB restore failed:', e); }
-
-  // 3. Fallback: backup en memoria (solo sirve si no se recargó la página)
-  try {
-    var raw = (window._AGENTS_BACKUP_MEM || null);
-    if (raw) {
-      var data = JSON.parse(raw);
-      var backupAgents = data.agents || data;
-      if (Array.isArray(backupAgents)) {
-        backupAgents.forEach(function(a) {
-          if (!AGENTS.find(function(x){ return x.id === a.id; })) {
-            AGENTS.push(a);
-            restored++;
-            if (_supaUser && typeof _supaSaveAgente === 'function') {
-              _supaSaveAgente(a).catch(function(){});
-            }
-          }
-        });
-      }
-    }
-  } catch(e) {}
-
-  if (restored > 0) {
-    renderAgents();
-    if (typeof renderSAAgentGrid === 'function') renderSAAgentGrid();
-    if (typeof updateAgentCounts === 'function') updateAgentCounts();
-    showSaveToast('✅ ' + restored + ' agente(s) restaurado(s) y sincronizado(s) a Supabase');
-  }
 
   // Log estado final
   var totalCustom = AGENTS.filter(function(a){ return a.custom; }).length;
   console.log('[LIAX] Estado final de agentes custom:', totalCustom,
     '| Supabase:', AGENTS.filter(function(a){ return a.custom && a._fromSupabase; }).length,
     '| IndexedDB restaurados:', restored);
+}
+
+// Reintenta sincronizar hasta que _supaUser esté disponible
+function _syncAgentsWhenReady(agents, attempt) {
+  if (_supaUser) {
+    agents.forEach(function(a) {
+      _supaSaveAgente(a).then(function() {
+        a._fromSupabase = true;
+      }).catch(function(e) {
+        console.warn('[LIAX] No se pudo sincronizar agente:', a.nombre, e?.message);
+      });
+    });
+    console.log('[LIAX] Sincronizando', agents.length, 'agente(s) a Supabase');
+  } else if (attempt < 10) {
+    setTimeout(function() { _syncAgentsWhenReady(agents, attempt + 1); }, 1000);
+  } else {
+    console.warn('[LIAX] No se pudo sincronizar — Supabase no disponible después de 10s');
+  }
 }
 
 
