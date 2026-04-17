@@ -8255,28 +8255,74 @@ function updateAgentCounts(){
 }
 
 // ══════════════════════════════════════════════════════════
-//  SA — GESTIÓN DE USUARIOS
+//  SA — GESTIÓN DE USUARIOS (Supabase)
 // ══════════════════════════════════════════════════════════
-let SA_USUARIOS = [
-  { id:'u1', nombre:'Carlos', apellido:'Mendoza', email:'carlos@demo.cl', rol:'director', colegio:'c1', estado:'activo', ultimoAcceso:'2025-04-15', tokens:1240, notas:'' },
-  { id:'u2', nombre:'Ana',    apellido:'Torres',  email:'ana@demo.cl',    rol:'docente',  colegio:'c1', estado:'activo', ultimoAcceso:'2025-04-14', tokens:860, notas:'' },
-  { id:'u3', nombre:'Pedro',  apellido:'Silva',   email:'pedro@demo.cl',  rol:'docente',  colegio:'c2', estado:'inactivo', ultimoAcceso:'2025-03-20', tokens:340, notas:'' },
-  { id:'u4', nombre:'Laura',  apellido:'Rojas',   email:'laura@demo.cl',  rol:'director', colegio:'c2', estado:'activo',  ultimoAcceso:'2025-04-16', tokens:2100, notas:'' },
-  { id:'u5', nombre:'Mateo',  apellido:'Fuentes', email:'mateo@demo.cl',  rol:'alumno',   colegio:'c1', estado:'pendiente', ultimoAcceso:null, tokens:0, notas:'Pendiente verificación de correo' },
-];
+let SA_USUARIOS = [];          // cache local, se llena desde Supabase
 let saSelectedUsers = new Set();
+let saUsuariosLoading = false;
 
-function saInitUsuarios(){
+// ── helpers UI ────────────────────────────────────────────
+function saSetLoading(on){
+  const tbody = document.getElementById('saUsuariosTbody');
+  if(!tbody) return;
+  if(on) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:28px;color:var(--muted)">
+    <div style="display:inline-block;width:18px;height:18px;border:2px solid var(--accent1);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle"></div>
+    Cargando usuarios…</td></tr>`;
+}
+function saToast(msg, ok=true){
+  let t=document.getElementById('saToast');
+  if(!t){ t=document.createElement('div'); t.id='saToast';
+    t.style.cssText='position:fixed;bottom:22px;right:22px;padding:10px 18px;border-radius:9px;font-size:12px;font-weight:600;z-index:9999;opacity:0;transition:opacity .25s;pointer-events:none';
+    document.body.appendChild(t); }
+  t.textContent=msg;
+  t.style.background=ok?'#0d3d26':'#5a1a1a';
+  t.style.color=ok?'#34d399':'#f87171';
+  t.style.border=`1px solid ${ok?'#34d39944':'#f8717144'}`;
+  t.style.opacity='1'; clearTimeout(t._tid);
+  t._tid=setTimeout(()=>t.style.opacity='0',2800);
+}
+
+// ── cargar todos los usuarios desde Supabase ──────────────
+async function saLoadUsuarios(){
+  if(!_supaUser) return;
+  saSetLoading(true);
+  try {
+    const { data, error } = await _supa
+      .from('usuarios')
+      .select('id, nombre, apellido, email, rol, colegio_id, estado, ultimo_acceso, tokens_usados, notas, curso')
+      .order('nombre', { ascending: true });
+    if(error) throw error;
+    SA_USUARIOS = (data||[]).map(u=>({
+      id:          u.id,
+      nombre:      u.nombre||'',
+      apellido:    u.apellido||'',
+      email:       u.email||'',
+      rol:         u.rol||'docente',
+      colegio:     u.colegio_id||null,
+      estado:      u.estado||'activo',
+      ultimoAcceso:u.ultimo_acceso ? u.ultimo_acceso.slice(0,10) : null,
+      tokens:      u.tokens_usados||0,
+      notas:       u.notas||'',
+      curso:       u.curso||'',
+    }));
+  } catch(e) {
+    console.error('saLoadUsuarios:', e);
+    saToast('Error al cargar usuarios: '+(e.message||e), false);
+  }
+}
+
+// ── init del panel ────────────────────────────────────────
+async function saInitUsuarios(){
+  saPopulateColegioFilter();
+  await saLoadUsuarios();
   saRenderStats();
   saRenderUsuarios();
-  saPopulateColegioFilter();
 }
 
 function saRenderStats(){
-  const roles = ['superadmin','sostenedor','director','docente','alumno'];
-  const icons = ['⚡','🏛','🎓','👨‍🏫','📚'];
+  const roles  = ['superadmin','sostenedor','director','docente','alumno'];
+  const icons  = ['⚡','🏛','🎓','👨‍🏫','📚'];
   const colors = ['#c084fc','#60a5fa','#34d399','#00e5c0','#ffd166'];
-  const bgs   = ['#2d0a5e','#0d2a44','#0d3d26','#0d4040','#5a4400'];
   const el = document.getElementById('saUsuariosStats');
   if(!el) return;
   el.innerHTML = roles.map((r,i)=>{
@@ -8300,58 +8346,56 @@ function saPopulateColegioFilter(){
 }
 
 function saRenderUsuarios(){
-  const q     = (document.getElementById('saUsuarioSearch')?.value||'').toLowerCase();
-  const fRol  = document.getElementById('saUsuarioFiltroRol')?.value||'';
-  const fCol  = document.getElementById('saUsuarioFiltroColegio')?.value||'';
-  const fEst  = document.getElementById('saUsuarioFiltroEstado')?.value||'';
-  const tbody = document.getElementById('saUsuariosTbody');
+  const q    = (document.getElementById('saUsuarioSearch')?.value||'').toLowerCase();
+  const fRol = document.getElementById('saUsuarioFiltroRol')?.value||'';
+  const fCol = document.getElementById('saUsuarioFiltroColegio')?.value||'';
+  const fEst = document.getElementById('saUsuarioFiltroEstado')?.value||'';
+  const tbody= document.getElementById('saUsuariosTbody');
   if(!tbody) return;
 
   let list = SA_USUARIOS.filter(u=>{
-    if(fRol  && u.rol!==fRol) return false;
-    if(fCol  && u.colegio!==fCol) return false;
-    if(fEst  && u.estado!==fEst) return false;
+    if(fRol && u.rol!==fRol) return false;
+    if(fCol && u.colegio!==fCol) return false;
+    if(fEst && u.estado!==fEst) return false;
     if(q){
-      const hay = (u.nombre+' '+u.apellido+' '+u.email+(saGetColegio(u.colegio)||'')).toLowerCase();
+      const hay=(u.nombre+' '+u.apellido+' '+u.email+(saGetColegio(u.colegio)||'')).toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
   });
 
-  const rolColors = {superadmin:'#c084fc',sostenedor:'#60a5fa',director:'#34d399',docente:'#00e5c0',alumno:'#ffd166'};
-  const rolBgs    = {superadmin:'#2d0a5e',sostenedor:'#0d2a44',director:'#0d3d26',docente:'#0d4040',alumno:'#5a4400'};
-  const estadoMap = {activo:'<span style="color:#34d399;font-size:10px;font-weight:700">✅ Activo</span>',
-                     inactivo:'<span style="color:#f87171;font-size:10px;font-weight:700">⛔ Inactivo</span>',
-                     pendiente:'<span style="color:#fbbf24;font-size:10px;font-weight:700">⏳ Pendiente</span>'};
-  const rolIcons  = {superadmin:'⚡',sostenedor:'🏛',director:'🎓',docente:'👨‍🏫',alumno:'📚'};
+  const rolColors={superadmin:'#c084fc',sostenedor:'#60a5fa',director:'#34d399',docente:'#00e5c0',alumno:'#ffd166'};
+  const rolBgs   ={superadmin:'#2d0a5e',sostenedor:'#0d2a44',director:'#0d3d26',docente:'#0d4040',alumno:'#5a4400'};
+  const estadoMap={
+    activo:   '<span style="color:#34d399;font-size:10px;font-weight:700">✅ Activo</span>',
+    inactivo: '<span style="color:#f87171;font-size:10px;font-weight:700">⛔ Inactivo</span>',
+    pendiente:'<span style="color:#fbbf24;font-size:10px;font-weight:700">⏳ Pendiente</span>'
+  };
+  const rolIcons={superadmin:'⚡',sostenedor:'🏛',director:'🎓',docente:'👨‍🏫',alumno:'📚'};
 
   tbody.innerHTML = list.length ? list.map(u=>{
-    const initials = (u.nombre[0]+(u.apellido?u.apellido[0]:'')).toUpperCase();
-    const colNombre = saGetColegio(u.colegio)||'—';
-    const checked = saSelectedUsers.has(u.id);
+    const initials=((u.nombre||'?')[0]+((u.apellido||'')[0]||'')).toUpperCase();
+    const colNombre=saGetColegio(u.colegio)||'—';
+    const checked=saSelectedUsers.has(u.id);
     return `<tr>
       <td><input type="checkbox" ${checked?'checked':''} onchange="saToggleSelUser('${u.id}',this)" style="cursor:pointer"></td>
-      <td>
-        <div class="user-cell">
-          <div class="mini-av" style="background:${rolBgs[u.rol]||'var(--surface2)'};color:${rolColors[u.rol]||'var(--text)'}">${initials}</div>
-          <div>
-            <div style="font-weight:600;font-size:12px">${u.nombre} ${u.apellido||''}</div>
-            <div style="font-size:10px;color:var(--muted)">${u.email}</div>
-          </div>
+      <td><div class="user-cell">
+        <div class="mini-av" style="background:${rolBgs[u.rol]||'var(--surface2)'};color:${rolColors[u.rol]||'var(--text)'}">${initials}</div>
+        <div>
+          <div style="font-weight:600;font-size:12px">${u.nombre} ${u.apellido||''}</div>
+          <div style="font-size:10px;color:var(--muted)">${u.email}</div>
         </div>
-      </td>
+      </div></td>
       <td><span style="background:${rolBgs[u.rol]};color:${rolColors[u.rol]};font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px">${rolIcons[u.rol]||''} ${u.rol}</span></td>
       <td style="font-size:11px">${colNombre}</td>
       <td>${estadoMap[u.estado]||u.estado}</td>
       <td style="font-size:11px;color:var(--muted)">${u.ultimoAcceso||'Nunca'}</td>
       <td style="font-size:11px;color:var(--muted)">${(u.tokens||0).toLocaleString()}</td>
-      <td style="text-align:right">
-        <div style="display:flex;gap:5px;justify-content:flex-end">
-          <button onclick="saOpenEditUsuario('${u.id}')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif;transition:all .15s" onmouseover="this.style.borderColor='var(--accent1)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">✏️ Editar</button>
-          <button onclick="saToggleEstado('${u.id}')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif">${u.estado==='activo'?'⛔ Desactivar':'✅ Activar'}</button>
-          <button onclick="saEliminarUsuario('${u.id}')" style="background:none;border:1px solid var(--accent3)33;color:var(--accent3);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif">🗑️</button>
-        </div>
-      </td>
+      <td style="text-align:right"><div style="display:flex;gap:5px;justify-content:flex-end">
+        <button onclick="saOpenEditUsuario('${u.id}')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif" onmouseover="this.style.borderColor='var(--accent1)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">✏️ Editar</button>
+        <button onclick="saToggleEstado('${u.id}')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif">${u.estado==='activo'?'⛔ Desactivar':'✅ Activar'}</button>
+        <button onclick="saEliminarUsuario('${u.id}')" style="background:none;border:1px solid var(--accent3)33;color:var(--accent3);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif">🗑️</button>
+      </div></td>
     </tr>`;
   }).join('') : `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;font-size:12px">Sin resultados</td></tr>`;
 
@@ -8361,19 +8405,29 @@ function saRenderUsuarios(){
 
 function saGetColegio(id){ return (COLEGIOS.find(c=>c.id===id)||{}).nombre||null; }
 
-function saToggleSelUser(id, chk){
-  if(chk.checked) saSelectedUsers.add(id);
-  else saSelectedUsers.delete(id);
-  saUpdateBulkBar();
-}
+// ── selección múltiple ─────────────────────────────────────
+function saToggleSelUser(id, chk){ chk.checked?saSelectedUsers.add(id):saSelectedUsers.delete(id); saUpdateBulkBar(); }
 function saToggleSelAll(chk){
-  const rows = document.querySelectorAll('#saUsuariosTbody input[type=checkbox]');
-  rows.forEach(r=>{ r.checked=chk.checked; const uid=r.getAttribute('onchange')?.match(/'([^']+)'/)?.[1]; if(uid){chk.checked?saSelectedUsers.add(uid):saSelectedUsers.delete(uid);} });
+  document.querySelectorAll('#saUsuariosTbody input[type=checkbox]').forEach(r=>{
+    r.checked=chk.checked;
+    const uid=r.getAttribute('onchange')?.match(/'([^']+)'/)?.[1];
+    if(uid){ chk.checked?saSelectedUsers.add(uid):saSelectedUsers.delete(uid); }
+  });
   saUpdateBulkBar();
 }
-function saLimpiarSel(){ saSelectedUsers.clear(); document.querySelectorAll('#saUsuariosTbody input[type=checkbox]').forEach(r=>r.checked=false); if(document.getElementById('saSelAll'))document.getElementById('saSelAll').checked=false; saUpdateBulkBar(); }
-function saUpdateBulkBar(){ const n=saSelectedUsers.size; const bar=document.getElementById('saBulkBar'); if(!bar)return; bar.style.display=n>0?'flex':'none'; document.getElementById('saBulkCount').textContent=`${n} usuario${n!==1?'s':''} seleccionado${n!==1?'s':''}`; }
+function saLimpiarSel(){
+  saSelectedUsers.clear();
+  document.querySelectorAll('#saUsuariosTbody input[type=checkbox]').forEach(r=>r.checked=false);
+  const all=document.getElementById('saSelAll'); if(all)all.checked=false;
+  saUpdateBulkBar();
+}
+function saUpdateBulkBar(){
+  const n=saSelectedUsers.size, bar=document.getElementById('saBulkBar'); if(!bar)return;
+  bar.style.display=n>0?'flex':'none';
+  document.getElementById('saBulkCount').textContent=`${n} usuario${n!==1?'s':''} seleccionado${n!==1?'s':''}`;
+}
 
+// ── modal nuevo / editar ──────────────────────────────────
 function saOpenNuevoUsuario(){
   document.getElementById('saUsuarioModalTitle').textContent='Nuevo Usuario';
   document.getElementById('saUsuarioEditId').value='';
@@ -8411,9 +8465,7 @@ function saPopulateColegioSelect(selected){
 }
 function saUsuarioRolChange(){
   const r=document.getElementById('saU-rol').value;
-  const noCol=['superadmin','sostenedor'];
-  const showCol=!noCol.includes(r);
-  document.getElementById('saU-colegio-group').style.display=showCol?'':'none';
+  document.getElementById('saU-colegio-group').style.display=['superadmin','sostenedor'].includes(r)?'none':'';
   document.getElementById('saU-curso-group').style.display=r==='alumno'?'':'none';
 }
 function saGenPassword(){
@@ -8422,51 +8474,149 @@ function saGenPassword(){
   const el=document.getElementById('saU-password'); el.value=p; el.type='text';
   setTimeout(()=>el.type='password',3000);
 }
-function saGuardarUsuario(){
+
+// ── guardar (crear o actualizar en Supabase) ──────────────
+async function saGuardarUsuario(){
   const nombre=document.getElementById('saU-nombre').value.trim();
   const email=document.getElementById('saU-email').value.trim();
-  if(!nombre||!email){ alert('Nombre y correo son obligatorios.'); return; }
+  if(!nombre||!email){ saToast('Nombre y correo son obligatorios.', false); return; }
+
   const editId=document.getElementById('saUsuarioEditId').value;
-  const data={
-    nombre, apellido:document.getElementById('saU-apellido').value.trim(),
-    email, rol:document.getElementById('saU-rol').value,
-    estado:document.getElementById('saU-estado').value,
-    colegio:document.getElementById('saU-colegio').value||null,
-    curso:document.getElementById('saU-curso').value.trim()||null,
-    notas:document.getElementById('saU-notas').value.trim(),
+  const password=document.getElementById('saU-password').value;
+
+  const payload={
+    nombre,
+    apellido:   document.getElementById('saU-apellido').value.trim()||null,
+    email,
+    rol:        document.getElementById('saU-rol').value,
+    estado:     document.getElementById('saU-estado').value,
+    colegio_id: document.getElementById('saU-colegio').value||null,
+    curso:      document.getElementById('saU-curso').value.trim()||null,
+    notas:      document.getElementById('saU-notas').value.trim()||null,
+    updated_at: new Date().toISOString(),
   };
-  if(editId){
-    const idx=SA_USUARIOS.findIndex(u=>u.id===editId);
-    if(idx>-1) SA_USUARIOS[idx]={...SA_USUARIOS[idx],...data};
-  } else {
-    SA_USUARIOS.push({id:'u'+Date.now(),...data,ultimoAcceso:null,tokens:0});
+
+  const btn=document.querySelector('#saUsuarioModal .btn-primary');
+  const origText=btn.textContent; btn.textContent='⏳ Guardando…'; btn.disabled=true;
+
+  try {
+    if(editId){
+      // ── UPDATE en tabla usuarios ──
+      const { error } = await _supa.from('usuarios').update(payload).eq('id', editId);
+      if(error) throw error;
+      // Cambiar contraseña si se proporcionó (solo con service role; aquí invocamos una Edge Function si existe)
+      if(password){
+        try {
+          await _supa.functions.invoke('admin-reset-password', { body:{ userId: editId, password } });
+        } catch(e){ console.warn('No se pudo cambiar contraseña vía Edge Function:', e.message); }
+      }
+      saToast('✅ Usuario actualizado');
+    } else {
+      // ── CREATE: primero crear en auth, luego insertar perfil ──
+      if(!password){ saToast('Debes ingresar una contraseña para el nuevo usuario.', false); btn.textContent=origText; btn.disabled=false; return; }
+      // Intentar vía Edge Function admin-create-user (si existe)
+      let newId = null;
+      try {
+        const resp = await _supa.functions.invoke('admin-create-user', { body:{ email, password, ...payload } });
+        newId = resp.data?.id || null;
+      } catch(e){ console.warn('Edge Function no disponible, intentando upsert directo:', e.message); }
+
+      if(!newId){
+        // Fallback: insertar solo el perfil (el usuario deberá hacer signUp por su cuenta o vía invitación)
+        const { data: inserted, error } = await _supa.from('usuarios').insert({ ...payload, email }).select('id').single();
+        if(error) throw error;
+        newId = inserted.id;
+      }
+      saToast('✅ Usuario creado');
+    }
+
+    saCloseUsuarioModal();
+    await saLoadUsuarios();
+    saRenderStats();
+    saRenderUsuarios();
+  } catch(e){
+    console.error('saGuardarUsuario:', e);
+    saToast('Error: '+(e.message||'No se pudo guardar'), false);
+  } finally {
+    btn.textContent=origText; btn.disabled=false;
   }
-  saCloseUsuarioModal();
-  saRenderStats();
-  saRenderUsuarios();
 }
-function saToggleEstado(id){
+
+// ── activar / desactivar ──────────────────────────────────
+async function saToggleEstado(id){
   const u=SA_USUARIOS.find(x=>x.id===id); if(!u)return;
-  u.estado=u.estado==='activo'?'inactivo':'activo';
-  saRenderStats(); saRenderUsuarios();
+  const nuevoEstado = u.estado==='activo'?'inactivo':'activo';
+  try {
+    const { error } = await _supa.from('usuarios').update({ estado: nuevoEstado, updated_at: new Date().toISOString() }).eq('id', id);
+    if(error) throw error;
+    u.estado=nuevoEstado;
+    saRenderStats(); saRenderUsuarios();
+    saToast(nuevoEstado==='activo'?'✅ Usuario activado':'⛔ Usuario desactivado');
+  } catch(e){ saToast('Error: '+(e.message||e), false); }
 }
-function saEliminarUsuario(id){
+
+// ── eliminar ──────────────────────────────────────────────
+async function saEliminarUsuario(id){
   if(!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
-  SA_USUARIOS=SA_USUARIOS.filter(u=>u.id!==id);
-  saSelectedUsers.delete(id);
-  saRenderStats(); saRenderUsuarios();
+  try {
+    const { error } = await _supa.from('usuarios').delete().eq('id', id);
+    if(error) throw error;
+    SA_USUARIOS=SA_USUARIOS.filter(u=>u.id!==id);
+    saSelectedUsers.delete(id);
+    saRenderStats(); saRenderUsuarios();
+    saToast('🗑️ Usuario eliminado');
+  } catch(e){ saToast('Error: '+(e.message||e), false); }
 }
-function saBulkActivar(){ saSelectedUsers.forEach(id=>{ const u=SA_USUARIOS.find(x=>x.id===id); if(u) u.estado='activo'; }); saRenderStats(); saRenderUsuarios(); }
-function saBulkDesactivar(){ saSelectedUsers.forEach(id=>{ const u=SA_USUARIOS.find(x=>x.id===id); if(u) u.estado='inactivo'; }); saRenderStats(); saRenderUsuarios(); }
-function saBulkEliminar(){ if(!confirm(`¿Eliminar ${saSelectedUsers.size} usuario(s)?`)) return; SA_USUARIOS=SA_USUARIOS.filter(u=>!saSelectedUsers.has(u.id)); saSelectedUsers.clear(); saRenderStats(); saRenderUsuarios(); }
-function saBulkCambiarColegio(){
-  const colegioId=prompt('Ingresa el ID o nombre del colegio destino:\n'+COLEGIOS.map(c=>c.id+': '+c.nombre).join('\n'));
-  if(!colegioId) return;
-  const c=COLEGIOS.find(x=>x.id===colegioId||x.nombre.toLowerCase()===colegioId.toLowerCase());
-  if(!c){ alert('Colegio no encontrado'); return; }
-  saSelectedUsers.forEach(id=>{ const u=SA_USUARIOS.find(x=>x.id===id); if(u) u.colegio=c.id; });
-  saRenderStats(); saRenderUsuarios();
+
+// ── acciones bulk ─────────────────────────────────────────
+async function saBulkActivar(){
+  const ids=[...saSelectedUsers];
+  try {
+    const { error } = await _supa.from('usuarios').update({ estado:'activo', updated_at: new Date().toISOString() }).in('id', ids);
+    if(error) throw error;
+    ids.forEach(id=>{ const u=SA_USUARIOS.find(x=>x.id===id); if(u) u.estado='activo'; });
+    saLimpiarSel(); saRenderStats(); saRenderUsuarios();
+    saToast(`✅ ${ids.length} usuario(s) activado(s)`);
+  } catch(e){ saToast('Error: '+(e.message||e), false); }
 }
+async function saBulkDesactivar(){
+  const ids=[...saSelectedUsers];
+  try {
+    const { error } = await _supa.from('usuarios').update({ estado:'inactivo', updated_at: new Date().toISOString() }).in('id', ids);
+    if(error) throw error;
+    ids.forEach(id=>{ const u=SA_USUARIOS.find(x=>x.id===id); if(u) u.estado='inactivo'; });
+    saLimpiarSel(); saRenderStats(); saRenderUsuarios();
+    saToast(`⛔ ${ids.length} usuario(s) desactivado(s)`);
+  } catch(e){ saToast('Error: '+(e.message||e), false); }
+}
+async function saBulkEliminar(){
+  const ids=[...saSelectedUsers];
+  if(!confirm(`¿Eliminar ${ids.length} usuario(s)? Esta acción no se puede deshacer.`)) return;
+  try {
+    const { error } = await _supa.from('usuarios').delete().in('id', ids);
+    if(error) throw error;
+    SA_USUARIOS=SA_USUARIOS.filter(u=>!saSelectedUsers.has(u.id));
+    saLimpiarSel(); saRenderStats(); saRenderUsuarios();
+    saToast(`🗑️ ${ids.length} usuario(s) eliminado(s)`);
+  } catch(e){ saToast('Error: '+(e.message||e), false); }
+}
+async function saBulkCambiarColegio(){
+  const opts=COLEGIOS.map(c=>`${c.nombre}`).join('\n');
+  const input=prompt('¿A qué colegio mover los usuarios seleccionados?\n\n'+opts);
+  if(!input) return;
+  const c=COLEGIOS.find(x=>x.nombre.toLowerCase()===input.toLowerCase()||x.id===input);
+  if(!c){ saToast('Colegio no encontrado', false); return; }
+  const ids=[...saSelectedUsers];
+  try {
+    const { error } = await _supa.from('usuarios').update({ colegio_id: c.id, updated_at: new Date().toISOString() }).in('id', ids);
+    if(error) throw error;
+    ids.forEach(id=>{ const u=SA_USUARIOS.find(x=>x.id===id); if(u) u.colegio=c.id; });
+    saLimpiarSel(); saRenderStats(); saRenderUsuarios();
+    saToast(`🏫 ${ids.length} usuario(s) movido(s) a ${c.nombre}`);
+  } catch(e){ saToast('Error: '+(e.message||e), false); }
+}
+
+// ── exportar CSV ──────────────────────────────────────────
 function saUsuariosExportCSV(){
   const cols=['ID','Nombre','Apellido','Email','Rol','Colegio','Estado','Último acceso','Tokens'];
   const rows=SA_USUARIOS.map(u=>[u.id,u.nombre,u.apellido,u.email,u.rol,saGetColegio(u.colegio)||'',u.estado,u.ultimoAcceso||'',u.tokens||0]);
