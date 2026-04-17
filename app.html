@@ -3452,6 +3452,56 @@
 <script>
 
 // ══════════════════════════════════════════════════════════════
+// LIAX_MEM — Interceptor de localStorage / sessionStorage
+//
+// Toda la app usa localStorage.getItem/setItem/removeItem.
+// Este bloque reemplaza AMBAS APIs con un Map puro en memoria
+// de sesión: NADA se escribe al disco del navegador.
+// Supabase es la única fuente de verdad persistente.
+// ══════════════════════════════════════════════════════════════
+(function() {
+  'use strict';
+  var _store = Object.create(null);  // mapa puro sin herencia
+
+  var _mem = {
+    getItem:    function(k)    { return Object.prototype.hasOwnProperty.call(_store, k) ? _store[k] : null; },
+    setItem:    function(k, v) { _store[String(k)] = String(v); },
+    removeItem: function(k)    { delete _store[String(k)]; },
+    clear:      function()     { Object.keys(_store).forEach(function(k){ delete _store[k]; }); },
+    key:        function(i)    { return Object.keys(_store)[i] !== undefined ? Object.keys(_store)[i] : null; },
+    get length(){ return Object.keys(_store).length; },
+    hasOwnProperty: function(k){ return Object.prototype.hasOwnProperty.call(_store, k); },
+    // Iteración for...in (usada por código de reset/backup)
+    _raw: function(){ return _store; },
+  };
+
+  // Hacer iterable con for...in (algunos loops iteran las keys)
+  for (var _k in _store) {
+    if (Object.prototype.hasOwnProperty.call(_store, _k)) {
+      Object.defineProperty(_mem, _k, {
+        get: function(key){ return function(){ return _store[key]; }; }(_k),
+        enumerable: true, configurable: true,
+      });
+    }
+  }
+
+  function _override(name) {
+    try {
+      Object.defineProperty(window, name, {
+        value: _mem, writable: false, configurable: true,
+      });
+    } catch(e) {
+      try { window[name] = _mem; } catch(e2) {}
+    }
+  }
+  _override('localStorage');
+  _override('sessionStorage');
+
+  // Exponer para debugging interno (no lo usan las APIs del browser)
+  window.__LIAX_MEM__ = _store;
+})();
+
+// ══════════════════════════════════════════════════════════════
 // LIAX × SUPABASE — Autenticación y datos en la nube
 // ══════════════════════════════════════════════════════════════
 
@@ -3563,6 +3613,7 @@ async function _supaLoadPerfil() {
     await _supaLoadDocumentosChat();
     await _supaLoadBanco();
     await _supaLoadNivel();
+    await _supaLoadCargos();
   }
 }
 
@@ -3684,7 +3735,8 @@ async function _supaLoadNivel() {
   try {
     var { data } = await _supa.from('niveles_ia').select('*').eq('user_id', _supaUser.id).single();
     if (data) {
-      localStorage.setItem('liax_nivel_ia', JSON.stringify({ nivel: data.nivel, logros: data.logros || [] }));
+      // Nivel cargado en memoria via TOKEN_STORE / renderMiProgreso
+      if (typeof renderMiProgreso === 'function') renderMiProgreso();
     }
   } catch(e) {}
 }
@@ -3699,6 +3751,25 @@ async function _supaSaveNivel(nivelData) {
       updated_at: new Date().toISOString(),
     });
   } catch(e) {}
+}
+
+// ── Cargos ────────────────────────────────────────────────────
+async function _supaLoadCargos() {
+  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  try {
+    var { data } = await _supa.from('config')
+      .select('value')
+      .eq('key', 'cargos_' + _supaPerfil.colegio_id)
+      .maybeSingle();
+    if (data && data.value) {
+      var parsed = JSON.parse(data.value);
+      if (Array.isArray(parsed) && parsed.length) {
+        window._CARGOS_MEM = parsed;
+        console.log('[LIAX] Cargos cargados desde Supabase:', parsed.length);
+        if (typeof renderCargosList === 'function') renderCargosList();
+      }
+    }
+  } catch(e) { console.warn('[LIAX] Error cargando cargos:', e.message); }
 }
 
 // ── Sesión persistente ────────────────────────────────────────
@@ -3795,19 +3866,19 @@ var _CURSOS_DEFAULT = ['1°A','1°B','2°A','2°B','3°A','3°B','4°A','5°A','
 // Lista de cursos eliminados por el usuario (persiste en localStorage)
 // Funciona tanto para cursos default como custom
 function _getCursosEliminados() {
-  return JSON.parse(localStorage.getItem('liax_cursos_eliminados') || '[]');
+  return (window._CURSOS_ELIMINADOS||[]);
 }
 function _markCursoDeleted(curso) {
   var lista = _getCursosEliminados();
   if (lista.indexOf(curso) === -1) lista.push(curso);
-  localStorage.setItem('liax_cursos_eliminados', JSON.stringify(lista));
+  window._CURSOS_ELIMINADOS = lista;
 }
 function _isCursoDeleted(curso) {
-  return _getCursosEliminados().indexOf(curso) > -1;
+  return (window._CURSOS_ELIMINADOS||[]).indexOf(curso) > -1;
 }
 
 // CURSOS = default (menos eliminados) + cache de Supabase (menos eliminados)
-var _CURSOS_CACHE = JSON.parse(localStorage.getItem('liax_cursos_cache') || '[]');
+var _CURSOS_CACHE = [];
 var CURSOS = _CURSOS_DEFAULT
   .filter(function(c){ return !_isCursoDeleted(c); })
   .concat(_CURSOS_CACHE.filter(function(c){
@@ -3817,10 +3888,10 @@ var CURSOS = _CURSOS_DEFAULT
 // Guarda caché local (solo como fallback cuando Supabase no está disponible)
 function _saveCursosCustom() {
   // Save ALL current courses (default + custom) minus the deleted ones
-  localStorage.setItem('liax_cursos_cache', JSON.stringify(CURSOS));
+  // cursos en memoria — Supabase via _supaSaveCurso
   // Legacy cleanup
-  localStorage.removeItem('liax_cursos_custom');
-  localStorage.removeItem('liax_cursos_deleted');
+  
+  
 }
 const ASIGS  = ['Lenguaje','Matemáticas','Descentramiento','F. Ejecutivo','Cognitivo (global)','Motor (global)','S. Externalizante','S. Internalizante','Habilidades Sociales','Disp. Aprendizaje'];
 const COMPETENCIAS = [
@@ -3917,8 +3988,9 @@ function initCtx() {
   if (currentRole === 'docente' && currentDocenteId) {
     const docente = DB.docentes.find(d => d.id === currentDocenteId);
     const asignados = docente?.cursosAsignados || [];
-    const misCursos = asignados.map(c => c.curso);
-    const misAsigs  = [...new Set(asignados.flatMap(c => c.asignaturas))];
+    // Filtrar cursos huérfanos (eliminados del sistema pero aún en el perfil del docente)
+    const misCursos = asignados.map(c => c.curso).filter(c => CURSOS.includes(c));
+    const misAsigs  = [...new Set(asignados.filter(c => CURSOS.includes(c.curso)).flatMap(c => c.asignaturas))];
 
     document.getElementById('cursosWrap').innerHTML =
       misCursos.length
@@ -3960,7 +4032,7 @@ function renderCtxAlumnos() {
   let baseAlumnos = DB.alumnos;
   if (currentRole === 'docente' && currentDocenteId) {
     const docente = DB.docentes.find(d => d.id === currentDocenteId);
-    const misCursos = new Set((docente?.cursosAsignados || []).map(c => c.curso));
+    const misCursos = new Set((docente?.cursosAsignados || []).map(c => c.curso).filter(c => CURSOS.includes(c)));
     baseAlumnos = DB.alumnos.filter(a => misCursos.has(a.esp));
   }
 
@@ -4435,11 +4507,12 @@ function updateMisCursosLabel(r) {
 // ── DATOS DEL CURSO ──────────────────────────────────────
 // Each dataset: { id, nombre, tipo, curso, periodo, desc, origen, rows[], cols[], rawText, savedAt, owner }
 const DATOS_STORE = {
-  getAll:  ()      => JSON.parse(localStorage.getItem('liax_datos') || '[]'),
-  save:    (arr)   => localStorage.setItem('liax_datos', JSON.stringify(arr)),
-  add:     (item)  => { const a=DATOS_STORE.getAll(); a.unshift(item); DATOS_STORE.save(a); if(typeof _supaSaveDato==='function') _supaSaveDato(item).catch(function(){}); },
-  remove:  (id)    => { DATOS_STORE.save(DATOS_STORE.getAll().filter(d=>d.id!==id)); if(typeof _supaDeleteDato==='function') _supaDeleteDato(id).catch(function(){}); },
-  getById: (id)    => DATOS_STORE.getAll().find(d=>d.id===id),
+  _cache: [],
+  getAll:  function()     { return DATOS_STORE._cache; },
+  save:    function(arr)  { DATOS_STORE._cache = arr; },
+  add:     function(item) { DATOS_STORE._cache.unshift(item); if(typeof _supaSaveDato==='function') _supaSaveDato(item).catch(function(){}); },
+  remove:  function(id)   { DATOS_STORE._cache = DATOS_STORE._cache.filter(function(d){ return d.id!==id; }); if(typeof _supaDeleteDato==='function') _supaDeleteDato(id).catch(function(){}); },
+  getById: function(id)   { return DATOS_STORE._cache.find(function(d){ return d.id===id; }); },
 };
 
 const DATO_TYPE_CFG = {
@@ -4467,7 +4540,7 @@ function getVisibleCursos(visible) {
   // If docente, restrict to assigned courses only
   if (currentRole === 'docente' && currentDocenteId) {
     const doc = DB.docentes.find(d => d.id === currentDocenteId);
-    const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso));
+    const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(c=>CURSOS.includes(c)));
     if (misCursos.size > 0) {
       return [...misCursos].sort();
     }
@@ -4488,7 +4561,7 @@ function renderCursoChips() {
   let base = all;
   if (currentRole === 'docente' && currentDocenteId) {
     const doc = DB.docentes.find(d => d.id === currentDocenteId);
-    const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso));
+    const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(c=>CURSOS.includes(c)));
     // If real Supabase user (no demo cursosAsignados), show all cursos from DB.alumnos
     if (misCursos.size === 0 && DB.alumnos && DB.alumnos.length) {
       // Use all courses from Supabase alumnos — docente sees all courses in their colegio
@@ -4537,7 +4610,7 @@ function clearAllCursos() {
   let base = all;
   if (currentRole === 'docente' && currentDocenteId) {
     const doc = DB.docentes.find(d => d.id === currentDocenteId);
-    const mc = new Set((doc?.cursosAsignados||[]).map(c=>c.curso));
+    const mc = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(c=>CURSOS.includes(c)));
     base = all.filter(d => !d.curso || mc.has(d.curso));
   }
   const cursos = getVisibleCursos(base);
@@ -4558,7 +4631,7 @@ function renderCursoResumen() {
   let base = all;
   if (currentRole === 'docente' && currentDocenteId) {
     const doc = DB.docentes.find(d => d.id === currentDocenteId);
-    const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso));
+    const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(c=>CURSOS.includes(c)));
     base = all.filter(d => !d.curso || misCursos.has(d.curso));
   }
 
@@ -4830,7 +4903,7 @@ function renderDatosCurso() {
   let visible = all;
   if (currentRole === 'docente' && currentDocenteId) {
     const docente = DB.docentes.find(d => d.id === currentDocenteId);
-    const misCursos = new Set((docente?.cursosAsignados || []).map(c => c.curso));
+    const misCursos = new Set((docente?.cursosAsignados || []).map(c => c.curso).filter(c => CURSOS.includes(c)));
     visible = all.filter(d => !d.curso || misCursos.has(d.curso));
   } else if (currentRole === 'director') {
     visible = all;
@@ -4978,7 +5051,7 @@ function filterDatos(tipo) {
 }
 
 // ── Toggle dato as IA context ──
-const DATOS_CTX_ACTIVE = new Set(JSON.parse(localStorage.getItem('liax_datos_ctx') || '[]'));
+const DATOS_CTX_ACTIVE = new Set((window._DATOS_CTX_MEM||[]));
 
 function toggleDatoCtx(id, btn) {
   if (DATOS_CTX_ACTIVE.has(id)) {
@@ -4988,7 +5061,7 @@ function toggleDatoCtx(id, btn) {
     DATOS_CTX_ACTIVE.add(id);
     showSaveToast('✅ Dato agregado al contexto de todos los agentes');
   }
-  localStorage.setItem('liax_datos_ctx', JSON.stringify([...DATOS_CTX_ACTIVE]));
+  window._DATOS_CTX_MEM = JSON.parse(JSON.stringify([...DATOS_CTX_ACTIVE]));
   renderDatosCurso();
 }
 
@@ -5048,7 +5121,7 @@ function deleteDato(id) {
   if (!confirm('¿Eliminar este conjunto de datos?')) return;
   DATOS_STORE.remove(id);
   DATOS_CTX_ACTIVE.delete(id);
-  localStorage.setItem('liax_datos_ctx', JSON.stringify([...DATOS_CTX_ACTIVE]));
+  window._DATOS_CTX_MEM = JSON.parse(JSON.stringify([...DATOS_CTX_ACTIVE]));
   updateDatosCount();
   renderDatosCurso();
   showSaveToast('🗑️ Datos eliminados');
@@ -5170,7 +5243,7 @@ function openAnotacionModal(alumnoNombre, cursoNombre) {
   let alumnos = DB.alumnos;
   if (currentRole === 'docente' && currentDocenteId) {
     const doc = DB.docentes.find(d => d.id === currentDocenteId);
-    const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso));
+    const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(c=>CURSOS.includes(c)));
     alumnos = DB.alumnos.filter(a => misCursos.has(a.esp));
   }
   let dl = document.getElementById('anot-alumno-list');
@@ -5265,7 +5338,7 @@ function getListaAlumnosBase() {
   var alumnos = DB.alumnos.slice();
   if (currentRole === 'docente' && currentDocenteId) {
     var doc = DB.docentes.find(function(d){ return d.id===currentDocenteId; });
-    var mc  = new Set((doc ? doc.cursosAsignados||[] : []).map(function(c){ return c.curso; }));
+    var mc  = new Set((doc ? doc.cursosAsignados||[] : []).map(function(c){ return c.curso; }).filter(function(c){ return CURSOS.indexOf(c)>-1; }));
     alumnos = alumnos.filter(function(a){ return mc.has(a.esp); });
   } else if (currentRole === 'director') {
     var estab = typeof getDirectorEstablecimiento==='function' ? getDirectorEstablecimiento() : null;
@@ -5310,7 +5383,7 @@ function getAlumnoStats(alumno) {
   }
 
   // Anotaciones
-  var anots = JSON.parse(localStorage.getItem('liax_anotaciones')||'[]')
+  var anots = (window._ANOT_CACHE || [])
     .filter(function(an){ return an.alumno===alumno.nombre; });
   stats.positivas = anots.filter(function(a){ return (a.tipo||'').includes('positiv'); }).length;
   stats.negativas = anots.filter(function(a){ return (a.tipo||'').includes('negativ')||(a.tipo||'').includes('conducta'); }).length;
@@ -5581,36 +5654,29 @@ function guardarDato() {
 
 // ── FAVORITOS ─────────────────────────────────────────────
 const FAV_STORE = {
-  getAll: function() {
-    try { return new Set(JSON.parse(localStorage.getItem('liax_favorites') || '[]')); }
-    catch(e) { return new Set(); }
-  },
+  _set: new Set(),
+  getAll: function() { return FAV_STORE._set; },
   save: function(s) {
-    try {
-      localStorage.setItem('liax_favorites', JSON.stringify([...s]));
-      // Backup to Supabase config if logged in
-      if (_supaUser && _supaPerfil && _supa) {
-        _supa.from('config').upsert({
-          key: 'favorites_' + _supaUser.id,
-          value: JSON.stringify([...s]),
-          colegio_id: _supaPerfil.colegio_id
-        }).catch(function(){});
-      }
-    } catch(e) {}
+    FAV_STORE._set = s;
+    if (_supaUser && _supaPerfil && _supa) {
+      _supa.from('config').upsert({
+        key: 'favorites_' + _supaUser.id,
+        value: JSON.stringify([...s]),
+        colegio_id: _supaPerfil.colegio_id,
+      }).catch(function(){});
+    }
   },
-  isFav: function(id) { return FAV_STORE.getAll().has(id); },
+  isFav: function(id) { return FAV_STORE._set.has(id); },
 };
 
-// Load favorites from Supabase if localStorage is empty (mobile Safari)
+// Load favorites from Supabase on login
 async function _loadFavoritesFromSupabase() {
   if (!_supaUser || !_supa) return;
-  var local = FAV_STORE.getAll();
-  if (local.size > 0) return; // already have local data
   try {
     var { data } = await _supa.from('config')
       .select('value').eq('key', 'favorites_' + _supaUser.id).maybeSingle();
     if (data && data.value) {
-      localStorage.setItem('liax_favorites', data.value);
+      FAV_STORE._set = new Set(JSON.parse(data.value));
       renderFavoritos();
     }
   } catch(e) {}
@@ -5822,7 +5888,7 @@ function openAgent(id, autoPrompt, sessionToRestore){
 
   // Resize
   initAgentResize();
-  resizeAgentModal(localStorage.getItem('liax_modal_size')||'normal', true);
+  resizeAgentModal((window._modalSize||null)||'normal', true);
 
   // Init context selectors in modal header
   initAgentCtxSelectors();
@@ -6754,12 +6820,12 @@ function closeModal(){
 // ── API KEY MANAGER ──────────────────────────────────────
 // La API key se guarda en localStorage del usuario — nunca en el código
 function getApiKey() {
-  return localStorage.getItem('liax_anthropic_key') || window._cachedAnthropicKey || '';
+  return (window._cachedAnthropicKey||'') || window._cachedAnthropicKey || '';
 }
 function setApiKey(key) {
   key = (key || '').trim();
   window._cachedAnthropicKey = key;
-  localStorage.setItem('liax_anthropic_key', key);
+  window._cachedAnthropicKey = key;
   if (key) AGENT_VAULT.saveSetting('anthropic_key', key).catch(function(){});
   var modal = document.getElementById('apiKeyModal');
   if (modal && modal.classList.contains('open')) modal.classList.remove('open');
@@ -6769,7 +6835,7 @@ function setApiKey(key) {
 
 // setApiKey defined above with IndexedDB support
 function clearApiKey() {
-  localStorage.removeItem('liax_anthropic_key');
+  window._cachedAnthropicKey = '';
   renderApiKeyStatus();
 }
 function openApiKeyModal() {
@@ -6819,19 +6885,19 @@ function renderApiKeyStatus() {
 // Usa el header oficial "dangerous-direct-browser-access" de Anthropic
 // ── GEMINI KEY HELPERS ───────────────────────────────────
 function getGeminiKey() {
-  return localStorage.getItem('liax_gemini_key') || window._cachedGeminiKey || '';
+  return (window._geminiKey||'') || window._cachedGeminiKey || '';
 }
 function setGeminiKey(key) {
   key = (key || '').trim();
   window._cachedGeminiKey = key;
-  localStorage.setItem('liax_gemini_key', key);
+  window._geminiKey = key;
   if (key) AGENT_VAULT.saveSetting('gemini_key', key).catch(function(){});
   if (key) showSaveToast('✅ Gemini API Key guardada');
   renderApiKeyStatus();
 }
 
 // setGeminiKey defined above with IndexedDB support
-function clearGeminiKey() { localStorage.removeItem('liax_gemini_key'); renderApiKeyStatus(); }
+function clearGeminiKey() { window._geminiKey = ''; renderApiKeyStatus(); }
 
 // ── COMPLEJIDAD: decide qué modelo usar ──────────────────
 // Retorna 'gemini' para preguntas simples, 'claude' para complejas
@@ -6841,19 +6907,19 @@ function clearGeminiKey() { localStorage.removeItem('liax_gemini_key'); renderAp
 
 // ── OpenAI key helpers ─────────────────────────────────────────
 function getOpenAIKey() {
-  return localStorage.getItem('liax_openai_key') || window._cachedOpenAIKey || '';
+  return (window._openaiKey||'') || window._cachedOpenAIKey || '';
 }
 function setOpenAIKey(key) {
   key = (key || '').trim();
   window._cachedOpenAIKey = key;
-  localStorage.setItem('liax_openai_key', key);
+  window._openaiKey = key;
   if (key) AGENT_VAULT.saveSetting('openai_key', key).catch(function(){});
   if (key) showSaveToast('✅ OpenAI API Key guardada');
   renderApiKeyStatus();
 }
 
 // setOpenAIKey defined above with IndexedDB support
-function clearOpenAIKey() { localStorage.removeItem('liax_openai_key'); renderApiKeyStatus(); }
+function clearOpenAIKey() { window._openaiKey = ''; renderApiKeyStatus(); }
 
 // ── Router config storage ──────────────────────────────────────
 // { taskType: 'claude'|'gemini'|'openai' }
@@ -6918,7 +6984,7 @@ const PROVIDER_META = {
 };
 
 function getRouterConfig() {
-  var saved = JSON.parse(localStorage.getItem('liax_router_config') || '{}');
+  var saved = JSON.parse(null || '{}');
   return Object.assign({}, ROUTER_DEFAULTS, saved);
 }
 
@@ -6944,7 +7010,7 @@ function resolveProvider(modelKey) {
   return 'claude';
 }
 function setRouterConfig(cfg) {
-  localStorage.setItem('liax_router_config', JSON.stringify(cfg));
+  window._ROUTER_CONFIG_MEM = cfg;
 }
 
 // ── Task detection ─────────────────────────────────────────────
@@ -7103,12 +7169,12 @@ function saveAllApiKeys() {
   var ok = (document.getElementById('openaiKeyInput')?.value || '').trim();
 
   // Always save (even empty = clear)
-  if (ak) localStorage.setItem('liax_anthropic_key', ak);
-  else    localStorage.removeItem('liax_anthropic_key');
-  if (gk) localStorage.setItem('liax_gemini_key', gk);
-  else    localStorage.removeItem('liax_gemini_key');
-  if (ok) localStorage.setItem('liax_openai_key', ok);
-  else    localStorage.removeItem('liax_openai_key');
+  if (ak) window._cachedAnthropicKey = ak;
+  else    window._cachedAnthropicKey = '';
+  if (gk) window._geminiKey = gk;
+  else    window._geminiKey = '';
+  if (ok) window._openaiKey = ok;
+  else    window._openaiKey = '';
 
   document.getElementById('apiKeyModal').classList.remove('open');
 
@@ -7126,7 +7192,7 @@ async function callGemini(payload) {
   if (!key) {
     try {
       var rk = await AGENT_VAULT.loadSetting('gemini_key');
-      if (rk) { localStorage.setItem('liax_gemini_key', rk); window._cachedGeminiKey = rk; key = rk; }
+      if (rk) { window._geminiKey = rk; window._cachedGeminiKey = rk; key = rk; }
     } catch(e) {}
   }
   var _isVercel = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
@@ -7297,7 +7363,7 @@ async function callClaudeDirect(payload) {
     try {
       var recovered = await AGENT_VAULT.loadSetting('anthropic_key');
       if (recovered) {
-        localStorage.setItem('liax_anthropic_key', recovered);
+        window._cachedAnthropicKey = recovered;
         window._cachedAnthropicKey = recovered;
         key = recovered;
       }
@@ -7415,9 +7481,21 @@ const CARGOS_DEFAULT = [
   'Auxiliar de Servicios','Encargado Convivencia','Coordinador Red Establ',
 ];
 function getCargos() {
-  return JSON.parse(localStorage.getItem('liax_cargos') || JSON.stringify(CARGOS_DEFAULT));
+  return window._CARGOS_MEM || JSON.parse(JSON.stringify(CARGOS_DEFAULT));
 }
-function saveCargos(list) { localStorage.setItem('liax_cargos', JSON.stringify(list)); }
+function saveCargos(list) {
+  window._CARGOS_MEM = list;
+  if (_supaUser && _supa && _supaPerfil?.colegio_id) {
+    _supa.from('config').upsert({
+      key:       'cargos_' + _supaPerfil.colegio_id,
+      value:     JSON.stringify(list),
+      colegio_id: _supaPerfil.colegio_id,
+      updated_at: new Date().toISOString(),
+    }).then(function(res) {
+      if (res.error) console.warn('[LIAX] Error guardando cargos:', res.error.message);
+    }).catch(function(e) { console.warn('[LIAX] Error guardando cargos:', e.message); });
+  }
+}
 
 // ── Field config: obligatoriedad parametrizable ───────────────
 // Format: { 'alumno': { key: true/false }, 'docente': { ... }, 'asistente': { ... } }
@@ -7447,14 +7525,14 @@ const FIELD_REQ_DEFAULT = {
   },
 };
 function getFieldReq() {
-  var saved = JSON.parse(localStorage.getItem('liax_field_req') || '{}');
+  var saved = window._FIELD_REQ_MEM || {};
   return {
     alumno:    Object.assign({}, FIELD_REQ_DEFAULT.alumno,    saved.alumno    || {}),
     docente:   Object.assign({}, FIELD_REQ_DEFAULT.docente,   saved.docente   || {}),
     asistente: Object.assign({}, FIELD_REQ_DEFAULT.asistente, saved.asistente || {}),
   };
 }
-function saveFieldReq(cfg) { localStorage.setItem('liax_field_req', JSON.stringify(cfg)); }
+function saveFieldReq(cfg) { window._FIELD_REQ_MEM = cfg; }
 
 // ── FIELDS definitions — complete ─────────────────────────────
 function buildFields(tipo) {
@@ -9285,7 +9363,7 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura exacta (sin markdow
 }`;
 
   try {
-    var apiKey = localStorage.getItem('liax_anthropic_key');
+    var apiKey = (window._cachedAnthropicKey||'');
     if (!apiKey) throw new Error('Configura tu API Key de Anthropic');
 
     var res = await fetch(_getAnthropicEndpoint(), {
@@ -9568,10 +9646,10 @@ async function consejeroEnviar() {
   if (!msg) return;
   // Detect outcome reports — feeds LIAX_BRAIN
   if (/mejoró|funcionó|no funcionó|empeoró|resultó|resultado/i.test(msg)) {
-    var allFb = JSON.parse(localStorage.getItem('liax_brain_feedback')||'[]');
+    var allFb = JSON.parse((window._BRAIN_FEEDBACK_MEM||null)||'[]');
     if (allFb.length && !allFb[0].outcome) {
       allFb[0].outcome = /mejoró|funcionó|bien|excelente/i.test(msg) ? 'mejoro' : /empeoró|no funcionó|mal|peor/i.test(msg) ? 'empeoro' : 'sin_cambio';
-      localStorage.setItem('liax_brain_feedback', JSON.stringify(allFb));
+      window._BRAIN_FEEDBACK_MEM = allFb;
       showSaveToast('🧠 Resultado registrado: ' + allFb[0].outcome);
     }
   }
@@ -9601,7 +9679,7 @@ async function consejeroEnviar() {
   );
   chatArea.scrollTop = chatArea.scrollHeight;
 
-  var apiKey = localStorage.getItem('liax_anthropic_key');
+  var apiKey = (window._cachedAnthropicKey||'');
   if (!apiKey) {
     document.getElementById(tid)?.remove();
     chatArea.insertAdjacentHTML('beforeend', '<div style="color:#ef4444;font-size:11px;padding:6px 0">⚠️ Configura tu API Key</div>');
@@ -9706,14 +9784,17 @@ buildDashboard=function(){
 
 
 // ── AGENT PANELS: DOCS / FILES / HISTORY ─────────────────
-// Storage keys: per-agent, persisted in localStorage
+// Storage: in-memory only — data comes from Supabase on login
 const AGENT_STORE = {
-  getDocs: (agentId) => JSON.parse(localStorage.getItem(`liax_docs_${agentId}`) || '[]'),
-  saveDocs: (agentId, docs) => localStorage.setItem(`liax_docs_${agentId}`, JSON.stringify(docs)),
-  getFiles: (agentId) => JSON.parse(localStorage.getItem(`liax_files_${agentId}`) || '[]'),
-  saveFiles: (agentId, files) => localStorage.setItem(`liax_files_${agentId}`, JSON.stringify(files)),
-  getHistory: (agentId) => JSON.parse(localStorage.getItem(`liax_hist_${agentId}`) || '[]'),
-  saveHistory: (agentId, hist) => localStorage.setItem(`liax_hist_${agentId}`, JSON.stringify(hist)),
+  _docs:  {},
+  _files: {},
+  _hist:  {},
+  getDocs:     function(agentId) { return AGENT_STORE._docs[agentId]  || []; },
+  saveDocs:    function(agentId, docs)  { AGENT_STORE._docs[agentId]  = docs  || []; },
+  getFiles:    function(agentId) { return AGENT_STORE._files[agentId] || []; },
+  saveFiles:   function(agentId, files) { AGENT_STORE._files[agentId] = files || []; },
+  getHistory:  function(agentId) { return AGENT_STORE._hist[agentId]  || []; },
+  saveHistory: function(agentId, hist)  { AGENT_STORE._hist[agentId]  = hist  || []; },
 };
 
 let currentAgentPanel = 'chat';
@@ -10918,16 +10999,27 @@ switchRole = function(r) {
 
 
 // ── AJUSTAR IA ────────────────────────────────────────────
-// Storage: per agent, two levels — school and user
+// Storage: in-memory only — persisted to Supabase via _supaSaveAjuste
 const AJUSTE_STORE = {
-  getColegio: (agentId) => localStorage.getItem(`liax_ajuste_colegio_${agentId}`) || '',
-  saveColegio: (agentId, text) => localStorage.setItem(`liax_ajuste_colegio_${agentId}`, text),
-  getUsuario: (agentId) => localStorage.getItem(`liax_ajuste_usuario_${agentId}`) || '',
-  saveUsuario: (agentId, text) => localStorage.setItem(`liax_ajuste_usuario_${agentId}`, text),
-  // Estilo de planificación personal — por docente (no por agente)
-  getEstiloPlan: () => localStorage.getItem('liax_estilo_planificacion') || '',
-  saveEstiloPlan: (text) => localStorage.setItem('liax_estilo_planificacion', text),
-  clearEstiloPlan: () => localStorage.removeItem('liax_estilo_planificacion'),
+  _colegio: {},
+  _usuario: {},
+  _estiloPlan: '',
+  getColegio:    function(agentId) { return AJUSTE_STORE._colegio[agentId] || ''; },
+  saveColegio:   function(agentId, text) {
+    AJUSTE_STORE._colegio[agentId] = text;
+    if (typeof _supaSaveAjuste === 'function') _supaSaveAjuste(agentId, 'colegio', text).catch(function(){});
+  },
+  getUsuario:    function(agentId) { return AJUSTE_STORE._usuario[agentId] || ''; },
+  saveUsuario:   function(agentId, text) {
+    AJUSTE_STORE._usuario[agentId] = text;
+    if (typeof _supaSaveAjuste === 'function') _supaSaveAjuste(agentId, 'usuario', text).catch(function(){});
+  },
+  getEstiloPlan: function() { return AJUSTE_STORE._estiloPlan; },
+  saveEstiloPlan:function(text) {
+    AJUSTE_STORE._estiloPlan = text;
+    if (typeof _supaSaveAjuste === 'function') _supaSaveAjuste('__estilo_plan__', 'usuario', text).catch(function(){});
+  },
+  clearEstiloPlan: function() { AJUSTE_STORE._estiloPlan = ''; },
 };
 
 function renderAjustarPanel() {
@@ -11125,13 +11217,13 @@ const THEMES = [
     vars:{ '--bg':'#F0EDEA','--surface':'#FFFFFF','--surface2':'#E8E4DF','--border':'#D4CFC8','--text':'#1A1614','--muted':'#7A7470','--dim1':'#E3EDE7','--dim2':'#E0EDE5','--dim3':'#F5E8E8','--dim4':'#F5F0E0' }},
 ];
 
-let currentTheme = localStorage.getItem('liax_theme') || 'dark';
+let currentTheme = 'dark';
 
 function applyTheme(id) {
   const theme = THEMES.find(t => t.id === id) || THEMES[0];
   Object.entries(theme.vars).forEach(([k,v]) => document.documentElement.style.setProperty(k, v));
   currentTheme = id;
-  localStorage.setItem('liax_theme', id);
+  currentTheme = id;
   // Apply body class for structural overrides (sidebar/topbar color)
   document.body.className = document.body.className
     .replace(/\btheme-\w+\b/g, '').trim();
@@ -11179,9 +11271,9 @@ const I18N = {
   ar:{ dashboard:'لوحة التحكم',agentes_ia:'وكلاء الذكاء الاصطناعي',base_datos:'قاعدة البيانات',directores:'المديرون',docentes:'المعلمون',alumnos:'الطلاب',principal:'الرئيسية',dimensiones_ia:'أبعاد الذكاء الاصطناعي',liderazgo:'القيادة',gestion_pedagogica:'الإدارة التربوية',formacion:'التكوين والتعايش',recursos:'إدارة الموارد',panel_control:'لوحة التحكم',ia_educativa:'الذكاء الاصطناعي التعليمي',super_admin:'المشرف العام',colegios:'المدارس',gestionar_agentes:'إدارة الوكلاء',asignar_agentes:'تعيين الوكلاء',contexto_clase:'سياق الفصل',guardar:'حفظ',cancelar:'إلغاء',agregar:'+ إضافة',carga_masiva:'📥 استيراد جماعي',buscar:'بحث...',sin_resultados:'لا نتائج',documentos:'المستندات',archivos:'الملفات',historial:'السجل',chat:'المحادثة',iniciar_consulta:'💬 بدء استشارة الذكاء الاصطناعي',cerrar:'إغلاق',enviar:'إرسال',agentes_activos:'وكلاء الذكاء الاصطناعي النشطون',escribe_pregunta:'اكتب سؤالك...' },
 };
 
-let currentLang = localStorage.getItem('liax_lang') || 'es';
+let currentLang = 'es';
 // Cache of translations per language: { 'en': { agentId: {nombre, desc, preguntas[]}, ui:{...} }, ... }
-const TRANSLATION_CACHE = JSON.parse(localStorage.getItem('liax_translations') || '{}');
+const TRANSLATION_CACHE = JSON.parse((window._TRANSLATIONS_MEM||null) || '{}');
 
 function t(key) { return I18N[currentLang]?.[key] || I18N['es']?.[key] || key; }
 
@@ -11194,7 +11286,7 @@ async function applyLang(code) {
   }
 
   currentLang = code;
-  localStorage.setItem('liax_lang', code);
+  currentLang = code;
   document.documentElement.dir = code === 'ar' ? 'rtl' : 'ltr';
   document.getElementById('langMenu').classList.remove('open');
 
@@ -11327,7 +11419,7 @@ ${JSON.stringify(payload)}`;
 
     // Cache it
     TRANSLATION_CACHE[code] = translated;
-    localStorage.setItem('liax_translations', JSON.stringify(TRANSLATION_CACHE));
+    window._TRANSLATIONS_MEM = JSON.stringify(TRANSLATION_CACHE);
 
     applyTranslationCache(code);
     applyStaticStrings(code);
@@ -11339,7 +11431,7 @@ ${JSON.stringify(payload)}`;
     hideTranslateOverlay();
     showSaveToast(`⚠️ Error traduciendo — usando español`);
     currentLang = 'es';
-    localStorage.setItem('liax_lang', 'es');
+    currentLang = 'es';
     renderLangOptions();
     console.error('Translation error:', err);
   }
@@ -11550,189 +11642,107 @@ document.addEventListener('click', e => {
 // ── PERSISTENCIA localStorage ────────────────────────────
 const LS_KEY = 'liax_main_v1';
 
+// ── saveToStorage: ahora solo sincroniza con Supabase ──────────
 function saveToStorage() {
-  try {
-    // Collect per-agent docs and history for all custom agents
-    const agentData = {};
-    AGENTS.filter(function(a){ return a.custom; }).forEach(function(a) {
-      var docs = JSON.parse(localStorage.getItem('liax_docs_' + a.id) || '[]');
-      var hist = JSON.parse(localStorage.getItem('liax_hist_' + a.id) || '[]');
-      var ajColegio = localStorage.getItem('liax_ajuste_colegio_' + a.id) || '';
-      var ajUsuario = localStorage.getItem('liax_ajuste_usuario_' + a.id) || '';
-      agentData[a.id] = { docs, hist, ajColegio, ajUsuario };
-    });
-
-    const snapshot = {
-      version: 1,
-      savedAt: new Date().toISOString(),
-      DB: {
-        directores: DB.directores,
-        docentes:   DB.docentes,
-        alumnos:    DB.alumnos,
-      },
-      COLEGIOS,
-      cursosCustom: CURSOS.filter(function(c){ return _CURSOS_DEFAULT.indexOf(c) === -1; }),
-      customAgents: AGENTS.filter(a => a.custom),
-      agentData,
-      tareas:    JSON.parse(localStorage.getItem('liax_tareas')   || '[]'),
-      cargos:    JSON.parse(localStorage.getItem('liax_cargos')   || '[]'),
-      umbrales:  JSON.parse(localStorage.getItem('liax_umbrales') || '{}'),
-      schoolAgents: Object.fromEntries(
-        Object.entries(schoolAgents).map(([k,v]) => [k, [...v]])
-      ),
-      userAgents: Object.fromEntries(
-        Object.entries(userAgents).map(([k,v]) => [k, [...v]])
-      ),
-    };
-    localStorage.setItem(LS_KEY, JSON.stringify(snapshot));
-    showSaveToast('✅ Guardado automáticamente');
-    _vaultSaveAgents();
-  } catch(e) {
-    console.warn('localStorage no disponible:', e);
-  }
+  // Sincronizar agentes custom a Supabase
+  if (typeof _vaultSaveAgents === 'function') _vaultSaveAgents();
+  AGENTS.filter(function(a){ return a.custom; }).forEach(function(a) {
+    if (typeof _supaSaveAgente === 'function') _supaSaveAgente(a).catch(function(){});
+  });
+  showSaveToast('✅ Guardado en la nube');
 }
 
+// ── loadFromStorage: no-op — datos vienen de Supabase en _supaLoadPerfil ──
 function loadFromStorage() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return false;
-    const snap = JSON.parse(raw);
-    if (!snap || snap.version !== 1) return false;
-
-    // Restore DB
-    if (snap.DB) {
-      DB.directores = snap.DB.directores || DB.directores;
-      DB.docentes   = snap.DB.docentes   || DB.docentes;
-      DB.alumnos    = snap.DB.alumnos    || DB.alumnos;
-    }
-
-    // Restore colegios
-    if (snap.COLEGIOS?.length) {
-      COLEGIOS.length = 0;
-      snap.COLEGIOS.forEach(c => COLEGIOS.push(c));
-    }
-
-    // Restore cursos custom — rebuild CURSOS completely from snapshot
-    // This ensures deleted courses don't come back from liax_cursos_custom
-    if (snap.hasOwnProperty('cursosCustom')) {
-      // Remove all non-default courses first
-      var toRemove = CURSOS.filter(function(c){ return _CURSOS_DEFAULT.indexOf(c) === -1; });
-      toRemove.forEach(function(c){ var i = CURSOS.indexOf(c); if(i>-1) CURSOS.splice(i,1); });
-      // Add back only what's in snapshot AND not explicitly deleted
-      var _deletedCursos = JSON.parse(localStorage.getItem('liax_cursos_deleted') || '[]');
-      (snap.cursosCustom || []).forEach(function(c) {
-        if (CURSOS.indexOf(c) === -1 && _deletedCursos.indexOf(c) === -1) CURSOS.push(c);
-      });
-      _saveCursosCustom(); // keep liax_cursos_custom in sync with snapshot
-    }
-
-    // Restore custom agents
-    if (snap.customAgents?.length) {
-      snap.customAgents.forEach(a => {
-        if (!AGENTS.find(x => x.id === a.id)) AGENTS.push(a);
-      });
-    }
-
-    // Restore per-agent docs, history, ajustes
-    if (snap.agentData) {
-      Object.keys(snap.agentData).forEach(function(agId) {
-        var d = snap.agentData[agId];
-        if (d.docs  && d.docs.length)  localStorage.setItem('liax_docs_'           + agId, JSON.stringify(d.docs));
-        if (d.hist  && d.hist.length)  localStorage.setItem('liax_hist_'           + agId, JSON.stringify(d.hist));
-        if (d.ajColegio) localStorage.setItem('liax_ajuste_colegio_' + agId, d.ajColegio);
-        if (d.ajUsuario) localStorage.setItem('liax_ajuste_usuario_' + agId, d.ajUsuario);
-      });
-    }
-
-    // Restore tareas, cargos, umbrales
-    if (snap.tareas   && snap.tareas.length)   localStorage.setItem('liax_tareas',   JSON.stringify(snap.tareas));
-    if (snap.cargos   && snap.cargos.length)   localStorage.setItem('liax_cargos',   JSON.stringify(snap.cargos));
-    if (snap.umbrales && Object.keys(snap.umbrales).length) localStorage.setItem('liax_umbrales', JSON.stringify(snap.umbrales));
-
-    // Restore schoolAgents
-    if (snap.schoolAgents) {
-      Object.entries(snap.schoolAgents).forEach(([k,v]) => {
-        schoolAgents[k] = new Set(v);
-      });
-    }
-
-    // Restore userAgents
-    if (snap.userAgents) {
-      Object.entries(snap.userAgents).forEach(([k,v]) => {
-        userAgents[k] = new Set(v);
-      });
-    }
-
-    // Warn user to backup if they have custom agents
-    setTimeout(function() {
-      var customs = AGENTS.filter(function(a){ return a.custom; });
-      if (customs.length && !localStorage.getItem('liax_backup_reminded')) {
-        localStorage.setItem('liax_backup_reminded', '1');
-        showSaveToast('💡 Tienes ' + customs.length + ' agente(s) custom — usa ⬇️ Backup para guardarlos');
-      }
-    }, 3000);
-    // Ensure all current users have userAgents entry
-    [...DB.directores,...DB.docentes,...DB.alumnos].forEach(u => {
-      if (!userAgents[u.id]) userAgents[u.id] = new Set(AGENTS.map(a=>a.id));
-    });
-
-    return true;
-  } catch(e) {
-    console.warn('Error cargando datos:', e);
-    return false;
-  }
+  // Todo se carga desde Supabase en _supaLoadPerfil()
+  // Esta función se mantiene por compatibilidad con llamadas existentes
+  return false;
 }
 
+// ── clearStorage: limpia memoria de sesión y cierra sesión ────
 function clearStorage() {
-  if (!confirm('¿Borrar todos los datos guardados y volver a los datos de ejemplo?\n\nEsta acción no se puede deshacer.')) return;
-  localStorage.removeItem(LS_KEY);
-  localStorage.removeItem('liax_custom_agents_backup');
-  localStorage.removeItem('liax_cursos_custom');
-  localStorage.removeItem('liax_cursos_deleted');
-  localStorage.removeItem('liax_cursos_cache');
-  localStorage.removeItem('liax_cursos_eliminados');
-  // Also clear IndexedDB vault so agents don't resurrect
+  if (!confirm('¿Cerrar sesión y limpiar datos de esta sesión?\n\nLos datos en la nube (Supabase) no se borran.')) return;
+  // Limpiar todos los stores en memoria
+  DATOS_STORE._cache = [];
+  RAG_STORE._cache = [];
+  RAG_DATOS_STORE._cache = [];
+  AGENT_STORE._docs = {}; AGENT_STORE._files = {}; AGENT_STORE._hist = {};
+  AJUSTE_STORE._colegio = {}; AJUSTE_STORE._usuario = {}; AJUSTE_STORE._estiloPlan = '';
+  TOKEN_STORE._data = {};
+  TAREAS_STORE._data = [];
+  FAV_STORE._set = new Set();
   AGENT_VAULT.saveAgents([]).catch(function(){});
   location.reload();
 }
 
-function exportData() {
+// ── exportData: exporta desde Supabase (datos reales) ─────────
+async function exportData() {
   try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) { alert('No hay datos guardados aún.'); return; }
-    const snap = JSON.parse(raw);
-    const blob = new Blob([JSON.stringify(snap, null, 2)], {type:'application/json'});
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
+    if (!_supaUser) { alert('Debes iniciar sesión para exportar.'); return; }
+    var snap = {
+      version:      2,
+      savedAt:      new Date().toISOString(),
+      DB:           { directores: DB.directores, docentes: DB.docentes, alumnos: DB.alumnos },
+      COLEGIOS:     COLEGIOS,
+      customAgents: AGENTS.filter(function(a){ return a.custom; }),
+      tareas:       TAREAS_STORE.get(),
+      agentDocs:    AGENT_STORE._docs,
+      agentHist:    AGENT_STORE._hist,
+      ajustes:      { colegio: AJUSTE_STORE._colegio, usuario: AJUSTE_STORE._usuario },
+    };
+    var blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
     a.href = url;
-    a.download = `liax_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = 'liax_backup_' + new Date().toISOString().slice(0,10) + '.json';
     a.click();
     URL.revokeObjectURL(url);
   } catch(e) { alert('Error al exportar: ' + e.message); }
 }
 
+// ── importData: restaura snapshot en memoria + Supabase ───────
 function importData(file) {
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
+  var reader = new FileReader();
+  reader.onload = function(e) {
     try {
-      const snap = JSON.parse(e.target.result);
+      var snap = JSON.parse(e.target.result);
       if (!snap.version) throw new Error('Formato inválido');
-      // Merge current custom agents into snapshot before saving
-      // so import never destroys existing agents
-      var existingCustom = AGENTS.filter(function(a){ return a.custom; });
-      if (existingCustom.length > 0) {
-        snap.customAgents = snap.customAgents || [];
-        existingCustom.forEach(function(ag) {
-          if (!snap.customAgents.find(function(x){ return x.id === ag.id; })) {
-            snap.customAgents.push(ag);
+
+      // Restaurar DB en memoria
+      if (snap.DB) {
+        if (snap.DB.directores) DB.directores = snap.DB.directores;
+        if (snap.DB.docentes)   DB.docentes   = snap.DB.docentes;
+        if (snap.DB.alumnos)    DB.alumnos    = snap.DB.alumnos;
+      }
+
+      // Restaurar colegios
+      if (snap.COLEGIOS && snap.COLEGIOS.length) {
+        COLEGIOS.length = 0;
+        snap.COLEGIOS.forEach(function(c){ COLEGIOS.push(c); });
+      }
+
+      // Restaurar agentes custom
+      if (snap.customAgents && snap.customAgents.length) {
+        snap.customAgents.forEach(function(a) {
+          if (!AGENTS.find(function(x){ return x.id === a.id; })) {
+            AGENTS.push(a);
+            if (typeof _supaSaveAgente === 'function') _supaSaveAgente(a).catch(function(){});
           }
         });
       }
-      localStorage.setItem(LS_KEY, JSON.stringify(snap));
-      // Also preserve agents in backup key before reload
-      _backupCustomAgents();
-      location.reload();
+
+      // Restaurar docs/hist de agentes
+      if (snap.agentDocs)  AGENT_STORE._docs = snap.agentDocs;
+      if (snap.agentHist)  AGENT_STORE._hist = snap.agentHist;
+      if (snap.ajustes) {
+        if (snap.ajustes.colegio) AJUSTE_STORE._colegio = snap.ajustes.colegio;
+        if (snap.ajustes.usuario) AJUSTE_STORE._usuario = snap.ajustes.usuario;
+      }
+      if (snap.tareas)  TAREAS_STORE.set(snap.tareas);
+
+      showSaveToast('✅ Backup restaurado en sesión');
+      renderAgents();
     } catch(err) { alert('Error al importar: ' + err.message); }
   };
   reader.readAsText(file);
@@ -11796,7 +11806,7 @@ function renderStorageBar() {
   // Solo superadmin ve estos botones
   if (currentRole !== 'superadmin') { bar.innerHTML = ''; return; }
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = null;
     const snap = raw ? JSON.parse(raw) : null;
     const savedAt = snap?.savedAt ? new Date(snap.savedAt).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}) : null;
     bar.innerHTML = `
@@ -11853,7 +11863,7 @@ const dataLoaded = loadFromStorage();
 // ── DATOS DE DEMOSTRACIÓN ─────────────────────────────────
 // Se cargan automáticamente si no hay datos previos
 function injectDemoData() {
-  if (localStorage.getItem('liax_demo_loaded') === 'v3') return;
+  if ((window._demoLoaded||null) === 'v3') return;
 
   const CURSOS_DEMO = {
     '6°A': ['Sofía Ramírez Torres','Diego Morales Pérez','Camila Fuentes Ríos','Joaquín Salinas Mora','Valentina Cruz Pinto','Mateo Herrera Castillo','Isabella Reyes Vargas','Benjamín Torres Espinoza','Antonia Vega Contreras','Emilio Rojas Soto','Renata Morales Ibáñez','Tomás Castillo Núñez'],
@@ -11997,15 +12007,15 @@ function injectDemoData() {
   });
 
   // Guardar todos los datasets
-  const existing = JSON.parse(localStorage.getItem('liax_datos') || '[]');
+  const existing = DATOS_STORE.getAll();
   const newData = [...datasets, ...existing];
-  localStorage.setItem('liax_datos', JSON.stringify(newData));
+  DATOS_STORE.save(newData);
 
   // Activar primeros 2 datasets como contexto IA por defecto (demo)
   const ctxIds = [datasets[0]?.id, datasets[4]?.id].filter(Boolean);
-  const existCtx = new Set(JSON.parse(localStorage.getItem('liax_datos_ctx') || '[]'));
+  const existCtx = new Set((window._DATOS_CTX_MEM||[]));
   ctxIds.forEach(id => existCtx.add(id));
-  localStorage.setItem('liax_datos_ctx', JSON.stringify([...existCtx]));
+  window._DATOS_CTX_MEM = JSON.parse(JSON.stringify([...existCtx]));
 
   // ── Demo anotaciones ──
   const ANOT_DEMO = {
@@ -12177,7 +12187,7 @@ function injectDemoData() {
       desc:'Anotaciones positivas, negativas y neutras del año 2025 (demo)', cols, rows:anotaciones, rawText, savedAt:now2 });
   });
 
-  localStorage.setItem('liax_demo_loaded', 'v3');
+  window._demoLoaded='1';
 }
 
 
@@ -12188,7 +12198,7 @@ let dv2Charts  = {};    // Chart.js instances keyed by canvas id
 // ── Umbrales (parametrizables por colegio/director) ────────
 const UMBRAL_DEFAULTS = { nota:4.0, notaCrit:3.5, asist:85, asistCrit:75, ausencias:24, nivel:'En desarrollo' };
 function getUmbrales() {
-  return JSON.parse(localStorage.getItem('liax_umbrales') || JSON.stringify(UMBRAL_DEFAULTS));
+  return window._UMBRALES_MEM || JSON.parse(JSON.stringify(UMBRAL_DEFAULTS));
 }
 function saveUmbrales() {
   const u = {
@@ -12199,14 +12209,14 @@ function saveUmbrales() {
     ausencias: parseInt(document.getElementById('thresh-ausencias').value)   || UMBRAL_DEFAULTS.ausencias,
     nivel:     document.getElementById('thresh-nivel').value                 || UMBRAL_DEFAULTS.nivel,
   };
-  localStorage.setItem('liax_umbrales', JSON.stringify(u));
+  window._UMBRALES_MEM = u; if(_supaUser&&_supa&&_supaPerfil){_supa.from('config').upsert({key:'umbrales_'+_supaPerfil.colegio_id,value:JSON.stringify(u),colegio_id:_supaPerfil.colegio_id}).catch(function(){});}
   const msg = document.getElementById('thresh-saved-msg');
   if (msg) { msg.style.display='block'; setTimeout(()=>msg.style.display='none',3000); }
   showSaveToast('✅ Umbrales guardados');
   if (dv2Current) renderDv2Alertas(); // refresh alerts
 }
 function resetUmbrales() {
-  localStorage.removeItem('liax_umbrales');
+  window._UMBRALES_MEM = null;
   loadUmbralesIntoForm();
   showSaveToast('↺ Umbrales restaurados');
 }
@@ -13315,7 +13325,7 @@ function renderInformes() {
   let alumnos = DB.alumnos;
   if (currentRole === 'docente' && currentDocenteId) {
     const doc = DB.docentes.find(d=>d.id===currentDocenteId);
-    const mc  = new Set((doc?.cursosAsignados||[]).map(c=>c.curso));
+    const mc  = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(c=>CURSOS.includes(c)));
     alumnos = DB.alumnos.filter(a=>mc.has(a.esp));
   }
   if (curso !== 'all') alumnos = alumnos.filter(a=>a.esp===curso);
@@ -13664,7 +13674,7 @@ async function generateAllInformes() {
   let alumnos = DB.alumnos;
   if (currentRole === 'docente' && currentDocenteId) {
     const doc = DB.docentes.find(d=>d.id===currentDocenteId);
-    const mc = new Set((doc?.cursosAsignados||[]).map(c=>c.curso));
+    const mc = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(c=>CURSOS.includes(c)));
     alumnos = DB.alumnos.filter(a=>mc.has(a.esp));
   }
   if (curso !== 'all') alumnos = alumnos.filter(a=>a.esp===curso);
@@ -13861,7 +13871,7 @@ document.addEventListener('click', e => {
 // ══════════════════════════════════════════════════════════════
 
 let _alertPanelOpen = false;
-let _dismissedAlerts = new Set(JSON.parse(localStorage.getItem('liax_dismissed_alerts')||'[]'));
+let _dismissedAlerts = new Set();
 
 // ══════════════════════════════════════════════════════════════
 // ALERTAS POR ROL — cada usuario ve solo lo que le corresponde
@@ -13872,7 +13882,7 @@ function _getMisCursosSet() {
   if (currentRole !== 'docente' || !currentDocenteId) return null;
   var doc = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
   if (!doc) return new Set();
-  return new Set((doc.cursosAsignados||[]).map(function(c){ return c.curso; }));
+  return new Set((doc.cursosAsignados||[]).map(function(c){ return c.curso; }).filter(function(c){ return CURSOS.indexOf(c)>-1; }));
 }
 
 function _getMiColegioId() {
@@ -14028,7 +14038,7 @@ function computeAlerts() {
 
   // ── Denuncias abiertas (solo Dir/SA/Sos) ──
   if (currentRole === 'superadmin' || currentRole === 'sostenedor' || currentRole === 'director') {
-    var denuncias = JSON.parse(localStorage.getItem('liax_denuncias')||'[]')
+    var denuncias = (window._DENUNCIAS_CACHE || [])
       .filter(function(d){ return d.estado === 'abierta'; });
     denuncias.forEach(function(d) {
       if (!_alumnoVisibleParaRol(d.alumnoNombre)) return;
@@ -14176,14 +14186,14 @@ function handleAlertClick(alertId) {
 
 function dismissAlert(alertId) {
   _dismissedAlerts.add(alertId);
-  localStorage.setItem('liax_dismissed_alerts', JSON.stringify([..._dismissedAlerts]));
+  // in-memory only
   renderAlertPanel();
   updateAlertBell();
 }
 
 function markAllAlertsRead() {
   computeAlerts().forEach(a => _dismissedAlerts.add(a.id));
-  localStorage.setItem('liax_dismissed_alerts', JSON.stringify([..._dismissedAlerts]));
+  // in-memory only
   renderAlertPanel();
   updateAlertBell();
   toggleAlertPanel();
@@ -14225,7 +14235,7 @@ function resizeAgentModal(size, silent) {
     btn.style.color       = active ? 'var(--accent2)' : 'var(--muted)';
   });
 
-  if (!silent) localStorage.setItem('liax_modal_size', size);
+  if (!silent) window._modalSize = size;
 }
 
 
@@ -14929,8 +14939,9 @@ async function handleImageTag(containerId, query, type) {
 
 // Storage: { userId: { assigned: N, used: N, lastReset: isoDate } }
 const TOKEN_STORE = {
-  get: () => JSON.parse(localStorage.getItem('liax_tokens') || '{}'),
-  set: (data) => localStorage.setItem('liax_tokens', JSON.stringify(data)),
+  _data: {},
+  get:  function()     { return TOKEN_STORE._data; },
+  set:  function(data) { TOKEN_STORE._data = data || {}; },
 };
 
 // Defaults por rol (tokens totales asignados)
@@ -15165,8 +15176,9 @@ function saveTokenModal() {
 // ══════════════════════════════════════════════════════════════
 
 const RAG_STORE = {
-  get:  ()    => JSON.parse(localStorage.getItem('liax_rags') || '[]'),
-  set:  (data) => localStorage.setItem('liax_rags', JSON.stringify(data)),
+  _cache: [],
+  get:  function()     { return RAG_STORE._cache; },
+  set:  function(data) { RAG_STORE._cache = data || []; },
 };
 
 const COUNTRIES_RAG = {
@@ -15872,8 +15884,9 @@ function renderRagList() {
 // ══════════════════════════════════════════════════════════════
 
 const RAG_DATOS_STORE = {
-  get:  ()     => JSON.parse(localStorage.getItem('liax_rag_datos') || '[]'),
-  set:  (data) => localStorage.setItem('liax_rag_datos', JSON.stringify(data)),
+  _cache: [],
+  get:  function()     { return RAG_DATOS_STORE._cache; },
+  set:  function(data) { RAG_DATOS_STORE._cache = data || []; },
 };
 
 var ragDatosSrc      = 'gdrive';
@@ -15955,7 +15968,7 @@ function downloadRagDatosTemplate() {
     ['• También puedes subir el archivo directamente desde Google Sheets'],
     ['• Las hojas que no uses puedes dejarlas vacías o eliminarlas'],
     [''],
-    ['PRIVACIDAD: Los datos se guardan solo en tu navegador (localStorage)'],
+    ['PRIVACIDAD: Los datos se guardan de forma segura en la nube (Supabase). Nada se almacena en el navegador.'],
     ['Para producción con múltiples usuarios, usar Supabase (ver documentación)'],
   ];
   var wsInstr = XLSX.utils.aoa_to_sheet(instrData);
@@ -16666,7 +16679,7 @@ function saveFieldConfig() {
 
 function resetFieldConfig() {
   if (!confirm('¿Restaurar la configuración de campos por defecto?')) return;
-  localStorage.removeItem('liax_field_req');
+  window._FIELD_REQ_MEM = {};
   fcEditing = getFieldReq();
   renderFieldConfigGrid(fcCurrentTab);
   showSaveToast('↺ Configuración restaurada al valor por defecto');
@@ -16714,9 +16727,16 @@ function deleteCargo(i) {
 
 function resetCargos() {
   if (!confirm('¿Restaurar la lista de cargos por defecto?')) return;
-  localStorage.removeItem('liax_cargos');
+  window._CARGOS_MEM = null;
+  // Eliminar la customización de Supabase para que vuelva al default
+  if (_supaUser && _supa && _supaPerfil?.colegio_id) {
+    _supa.from('config')
+      .delete()
+      .eq('key', 'cargos_' + _supaPerfil.colegio_id)
+      .catch(function(e) { console.warn('[LIAX] Error reseteando cargos:', e.message); });
+  }
   renderCargosList();
-  showSaveToast('↺ Cargos restaurados');
+  showSaveToast('↺ Cargos restaurados al valor por defecto');
 }
 
 
@@ -16781,7 +16801,7 @@ function openIngresoModal(tipo) {
   var cursos;
   if (currentRole === 'docente' && currentDocenteId) {
     var doc = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
-    cursos  = (doc && doc.cursosAsignados || []).map(function(c){ return c.curso; });
+    cursos  = (doc && doc.cursosAsignados || []).map(function(c){ return c.curso; }).filter(function(c){ return CURSOS.indexOf(c)>-1; });
   } else {
     cursos = [...new Set(DB.alumnos.map(function(a){ return a.esp; }).filter(Boolean))].sort(function(a,b){
       return a.localeCompare(b,'es',{numeric:true});
@@ -17081,9 +17101,9 @@ function guardarIngreso() {
       if (!txt) return;
       count++;
       // Use existing anotacion system
-      var anots = JSON.parse(localStorage.getItem('liax_anotaciones')||'[]');
+      var anots = (window._ANOT_CACHE || []);
       anots.push({ id:'anot_'+Date.now()+'_'+count, alumno:a.nombre, alumnoId:a.id, curso, tipo:anotTipo, texto:txt, fecha:anotFecha, docente: currentRole });
-      localStorage.setItem('liax_anotaciones', JSON.stringify(anots));
+      window._ANOT_CACHE = anots;
       registros.push({ alumno:a.nombre, tipo:anotTipo, texto:txt });
     });
     if (!count) { alert('Selecciona al menos un alumno y escribe la anotación'); return; }
@@ -17097,7 +17117,7 @@ function guardarIngreso() {
 
 
 // ── Column visibility system ──────────────────────────────────
-var _colVisibility = JSON.parse(localStorage.getItem('liax_col_vis') || '{}');
+var _colVisibility = {};
 
 function getColVisibility(tab) {
   return _colVisibility[tab] || {};
@@ -17106,12 +17126,12 @@ function getColVisibility(tab) {
 function setColVisible(tab, key, visible) {
   if (!_colVisibility[tab]) _colVisibility[tab] = {};
   _colVisibility[tab][key] = visible;
-  localStorage.setItem('liax_col_vis', JSON.stringify(_colVisibility));
+  // in-memory only
 }
 
 function resetColVisibility() {
   _colVisibility[currentUserTab] = {};
-  localStorage.setItem('liax_col_vis', JSON.stringify(_colVisibility));
+  // in-memory only
   renderTable();
   renderColSelectorList();
 }
@@ -18434,7 +18454,7 @@ function renderRepositorioDocs() {
         if (!confirm('¿Eliminar "' + (doc.title||'Sin título') + '"?')) break;
         AGENT_STORE.saveFiles ? null : null;
         var remaining = docs.filter(function(d){ return d.title !== doc.title; });
-        localStorage.setItem('liax_docs_' + agentId, JSON.stringify(remaining));
+        AGENT_STORE._docs[agentId] = remaining;
         renderRepositorioDocs();
         showSaveToast('🗑️ Documento eliminado');
         break;
@@ -18588,7 +18608,7 @@ async function cvEnviar() {
   area.scrollTop = area.scrollHeight;
 
   // 4. Build messages array for API
-  var apiKey = localStorage.getItem('liax_anthropic_key');
+  var apiKey = (window._cachedAnthropicKey||'');
   if (!apiKey) {
     document.getElementById(loadId)?.remove();
     area.insertAdjacentHTML('beforeend', makeBubbleAI('⚠️ Configura tu API Key de Anthropic para continuar.'));
@@ -18602,7 +18622,7 @@ async function cvEnviar() {
   // Determine model from router
   var model = 'claude-haiku-4-5-20251001';
   try {
-    var cfg = JSON.parse(localStorage.getItem('liax_router_config')||'{}');
+    var cfg = JSON.parse(null||'{}');
     model   = cfg['analisis'] || cfg['conversacion'] || model;
     // Map Gemini/OpenAI routes to Haiku for now
     if (!model.startsWith('claude')) model = 'claude-haiku-4-5-20251001';
@@ -18668,14 +18688,16 @@ function openIngresoPanel() { openNuevoDato(); }
 
 // ── Tareas / Actividades store ────────────────────────────────
 var TAREAS_STORE = {
-  get: function()    { return JSON.parse(localStorage.getItem('liax_tareas') || '[]'); },
-  set: function(arr) { localStorage.setItem('liax_tareas', JSON.stringify(arr)); },
+  _data: [],
+  get: function()    { return TAREAS_STORE._data; },
+  set: function(arr) { TAREAS_STORE._data = arr || []; },
 };
 
 // ── Notificaciones store (para docente también) ────────────────
 var NOTIF_STORE = {
-  get: function(userId) { return JSON.parse(localStorage.getItem('liax_notif_' + userId) || '[]'); },
-  set: function(userId, arr) { localStorage.setItem('liax_notif_' + userId, JSON.stringify(arr)); },
+  _data: {},
+  get: function(userId) { return NOTIF_STORE._data[userId] || []; },
+  set: function(userId, arr) { NOTIF_STORE._data[userId] = arr || []; },
   count: function(userId) { return NOTIF_STORE.get(userId).filter(function(n){ return !n.leido; }).length; },
   markAll: function(userId) {
     var notifs = NOTIF_STORE.get(userId).map(function(n){ return Object.assign({}, n, { leido: true }); });
@@ -19080,7 +19102,7 @@ function renderTareaCard(t, aluId) {
   var tiempoClr = diff < 0 ? '#ef4444' : diff<=2 ? '#f59e0b' : 'var(--muted)';
 
   // Respuestas/archivos del alumno guardados
-  var entregas  = JSON.parse(localStorage.getItem('liax_entrega_' + t.id + '_' + aluId) || '[]');
+  var entregas  = ((window._ENTREGA_CACHE||{})[t.id +'_'+aluId]||[]);
 
   var html = '<div style="background:var(--surface);border:1.5px solid ' + borderColor + ';border-radius:12px;padding:14px;margin-bottom:12px" id="tcard_' + t.id + '">';
 
@@ -19162,7 +19184,7 @@ function enviarRespuestaTarea(tareaId, aluId, areaId) {
 
   if (!texto && !file) { showSaveToast('⚠️ Escribe algo o adjunta un archivo'); return; }
 
-  var entregas = JSON.parse(localStorage.getItem('liax_entrega_' + tareaId + '_' + aluId) || '[]');
+  var entregas = ((window._ENTREGA_CACHE||{})[tareaId +'_'+aluId]||[]);
 
   if (file) {
     entregas.push({ tipo:'archivo', nombre: file.name, size: file.size, fecha: new Date().toISOString() });
@@ -19171,10 +19193,10 @@ function enviarRespuestaTarea(tareaId, aluId, areaId) {
     entregas.push({ tipo:'texto', texto: texto.slice(0,200), fecha: new Date().toISOString() });
   }
 
-  localStorage.setItem('liax_entrega_' + tareaId + '_' + aluId, JSON.stringify(entregas));
+  { if(!window._ENTREGA_CACHE) window._ENTREGA_CACHE={}; window._ENTREGA_CACHE[tareaId +'_'+aluId]=entregas; }
 
   // Save to tarea mensajes (visible to docente)
-  var msgs = JSON.parse(localStorage.getItem('liax_tmsg_' + tareaId) || '[]');
+  var msgs = JSON.parse(((window._TMSG_CACHE||{})[tareaId]||null) || '[]');
   var alu  = DB.alumnos.find(function(a){ return a.id === aluId; });
   msgs.push({
     de: alu ? alu.nombre : 'Alumno',
@@ -19182,7 +19204,7 @@ function enviarRespuestaTarea(tareaId, aluId, areaId) {
     contenido: file ? file.name : texto,
     fecha: new Date().toISOString(),
   });
-  localStorage.setItem('liax_tmsg_' + tareaId, JSON.stringify(msgs));
+  { if(!window._TMSG_CACHE) window._TMSG_CACHE={}; window._TMSG_CACHE[tareaId]=msgs; }
 
   showSaveToast('✅ Respuesta enviada al profesor');
 
@@ -19192,9 +19214,9 @@ function enviarRespuestaTarea(tareaId, aluId, areaId) {
 }
 
 function eliminarEntrega(tareaId, aluId, idx) {
-  var entregas = JSON.parse(localStorage.getItem('liax_entrega_' + tareaId + '_' + aluId) || '[]');
+  var entregas = ((window._ENTREGA_CACHE||{})[tareaId +'_'+aluId]||[]);
   entregas.splice(idx, 1);
-  localStorage.setItem('liax_entrega_' + tareaId + '_' + aluId, JSON.stringify(entregas));
+  { if(!window._ENTREGA_CACHE) window._ENTREGA_CACHE={}; window._ENTREGA_CACHE[tareaId +'_'+aluId]=entregas; }
   var alumno = DB.alumnos.find(function(a){ return a.id === aluId; });
   if (alumno) renderAlumnoTareas(alumno, document.getElementById('alumnoContent'));
 }
@@ -19528,7 +19550,7 @@ function laAgregarColumna() {
 
 // ── Perfil Alumno: Salud del Alumno ───────────────────────────────
 function paCargarSalud(nombre) {
-  var data = JSON.parse(localStorage.getItem('liax_pa_salud_' + nombre) || '{}');
+  var data = ((window._PA_CACHE||{})[nombre] && (window._PA_CACHE||{})[nombre].salud || JSON.parse('{}'));
   var set  = function(id, v) { var el=document.getElementById(id); if(el) el.value=v||''; };
   set('pa-salud-estado',      data.estado||'');
   set('pa-salud-fecha',       data.fecha||'');
@@ -19541,14 +19563,14 @@ function paGuardarSalud() {
   var get = function(id){ var el=document.getElementById(id); return el?el.value:''; };
   var data = { estado:get('pa-salud-estado'), fecha:get('pa-salud-fecha'),
     diagnostico:get('pa-salud-diagnostico'), derivaciones:get('pa-salud-derivaciones'), acciones:get('pa-salud-acciones') };
-  localStorage.setItem('liax_pa_salud_' + n, JSON.stringify(data));
+  { if(!window._PA_CACHE) window._PA_CACHE={}; if(!window._PA_CACHE[n]) window._PA_CACHE[n]={}; window._PA_CACHE[n]['salud']=data; }
   if (typeof _supaSavePerfilAlumno === 'function') _supaSavePerfilAlumno(n, 'salud', data).catch(function(){});
   showSaveToast('✅ Datos de Salud del Alumno guardados');
 }
 
 // ── Perfil Alumno: NEE ─────────────────────────────────────────
 function paCargarNEE(nombre) {
-  var data = JSON.parse(localStorage.getItem('liax_pa_nee_' + nombre) || '{}');
+  var data = ((window._PA_CACHE||{})[nombre] && (window._PA_CACHE||{})[nombre].nee || JSON.parse('{}'));
   var alu  = DB.alumnos.find(function(a){ return a.nombre===nombre; });
   var set  = function(id, v) { var el=document.getElementById(id); if(el) el.value=v||''; };
   set('pa-nee-perm',         data.perm || (alu?alu.nee:''));
@@ -19565,7 +19587,7 @@ function paGuardarNEE() {
   var data = { perm:get('pa-nee-perm'), trans:get('pa-nee-trans'), pie:get('pa-nee-pie'),
     paci:get('pa-nee-paci'), diagnostico:get('pa-nee-diagnostico'), adapt:get('pa-nee-adapt'),
     especialistas:get('pa-nee-especialistas') };
-  localStorage.setItem('liax_pa_nee_' + n, JSON.stringify(data));
+  { if(!window._PA_CACHE) window._PA_CACHE={}; if(!window._PA_CACHE[n]) window._PA_CACHE[n]={}; window._PA_CACHE[n]['nee']=data; }
   if (typeof _supaSavePerfilAlumno === 'function') _supaSavePerfilAlumno(n, 'nee', data).catch(function(){});
   // Update alumno in DB
   var alu = DB.alumnos.find(function(a){ return a.nombre===n; });
@@ -19575,7 +19597,7 @@ function paGuardarNEE() {
 
 // ── Perfil Alumno: Documentos ─────────────────────────────────
 function paCargarDocs(nombre) {
-  var docs = JSON.parse(localStorage.getItem('liax_pa_docs_' + nombre) || '[]');
+  var docs = ((window._PA_CACHE||{})[nombre] && (window._PA_CACHE||{})[nombre].docs || JSON.parse('[]'));
   var grid = document.getElementById('pa-docs-grid');
   if (!grid) return;
   if (!docs.length) {
@@ -19601,7 +19623,7 @@ function paCargarDocs(nombre) {
 
 async function paSubirDocs(files) {
   var n = perfilAlumnoName; if(!n) return;
-  var docs = JSON.parse(localStorage.getItem('liax_pa_docs_' + n) || '[]');
+  var docs = ((window._PA_CACHE||{})[n] && (window._PA_CACHE||{})[n].docs || JSON.parse('[]'));
   for (var fi = 0; fi < files.length; fi++) {
     var f = files[fi];
     var doc = { nombre:f.name, tipo:f.type||'application/octet-stream', size:(f.size/1024).toFixed(0)+' KB', fecha:new Date().toISOString(), contexto:true, universalInfo:null };
@@ -19618,7 +19640,7 @@ async function paSubirDocs(files) {
     }
     docs.unshift(doc);
   }
-  localStorage.setItem('liax_pa_docs_' + n, JSON.stringify(docs));
+  { if(!window._PA_CACHE) window._PA_CACHE={}; if(!window._PA_CACHE[n]) window._PA_CACHE[n]={}; window._PA_CACHE[n]['docs']=docs; }
   if (typeof _supaSavePerfilAlumno === 'function') _supaSavePerfilAlumno(n, 'docs', docs).catch(function(){});
   paCargarDocs(n);
   showSaveToast('✅ ' + files.length + ' documento(s) subido(s) — indexados como contexto IA');
@@ -19626,9 +19648,9 @@ async function paSubirDocs(files) {
 
 function paEliminarDoc(idx, nombre) {
   if (!confirm('¿Eliminar este documento?')) return;
-  var docs = JSON.parse(localStorage.getItem('liax_pa_docs_' + nombre) || '[]');
+  var docs = ((window._PA_CACHE||{})[nombre] && (window._PA_CACHE||{})[nombre].docs || JSON.parse('[]'));
   docs.splice(idx, 1);
-  localStorage.setItem('liax_pa_docs_' + nombre, JSON.stringify(docs));
+  { if(!window._PA_CACHE) window._PA_CACHE={}; if(!window._PA_CACHE[nombre]) window._PA_CACHE[nombre]={}; window._PA_CACHE[nombre]['docs']=docs; }
   paCargarDocs(nombre);
 }
 
@@ -19662,7 +19684,7 @@ function mcGetAlumnos() {
   var alumnos = DB.alumnos.slice();
   if (currentRole === 'docente' && currentDocenteId) {
     var doc = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
-    var mc  = new Set((doc ? doc.cursosAsignados||[] : []).map(function(c){ return c.curso; }));
+    var mc  = new Set((doc ? doc.cursosAsignados||[] : []).map(function(c){ return c.curso; }).filter(function(c){ return CURSOS.indexOf(c)>-1; }));
     alumnos = alumnos.filter(function(a){ return mc.has(a.esp); });
   } else if (currentRole === 'director') {
     var estab = typeof getDirectorEstablecimiento==='function' ? getDirectorEstablecimiento() : null;
@@ -19712,7 +19734,7 @@ function mcGetStats(alumno) {
     }
   }
 
-  var anots = JSON.parse(localStorage.getItem('liax_anotaciones')||'[]')
+  var anots = (window._ANOT_CACHE || [])
     .filter(function(an){ return an.alumno===alumno.nombre; });
   s.positivas = anots.filter(function(a){ return (a.tipo||'').includes('positiv'); }).length;
   s.negativas = anots.filter(function(a){ return (a.tipo||'').includes('negativ')||(a.tipo||'').includes('conducta'); }).length;
@@ -19838,7 +19860,7 @@ function mcRenderAluTable() {
 
     // Extra cols
     _mcAluExtraCols.forEach(function(col){
-      var stored = localStorage.getItem('mcalu_extra_' + col.id + '_' + a.id) || '';
+      var stored = JSON.stringify((window._MCALU_CACHE||{})[col.id +'_'+a.id]||'');
       html += '<td style="padding:4px 8px;text-align:center">' +
         '<input type="text" value="' + stored.replace(/"/g,'&quot;') + '" placeholder="—" ' +
         'style="width:80px;background:transparent;border:none;border-bottom:1px solid var(--border);text-align:center;font-size:11px;font-family:DM Sans,sans-serif;color:var(--text);outline:none;padding:2px 4px" ' +
@@ -19873,7 +19895,7 @@ function mcDelColAlu(colId) {
 }
 
 function mcSaveExtraCol(colId, aluId, value) {
-  localStorage.setItem('mcalu_extra_' + colId + '_' + aluId, value);
+  { if(!window._MCALU_CACHE) window._MCALU_CACHE={}; window._MCALU_CACHE[colId +'_'+aluId]=value; }
 }
 
 
@@ -19882,8 +19904,8 @@ function mcSaveExtraCol(colId, aluId, value) {
 // ══════════════════════════════════════════════════════════════
 
 var MENSAJES_STORE = {
-  get:  function(key)     { return JSON.parse(localStorage.getItem('liax_chat_' + key) || '[]'); },
-  set:  function(key, arr){ localStorage.setItem('liax_chat_' + key, JSON.stringify(arr)); },
+  get:  function(key)     { return JSON.parse(null || '[]'); },
+  set:  function(key, arr){ if(!window._CHAT_HIST_CACHE) window._CHAT_HIST_CACHE={}; window._CHAT_HIST_CACHE[key]=arr; },
   key:  function(aluId, docenteId) { return aluId + '_' + docenteId; },
 };
 
@@ -20179,8 +20201,8 @@ function getAllSavedDocs() {
 
   // 2. Fichas NEE y Salud de alumnos
   DB.alumnos.forEach(function(a) {
-    var nee   = JSON.parse(localStorage.getItem('liax_pa_nee_'   + a.nombre) || '{}');
-    var salud = JSON.parse(localStorage.getItem('liax_pa_salud_' + a.nombre) || '{}');
+    var nee   = ((window._PA_CACHE||{})[a.nombre] && (window._PA_CACHE||{})[a.nombre].nee || JSON.parse('{}'));
+    var salud = ((window._PA_CACHE||{})[a.nombre] && (window._PA_CACHE||{})[a.nombre].salud || JSON.parse('{}'));
 
     if (nee.perm || nee.trans || nee.diagnostico || nee.adapt) {
       var txt = '';
@@ -20225,9 +20247,9 @@ function getAllSavedDocs() {
     }
 
     // Documentos subidos a la ficha con síntesis IA
-    var paDocs = JSON.parse(localStorage.getItem('liax_pa_docs_' + a.nombre) || '[]');
-    var saludDocs = JSON.parse(localStorage.getItem('liax_pa_salud_docs_' + a.nombre) || '[]');
-    var neeDocs   = JSON.parse(localStorage.getItem('liax_pa_nee_docs_'   + a.nombre) || '[]');
+    var paDocs = ((window._PA_CACHE||{})[a.nombre] && (window._PA_CACHE||{})[a.nombre].docs || JSON.parse('[]'));
+    var saludDocs = ((window._PA_CACHE||{})[a.nombre] && (window._PA_CACHE||{})[a.nombre].salud_docs || JSON.parse('[]'));
+    var neeDocs   = ((window._PA_CACHE||{})[a.nombre] && (window._PA_CACHE||{})[a.nombre].nee_docs || JSON.parse('[]'));
     [...paDocs, ...saludDocs, ...neeDocs].forEach(function(d, idx) {
       var tienesSintesis = !!d.sintesis;
       all.push({
@@ -20634,7 +20656,7 @@ function buildMemoryContext(userMsg, agentId) {
         var tipos = [a.nee, a.neeT].filter(Boolean).join(' + ');
         // Check ficha for extra detail
         var fichaData = {};
-        try { fichaData = JSON.parse(localStorage.getItem('liax_pa_nee_' + a.nombre) || '{}'); } catch(e) {}
+        try { fichaData = ((window._PA_CACHE||{})[a.nombre] && (window._PA_CACHE||{})[a.nombre].nee || JSON.parse('{}')); } catch(e) {}
         var extra = fichaData.adapt ? ' — adaptación: ' + fichaData.adapt.slice(0, 50) : '';
         return a.nombre.split(' ').slice(0, 2).join(' ') + ': ' + tipos + extra;
       });
@@ -20840,7 +20862,7 @@ var AUDIT = {
 
   log: function(accion, detalle, nivel) {
     try {
-      var entries = JSON.parse(localStorage.getItem('liax_audit') || '[]');
+      var entries = JSON.parse(null || '[]');
       entries.unshift({
         ts:     new Date().toISOString(),
         rol:    currentRole || '?',
@@ -20850,20 +20872,20 @@ var AUDIT = {
         nivel:  nivel || 'info', // info | warn | critical
       });
       if (entries.length > this.MAX_ENTRIES) entries = entries.slice(0, this.MAX_ENTRIES);
-      localStorage.setItem('liax_audit', JSON.stringify(entries));
+      window._AUDIT_MEM = entries;
     } catch(e) {}
   },
 
   get: function(nivel) {
     try {
-      var all = JSON.parse(localStorage.getItem('liax_audit') || '[]');
+      var all = JSON.parse(null || '[]');
       return nivel ? all.filter(function(e){ return e.nivel === nivel; }) : all;
     } catch(e) { return []; }
   },
 
   clear: function() {
     if (currentRole !== 'superadmin') return false;
-    localStorage.removeItem('liax_audit');
+    window._AUDIT_MEM = null;
     AUDIT.log('AUDIT_CLEARED', 'Registros de auditoría eliminados', 'warn');
     return true;
   },
@@ -21054,10 +21076,10 @@ var BACKUP = {
       datasets:  DATOS_STORE.getAll(),
       rags:      RAG_STORE.get(),
       ragDatos:  RAG_DATOS_STORE.get(),
-      tokens:    JSON.parse(localStorage.getItem('liax_tokens')||'{}'),
-      cargos:    JSON.parse(localStorage.getItem('liax_cargos')||'[]'),
-      umbrales:  JSON.parse(localStorage.getItem('liax_umbrales')||'{}'),
-      anotaciones: JSON.parse(localStorage.getItem('liax_anotaciones')||'[]'),
+      tokens:    (TOKEN_STORE._data||{}),
+      cargos:    (window._CARGOS_MEM||[]),
+      umbrales:  (window._UMBRALES_MEM||{}),
+      anotaciones: (window._ANOT_CACHE || []),
     };
     // Add all agent histories + docs
     snapshot.agentes = {};
@@ -21091,7 +21113,7 @@ var BACKUP = {
         if (data.datos.docentes)  DB.docentes  = data.datos.docentes;
         if (data.datos.directores)DB.directores= data.datos.directores;
         if (data.datasets)  DATOS_STORE.save(data.datasets);
-        if (data.anotaciones) localStorage.setItem('liax_anotaciones', JSON.stringify(data.anotaciones));
+        if (data.anotaciones) window._ANOT_CACHE = data.anotaciones;
         if (data.agentes) {
           Object.keys(data.agentes).forEach(function(id) {
             if (data.agentes[id].hist) AGENT_STORE.saveHistory(id, data.agentes[id].hist);
@@ -21114,9 +21136,9 @@ var BACKUP = {
   storageReport: function() {
     var total = 0;
     var items = [];
-    for (var k in localStorage) {
-      if (!localStorage.hasOwnProperty(k)) continue;
-      var size = (localStorage.getItem(k)||'').length * 2; // bytes approx
+    for (var k in (window.__LIAX_MEM__ || {})) {
+      if (!Object.prototype.hasOwnProperty.call(window.__LIAX_MEM__ || {}, k)) continue;
+      var size = ((window.__LIAX_MEM__||{})[k]||'').length * 2; // bytes approx
       items.push({ key:k, kb: (size/1024).toFixed(1) });
       total += size;
     }
@@ -21160,7 +21182,7 @@ var EDU_METRICS = {
     }
 
     // Anotaciones negativas
-    var anots = JSON.parse(localStorage.getItem('liax_anotaciones')||'[]')
+    var anots = (window._ANOT_CACHE || [])
       .filter(function(a){ return a.alumno===alumnoNombre; });
     var negs  = anots.filter(function(a){ return (a.tipo||'').includes('negativ'); }).length;
     score += Math.min(negs * 7, peso.anotaciones);
@@ -21301,16 +21323,16 @@ var PROTOCOL_DENUNCIA = {
       seguimientos:[],
     };
 
-    var denuncias = JSON.parse(localStorage.getItem('liax_denuncias') || '[]');
+    var denuncias = (window._DENUNCIAS_CACHE || []);
     denuncias.unshift(denuncia);
-    localStorage.setItem('liax_denuncias', JSON.stringify(denuncias));
+    window._DENUNCIAS_CACHE = denuncias;
     AUDIT.log('DENUNCIA_CREADA', data.tipo + ' — ' + data.alumnoNombre, 'critical');
     return denuncia;
   },
 
   getAll: function() {
     if (!PERMS.can('denuncia.ver')) return [];
-    return JSON.parse(localStorage.getItem('liax_denuncias') || '[]');
+    return (window._DENUNCIAS_CACHE || []);
   },
 };
 
@@ -21544,14 +21566,14 @@ var COMPLIANCE = {
   // (configurables por SA/Sostenedor — se almacenan en localStorage)
   // ══════════════════════════════════════════════════════════════
   getReglamentos: function() {
-    return JSON.parse(localStorage.getItem('liax_reglamentos') || '{}');
+    return JSON.parse((window._REGLAMENTOS_MEM||null) || '{}');
   },
 
   saveReglamento: function(tipo, data) {
     if (!PERMS.require('config.umbrales')) return;
     var regs = COMPLIANCE.getReglamentos();
     regs[tipo] = Object.assign({ updatedAt: new Date().toISOString(), updatedBy: document.getElementById('topUserName')?.textContent }, data);
-    localStorage.setItem('liax_reglamentos', JSON.stringify(regs));
+    window._REGLAMENTOS_MEM = regs;
     AUDIT.log('REGLAMENTO_SAVED', tipo, 'warn');
     showSaveToast('✅ Reglamento guardado');
   },
@@ -21741,10 +21763,10 @@ var COMPLIANCE = {
 
     // Datos de alumnos
     var conNEE   = alumnos.filter(function(a){ return a.nee||a.neeT; });
-    var sinPIE   = conNEE.filter(function(a){ var nd=JSON.parse(localStorage.getItem('liax_pa_nee_'+a.nombre)||'{}'); return !nd.pie; });
+    var sinPIE   = conNEE.filter(function(a){ var nd=((window._PA_CACHE||{})[a.nombre] && (window._PA_CACHE||{})[a.nombre].nee || JSON.parse('{}')); return !nd.pie; });
     check(sinPIE.length===0, conNEE.length + ' alumnos NEE con estado PIE definido', 'DECRETO_170', sinPIE.length>0 ? 'Falta PIE en: '+sinPIE.slice(0,3).map(function(a){return a.nombre.split(' ')[0];}).join(', ') : '');
 
-    var denuncias = JSON.parse(localStorage.getItem('liax_denuncias')||'[]');
+    var denuncias = (window._DENUNCIAS_CACHE || []);
     var pendientes = denuncias.filter(function(d){ return d.estado==='abierta'; });
     check(pendientes.length===0, 'Sin denuncias abiertas pendientes', 'LEY_21430', pendientes.length>0 ? pendientes.length+' denuncias requieren acción' : '');
 
@@ -22005,7 +22027,7 @@ var DIMS_CFG = {
   // Lee config guardada, cae a defaults si no existe
   get: function() {
     try {
-      var saved = JSON.parse(localStorage.getItem('liax_dims_cfg') || 'null');
+      var saved = (window._DIMS_CFG_MEM||{});
       if (!saved) return JSON.parse(JSON.stringify(DIMS_DEFAULT));
       // Merge saved over defaults (preserves new dims added later)
       var merged = JSON.parse(JSON.stringify(DIMS_DEFAULT));
@@ -22019,7 +22041,7 @@ var DIMS_CFG = {
 
   save: function(cfg) {
     if (!PERMS.require('config.agentes')) return;
-    localStorage.setItem('liax_dims_cfg', JSON.stringify(cfg));
+    window._DIMS_CFG_MEM = cfg;
     AUDIT.log('DIMS_CONFIG_SAVED', JSON.stringify(Object.keys(cfg)), 'warn');
     applyDimsConfig();
     showSaveToast('✅ Configuración de dimensiones guardada');
@@ -22262,7 +22284,7 @@ function dimAgregar() {
 
 function dimResetDefaults() {
   if (!confirm('¿Restaurar todas las dimensiones a su configuración original?')) return;
-  localStorage.removeItem('liax_dims_cfg');
+  window._DIMS_CFG_MEM = {};
   AUDIT.log('DIMS_RESET', 'Dimensiones restauradas a defaults', 'warn');
   applyDimsConfig();
   document.getElementById('dimsCfgOverlay')?.remove();
@@ -22283,7 +22305,7 @@ function dimResetDefaults() {
 
 var LIAX_INDEX = {
 
-  KEY:        'liax_vindex_v1',      // localStorage key
+  KEY:        'liax_vindex_v1',      // in-memory cache key
   STATS_KEY:  'liax_vindex_stats',
   VERSION:    1,
   MAX_DOCS:   2000,                  // índice máximo — poda los más viejos
@@ -22305,7 +22327,7 @@ var LIAX_INDEX = {
   get: function() {
     if (LIAX_INDEX._cache) return LIAX_INDEX._cache;
     try {
-      var raw = localStorage.getItem(LIAX_INDEX.KEY);
+      var raw = (window._LIAX_INDEX_MEM||null);
       if (!raw) return LIAX_INDEX._empty();
       var idx = JSON.parse(raw);
       if (idx.version !== LIAX_INDEX.VERSION) return LIAX_INDEX.rebuild();
@@ -22322,16 +22344,12 @@ var LIAX_INDEX = {
     try {
       idx.updatedAt = new Date().toISOString();
       LIAX_INDEX._cache = idx;
-      localStorage.setItem(LIAX_INDEX.KEY, JSON.stringify(idx));
-      localStorage.setItem(LIAX_INDEX.STATS_KEY, JSON.stringify({
-        totalDocs: idx.totalDocs,
-        totalTokens: Object.keys(idx.index).length,
-        updatedAt: idx.updatedAt,
-      }));
+      window._LIAX_INDEX_MEM = JSON.stringify(idx);
+      window._LIAX_INDEX_STATS = JSON.stringify({ savedAt: new Date().toISOString() });
     } catch(e) {
       // localStorage lleno → podar 20% más antiguos y reintentar
       LIAX_INDEX.prune(0.2);
-      try { localStorage.setItem(LIAX_INDEX.KEY, JSON.stringify(idx)); } catch(e2) {}
+      try { window._LIAX_INDEX_MEM = JSON.stringify(idx); } catch(e2) {}
     }
   },
 
@@ -22536,7 +22554,7 @@ var LIAX_INDEX = {
 
   // ── Stats para el panel de seguridad ─────────────────────
   stats: function() {
-    try { return JSON.parse(localStorage.getItem(LIAX_INDEX.STATS_KEY)||'{}'); } catch(e){ return {}; }
+    try { return JSON.parse((window._LIAX_INDEX_STATS||null)||'{}'); } catch(e){ return {}; }
   },
 };
 
@@ -22813,7 +22831,7 @@ buildMemoryContext = function(userMsg, agentId) {
       var neeLines = neeAlus.map(function(a){
         var tipos = [a.nee, a.neeT].filter(Boolean).join('+');
         var nd = {};
-        try { nd = JSON.parse(localStorage.getItem('liax_pa_nee_'+a.nombre)||'{}'); } catch(e){}
+        try { nd = ((window._PA_CACHE||{})[a.nombre] && (window._PA_CACHE||{})[a.nombre].nee || JSON.parse('{}')); } catch(e){}
         return a.nombre.split(' ').slice(0,2).join(' ') + ': ' + tipos + (nd.adapt?' — '+nd.adapt.slice(0,40):'');
       });
       hits.push({
@@ -23328,8 +23346,8 @@ async function sendDashQuery() {
 
   // Call API
   try {
-    var apiKey = localStorage.getItem('liax_anthropic_key') || window._cachedAnthropicKey || '';
-    if (!apiKey) { try { apiKey = await AGENT_VAULT.loadSetting('anthropic_key') || ''; if(apiKey){localStorage.setItem('liax_anthropic_key',apiKey);window._cachedAnthropicKey=apiKey;} } catch(e){} }
+    var apiKey = (window._cachedAnthropicKey||'') || window._cachedAnthropicKey || '';
+    if (!apiKey) { try { apiKey = await AGENT_VAULT.loadSetting('anthropic_key') || ''; if(apiKey){window._cachedAnthropicKey = apiKey;window._cachedAnthropicKey=apiKey;} } catch(e){} }
     if (!apiKey) throw new Error('Configura tu API Key en ⚙️ Configurar IAs');
 
     var response = await fetch(_getAnthropicEndpoint(), {
@@ -23524,7 +23542,7 @@ var LIAX_PRICING = {
   },
 
   // Cuenta bancaria para transferencias (configurable por SA)
-  cuentaBancaria: JSON.parse(localStorage.getItem('liax_bank_account') || JSON.stringify({
+  cuentaBancaria: JSON.parse(null || JSON.stringify({
     banco:    'Banco Estado',
     tipo:     'Cuenta Corriente',
     numero:   '000-000000-00',
@@ -23535,7 +23553,7 @@ var LIAX_PRICING = {
   })),
 
   // URLs de pasarelas (configurable por SA)
-  gatewayUrls: JSON.parse(localStorage.getItem('liax_gateway_urls') || JSON.stringify({
+  gatewayUrls: JSON.parse(null || JSON.stringify({
     stripe_payment_link_docente_mensual: '',
     stripe_payment_link_docente_anual:   '',
     stripe_payment_link_colegio:         '',
@@ -23556,8 +23574,8 @@ var _pricingState = {
 // ── LICENCIAS ─────────────────────────────────────────────────
 var LICENCIAS = {
   KEY: 'liax_licencias',
-  get: function()      { return JSON.parse(localStorage.getItem(LICENCIAS.KEY)||'[]'); },
-  set: function(arr)   { localStorage.setItem(LICENCIAS.KEY, JSON.stringify(arr)); },
+  get: function()      { return JSON.parse((window._LICENCIAS_MEM||null)||'[]'); },
+  set: function(arr) { window._LICENCIAS_MEM = JSON.stringify(arr); },
   getActiva: function() {
     return LICENCIAS.get().find(function(l){
       return l.estado==='activa' && new Date(l.vence) > new Date();
@@ -24033,7 +24051,7 @@ function savePaymentConfig() {
     if (el) urls[k] = el.value.trim();
   });
   LIAX_PRICING.gatewayUrls = urls;
-  localStorage.setItem('liax_gateway_urls', JSON.stringify(urls));
+  window._GATEWAY_URLS_MEM = urls;
 
   var bank = {};
   ['banco','tipo','numero','rut','nombre','email'].forEach(function(k) {
@@ -24041,7 +24059,7 @@ function savePaymentConfig() {
     if (el) bank[k] = el.value.trim();
   });
   LIAX_PRICING.cuentaBancaria = bank;
-  localStorage.setItem('liax_bank_account', JSON.stringify(bank));
+  window._BANK_ACCOUNT_MEM = bank;
 
   AUDIT.log('PAYMENT_CONFIG_SAVED', 'Configuración de pagos actualizada', 'warn');
   document.getElementById('payConfigOverlay')?.remove();
@@ -24070,7 +24088,7 @@ function _rebuildCurrencyFormats(cfg) {
 
 function getPricingConfig() {
   try {
-    var saved = JSON.parse(localStorage.getItem('liax_pricing_config') || 'null');
+    var saved = JSON.parse((window._PRICING_MEM||null) || 'null');
     if (saved) return _rebuildCurrencyFormats(saved);
   } catch(e) {}
   // Deep clone defaults and rebuild formats
@@ -24091,7 +24109,7 @@ function savePricingConfig(cfg) {
   var toSave = JSON.parse(JSON.stringify(cfg, function(key, val) {
     return typeof val === 'function' ? undefined : val;
   }));
-  localStorage.setItem('liax_pricing_config', JSON.stringify(toSave));
+  window._PRICING_MEM = JSON.stringify(toSave);
   // Sync live object with rebuilt formats
   _rebuildCurrencyFormats(cfg);
   Object.assign(LIAX_PRICING.currencies, cfg.currencies);
@@ -24103,8 +24121,8 @@ function savePricingConfig(cfg) {
 // ── Descuentos store ──────────────────────────────────────────
 var DISCOUNTS = {
   KEY: 'liax_discounts',
-  get: function() { return JSON.parse(localStorage.getItem(DISCOUNTS.KEY) || '[]'); },
-  set: function(arr) { localStorage.setItem(DISCOUNTS.KEY, JSON.stringify(arr)); },
+  get: function() { return JSON.parse((window._DISCOUNTS_MEM||null) || '[]'); },
+  set: function(arr) { window._DISCOUNTS_MEM = JSON.stringify(arr); },
   apply: function(basePrice, context) {
     // context: { tipo: 'colegio'|'red'|'individual', ndocentes, email, codigo }
     var all = DISCOUNTS.get();
@@ -26550,9 +26568,9 @@ var CAL = {
     return 'liax_cal_' + uid;
   },
   get: function() {
-    try { return JSON.parse(localStorage.getItem(CAL.KEY()) || '[]'); } catch(e) { return []; }
+    return (window._CAL_CACHE && window._CAL_CACHE[CAL.KEY()]) ? JSON.parse(window._CAL_CACHE[CAL.KEY()]) : [];
   },
-  set: function(arr) { localStorage.setItem(CAL.KEY(), JSON.stringify(arr)); },
+  set: function(arr) { if(!window._CAL_CACHE) window._CAL_CACHE={}; window._CAL_CACHE[CAL.KEY()]=JSON.stringify(arr); },
   add: function(event) {
     var events = CAL.get();
     events.push(Object.assign({ id:'cal_'+Date.now(), createdAt:new Date().toISOString() }, event));
@@ -26775,12 +26793,12 @@ function saveCalEvent() {
   // Share with colegio: write to shared cal store
   if (ev.compartidoColegio) {
     var sharedKey = 'liax_cal_shared_colegio';
-    var shared    = JSON.parse(localStorage.getItem(sharedKey)||'[]');
+    var shared    = JSON.parse(((window._STORE_CACHE||{})[sharedKey]||null)||'[]');
     shared.push(Object.assign({}, ev, {
       compartidoPor: document.getElementById('topUserName')?.textContent || currentRole,
       fecha_compartido: new Date().toISOString(),
     }));
-    localStorage.setItem(sharedKey, JSON.stringify(shared));
+    { if(!window._STORE_CACHE) window._STORE_CACHE={}; window._STORE_CACHE[sharedKey]=JSON.stringify(shared); }
   }
 
   // Email: open mailto with content
@@ -26873,15 +26891,15 @@ var CUSTOM_COLS_KEY = 'liax_custom_cols';
 
 function getCustomCols(tab) {
   try {
-    var all = JSON.parse(localStorage.getItem(CUSTOM_COLS_KEY) || '{}');
+    var all = JSON.parse((window._CUSTOM_COLS_MEM||null) || '{}');
     return all[tab] || [];
   } catch(e) { return []; }
 }
 
 function saveCustomCols(tab, cols) {
-  var all = JSON.parse(localStorage.getItem(CUSTOM_COLS_KEY) || '{}');
+  var all = JSON.parse((window._CUSTOM_COLS_MEM||null) || '{}');
   all[tab] = cols;
-  localStorage.setItem(CUSTOM_COLS_KEY, JSON.stringify(all));
+  window._CUSTOM_COLS_MEM = JSON.stringify(all);
 }
 
 function openAddCustomCol() {
@@ -27058,7 +27076,7 @@ function saveEditUser(userId, tab) {
 
 async function paSaludSubirDocs(files) {
   var n = perfilAlumnoName; if (!n) return;
-  var docs = JSON.parse(localStorage.getItem('liax_pa_salud_docs_' + n) || '[]');
+  var docs = ((window._PA_CACHE||{})[n] && (window._PA_CACHE||{})[n].salud_docs || JSON.parse('[]'));
   for (var fi = 0; fi < files.length; fi++) {
     var f   = files[fi];
     var doc = { nombre:f.name, tipo:f.type||'application/octet-stream', size:(f.size/1024).toFixed(0)+' KB', fecha:new Date().toISOString(), sintesis:null, sintetizando:true, universalInfo:null };
@@ -27074,7 +27092,7 @@ async function paSaludSubirDocs(files) {
     }
     docs.unshift(doc);
   }
-  localStorage.setItem('liax_pa_salud_docs_' + n, JSON.stringify(docs));
+  { if(!window._PA_CACHE) window._PA_CACHE={}; if(!window._PA_CACHE[n]) window._PA_CACHE[n]={}; window._PA_CACHE[n]['salud_docs']=docs; }
   paSaludCargarDocs(n);
   showSaveToast('✅ Subido — generando síntesis IA…');
   paGenerarSintesisDoc('salud', n, 0, files[0]);
@@ -27082,19 +27100,19 @@ async function paSaludSubirDocs(files) {
 
 async function paNeeSubirDocs(files) {
   var n = perfilAlumnoName; if (!n) return;
-  var docs = JSON.parse(localStorage.getItem('liax_pa_nee_docs_' + n) || '[]');
+  var docs = ((window._PA_CACHE||{})[n] && (window._PA_CACHE||{})[n].nee_docs || JSON.parse('[]'));
   for (var fi = 0; fi < files.length; fi++) {
     var f   = files[fi];
     docs.unshift({ nombre:f.name, tipo:f.type||'application/octet-stream', size:(f.size/1024).toFixed(0)+' KB', fecha:new Date().toISOString(), sintesis:null, sintetizando:true });
   }
-  localStorage.setItem('liax_pa_nee_docs_' + n, JSON.stringify(docs));
+  { if(!window._PA_CACHE) window._PA_CACHE={}; if(!window._PA_CACHE[n]) window._PA_CACHE[n]={}; window._PA_CACHE[n]['nee_docs']=docs; }
   paNeeCargarDocs(n);
   showSaveToast('✅ Subido — generando síntesis IA…');
   paGenerarSintesisDoc('nee', n, 0, files[0]);
 }
 
 function paSaludCargarDocs(nombre) {
-  var docs  = JSON.parse(localStorage.getItem('liax_pa_salud_docs_' + nombre) || '[]');
+  var docs  = ((window._PA_CACHE||{})[nombre] && (window._PA_CACHE||{})[nombre].salud_docs || JSON.parse('[]'));
   var grid  = document.getElementById('pa-salud-docs-grid');
   if (!grid) return;
   if (!docs.length) {
@@ -27105,7 +27123,7 @@ function paSaludCargarDocs(nombre) {
 }
 
 function paNeeCargarDocs(nombre) {
-  var docs = JSON.parse(localStorage.getItem('liax_pa_nee_docs_' + nombre) || '[]');
+  var docs = ((window._PA_CACHE||{})[nombre] && (window._PA_CACHE||{})[nombre].nee_docs || JSON.parse('[]'));
   var grid = document.getElementById('pa-nee-docs-grid');
   if (!grid) return;
   if (!docs.length) {
@@ -27146,16 +27164,16 @@ function paRenderDocRows(docs, tipo, nombre) {
 function paEliminarDocTipo(tipo, idx, nombre) {
   if (!confirm('¿Eliminar este documento?')) return;
   var key  = 'liax_pa_' + tipo + '_docs_' + nombre;
-  var docs = JSON.parse(localStorage.getItem(key) || '[]');
+  var docs = (window._AGENT_DOCS_KEY_MEM && window._AGENT_DOCS_KEY_MEM[key]) ? JSON.parse(window._AGENT_DOCS_KEY_MEM[key]) : [];
   docs.splice(idx, 1);
-  localStorage.setItem(key, JSON.stringify(docs));
+  { if(!window._AGENT_DOCS_KEY_MEM) window._AGENT_DOCS_KEY_MEM={}; window._AGENT_DOCS_KEY_MEM[key]=JSON.stringify(docs); }
   if (tipo === 'salud') paSaludCargarDocs(nombre);
   else paNeeCargarDocs(nombre);
 }
 
 // ── AI Synthesis for uploaded document ──────────────────────
 async function paGenerarSintesisDoc(tipo, nombre, idx, file) {
-  var apiKey = localStorage.getItem('liax_anthropic_key');
+  var apiKey = (window._cachedAnthropicKey||'');
   if (!apiKey || !file) return;
 
   // Read file content
@@ -27188,22 +27206,22 @@ async function paGenerarSintesisDoc(tipo, nombre, idx, file) {
 
       // Save synthesis to doc
       var key  = 'liax_pa_' + tipo + '_docs_' + nombre;
-      var docs = JSON.parse(localStorage.getItem(key) || '[]');
+      var docs = (window._AGENT_DOCS_KEY_MEM && window._AGENT_DOCS_KEY_MEM[key]) ? JSON.parse(window._AGENT_DOCS_KEY_MEM[key]) : [];
       if (docs[idx]) {
         docs[idx].sintesis    = sintesis;
         docs[idx].sintetizando= false;
-        localStorage.setItem(key, JSON.stringify(docs));
+        { if(!window._AGENT_DOCS_KEY_MEM) window._AGENT_DOCS_KEY_MEM={}; window._AGENT_DOCS_KEY_MEM[key]=JSON.stringify(docs); }
         if (tipo === 'salud') paSaludCargarDocs(nombre);
         else paNeeCargarDocs(nombre);
         showSaveToast('✅ Síntesis generada para ' + file.name);
       }
     } catch(err) {
       var key2 = 'liax_pa_' + tipo + '_docs_' + nombre;
-      var docs2 = JSON.parse(localStorage.getItem(key2) || '[]');
+      var docs2 = (window._AGENT_DOCS_KEY_MEM && window._AGENT_DOCS_KEY_MEM[key2]) ? JSON.parse(window._AGENT_DOCS_KEY_MEM[key2]) : [];
       if (docs2[idx]) {
         docs2[idx].sintetizando = false;
         docs2[idx].sintesis = '(No se pudo generar síntesis automática — API no disponible)';
-        localStorage.setItem(key2, JSON.stringify(docs2));
+        { if(!window._AGENT_DOCS_KEY_MEM) window._AGENT_DOCS_KEY_MEM={}; window._AGENT_DOCS_KEY_MEM[key2]=JSON.stringify(docs2); }
         if (tipo === 'salud') paSaludCargarDocs(nombre);
         else paNeeCargarDocs(nombre);
       }
@@ -27232,10 +27250,10 @@ function paGenerarSintesisDocFallback(tipo, nombre, idx, file) {
 // ── Context builder for agents — includes salud+nee docs ────
 function buildAlumnoContextForAgent(alumnoNombre) {
   var parts  = [];
-  var salud  = JSON.parse(localStorage.getItem('liax_pa_salud_' + alumnoNombre) || '{}');
-  var nee    = JSON.parse(localStorage.getItem('liax_pa_nee_'   + alumnoNombre) || '{}');
-  var saludDocs = JSON.parse(localStorage.getItem('liax_pa_salud_docs_' + alumnoNombre) || '[]');
-  var neeDocs   = JSON.parse(localStorage.getItem('liax_pa_nee_docs_'   + alumnoNombre) || '[]');
+  var salud  = ((window._PA_CACHE||{})[alumnoNombre] && (window._PA_CACHE||{})[alumnoNombre].salud || JSON.parse('{}'));
+  var nee    = ((window._PA_CACHE||{})[alumnoNombre] && (window._PA_CACHE||{})[alumnoNombre].nee || JSON.parse('{}'));
+  var saludDocs = ((window._PA_CACHE||{})[alumnoNombre] && (window._PA_CACHE||{})[alumnoNombre].salud_docs || JSON.parse('[]'));
+  var neeDocs   = ((window._PA_CACHE||{})[alumnoNombre] && (window._PA_CACHE||{})[alumnoNombre].nee_docs || JSON.parse('[]'));
   var alu       = DB.alumnos.find(function(a){ return a.nombre===alumnoNombre; });
 
   // Basic info
@@ -27922,7 +27940,7 @@ var LIAX_BRAIN = (function() {
 
   // ── Guardar feedback de una recomendación ────────────────────
   function saveFeedback(rec, vote, outcome) {
-    var all = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+    var all = window._STORE_CACHE && window._STORE_CACHE[STORE_KEY] ? JSON.parse(window._STORE_CACHE[STORE_KEY]) : [];
     var ctx = buildContext();
     var entry = {
       id:           'fb_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
@@ -27944,7 +27962,7 @@ var LIAX_BRAIN = (function() {
     all.unshift(entry);
     // Mantener máx 2000 entradas
     if (all.length > 2000) all = all.slice(0, 2000);
-    localStorage.setItem(STORE_KEY, JSON.stringify(all));
+    { if(!window._STORE_CACHE) window._STORE_CACHE={}; window._STORE_CACHE[STORE_KEY]=JSON.stringify(all); }
     AUDIT.log('BRAIN_FEEDBACK', vote + ' — ' + rec.titulo, 'info');
     // Actualizar patrones locales
     _updatePatterns(entry);
@@ -27953,7 +27971,7 @@ var LIAX_BRAIN = (function() {
 
   // ── Actualizar patrones locales (BM25 de señal) ───────────────
   function _updatePatterns(entry) {
-    var patterns = JSON.parse(localStorage.getItem(PATTERNS_KEY) || '{}');
+    var patterns = JSON.parse((window._PATTERNS_MEM||null) || '{}');
     var key      = entry.rec_categoria + '|' + (entry.ctx.pctNEE > 20 ? 'alto_nee' : 'bajo_nee') +
                    '|' + (entry.ctx.pctPrioritario > 15 ? 'prioritario' : 'general');
     if (!patterns[key]) patterns[key] = { util:0, no_util:0, total:0 };
@@ -27962,13 +27980,13 @@ var LIAX_BRAIN = (function() {
     if (entry.vote === 'no_util' || entry.vote === 'no_aplica') patterns[key].no_util++;
     patterns[key].score = patterns[key].total > 0
       ? Math.round(patterns[key].util / patterns[key].total * 100) : 50;
-    localStorage.setItem(PATTERNS_KEY, JSON.stringify(patterns));
+    window._PATTERNS_MEM = JSON.stringify(patterns);
   }
 
   // ── Leer patrones para enriquecer el próximo prompt ──────────
   function getPatternContext() {
-    var patterns = JSON.parse(localStorage.getItem(PATTERNS_KEY) || '{}');
-    var all      = JSON.parse(localStorage.getItem(STORE_KEY)    || '[]');
+    var patterns = JSON.parse((window._PATTERNS_MEM||null) || '{}');
+    var all = window._STORE_CACHE && window._STORE_CACHE[STORE_KEY] ? JSON.parse(window._STORE_CACHE[STORE_KEY]) : [];
     if (!all.length) return '';
 
     var ctx      = buildContext();
@@ -28006,8 +28024,8 @@ var LIAX_BRAIN = (function() {
 
   // ── Stats para el dashboard de SA ───────────────────────────
   function getStats() {
-    var all = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
-    var patterns = JSON.parse(localStorage.getItem(PATTERNS_KEY) || '{}');
+    var all = window._STORE_CACHE && window._STORE_CACHE[STORE_KEY] ? JSON.parse(window._STORE_CACHE[STORE_KEY]) : [];
+    var patterns = JSON.parse((window._PATTERNS_MEM||null) || '{}');
     var total    = all.length;
     var util     = all.filter(function(e){ return e.vote==='util'||e.vote==='ya_lo_hago'; }).length;
     var noUtil   = all.filter(function(e){ return e.vote==='no_util'||e.vote==='no_aplica'; }).length;
@@ -28024,7 +28042,7 @@ var LIAX_BRAIN = (function() {
 
   // ── Export para entrenar (descarga JSON) ──────────────────────
   function exportForTraining() {
-    var all = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+    var all = window._STORE_CACHE && window._STORE_CACHE[STORE_KEY] ? JSON.parse(window._STORE_CACHE[STORE_KEY]) : [];
     if (!all.length) { showSaveToast('⚠️ Sin datos de feedback aún'); return; }
     // Formato JSONL para fine-tuning
     var lines = all.map(function(e) {
@@ -28063,7 +28081,7 @@ function openBrainPanel() {
 
   var stats   = LIAX_BRAIN.getStats();
   var ctx     = LIAX_BRAIN.buildContext();
-  var all     = JSON.parse(localStorage.getItem('liax_brain_feedback') || '[]');
+  var all     = JSON.parse((window._BRAIN_FEEDBACK_MEM||null) || '[]');
 
   // Build category stats table
   var catRows = Object.entries(stats.catStats).sort(function(a,b){ return b[1].total-a[1].total; }).map(function(e) {
@@ -28255,7 +28273,7 @@ function prepRecopilarContexto(scope) {
 
     aluCursos.forEach(function(a) {
       try {
-        var nee = JSON.parse(localStorage.getItem('liax_pa_nee_' + a.nombre) || '{}');
+        var nee = ((window._PA_CACHE||{})[a.nombre] && (window._PA_CACHE||{})[a.nombre].nee || JSON.parse('{}'));
         if (nee.perm || nee.trans || nee.adapt) {
           ctx.neeAlumnos.push({ nombre: a.nombre, nee_perm: nee.perm||'', nee_trans: nee.trans||'', adapt: nee.adapt||'', pie: nee.pie||'' });
         }
@@ -28316,7 +28334,7 @@ function prepRecopilarContexto(scope) {
     // ── 7. Anotaciones recientes ─────────────────────────────
     try {
       var hace7d = new Date(); hace7d.setDate(hace7d.getDate()-7);
-      var anots  = JSON.parse(localStorage.getItem('liax_anotaciones')||'[]');
+      var anots  = (window._ANOT_CACHE || []);
       ctx.anotaciones = anots.filter(function(a){
         return !a.fecha || new Date(a.fecha) >= hace7d;
       }).slice(0,10);
@@ -28325,7 +28343,7 @@ function prepRecopilarContexto(scope) {
     // ── 8. Denuncias del docente ─────────────────────────────
     try {
       var rol       = ctx.rol;
-      var denuncias = JSON.parse(localStorage.getItem('liax_denuncias')||'[]');
+      var denuncias = (window._DENUNCIAS_CACHE || []);
       ctx.denuncias = denuncias.filter(function(d) {
         if (rol==='superadmin'||rol==='director'||rol==='sostenedor') return true;
         return !d.estado || (d.estado!=='cerrada'&&d.estado!=='archivada');
@@ -28353,7 +28371,7 @@ function prepRecopilarContexto(scope) {
     // ── 11. Calendario ────────────────────────────────────────
     try {
       var uid  = 'user_' + ctx.rol + '_0';
-      var cals = JSON.parse(localStorage.getItem('liax_cal_' + uid) || '[]');
+      var cals = JSON.parse(((window._CAL_CACHE||{})[uid]||null) || '[]');
       var ahora = new Date(); var en7d = new Date(); en7d.setDate(ahora.getDate()+7);
       ctx.calendario = cals.filter(function(ev) {
         var d = new Date((ev.fecha||'') + 'T00:00:00');
@@ -28577,7 +28595,7 @@ async function sendChatWithPrompt(promptText) {
   if (!promptText || !promptText.trim()) return;
   if (!currentAgent) { console.error('[LIAX Prep] No currentAgent'); return; }
 
-  var apiKey = localStorage.getItem('liax_anthropic_key');
+  var apiKey = (window._cachedAnthropicKey||'');
   var _isVercel = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   if (!apiKey && !_isVercel) {
     showSaveToast('⚠️ Configura tu API Key de Anthropic primero');
@@ -28761,7 +28779,7 @@ async function informeCursoIA(curso) {
   }
 
   // Anotaciones
-  var anots = JSON.parse(localStorage.getItem('liax_anotaciones')||'[]').filter(function(a){ return !a.curso||a.curso===curso; });
+  var anots = (window._ANOT_CACHE || []).filter(function(a){ return !a.curso||a.curso===curso; });
   var aPos=anots.filter(function(a){return a.tipo==='positiva';}).length;
   var aNeg=anots.filter(function(a){return a.tipo==='negativa';}).length;
   var aCrit=anots.filter(function(a){return a.tipo==='suspension'||a.tipo==='citacion';}).length;
@@ -28770,7 +28788,7 @@ async function informeCursoIA(curso) {
   var neeAlus = alumnos.filter(function(a){ return a.nee||a.neeT; });
 
   // Denuncias
-  var denActivas = JSON.parse(localStorage.getItem('liax_denuncias')||'[]')
+  var denActivas = (window._DENUNCIAS_CACHE || [])
     .filter(function(d){ return d.curso===curso && d.estado!=='cerrada' && d.estado!=='archivada'; });
 
   // Alumnos bajo umbral
@@ -28926,7 +28944,7 @@ async function informeCursoIA(curso) {
     html += '<table style="width:100%;border-collapse:collapse;margin-bottom:10px">';
     html += thead(['Alumno/a','NEE Permanente','NEE Transitoria','PIE'], '#5C349C');
     neeAlus.forEach(function(a,i) {
-      var nee=JSON.parse(localStorage.getItem('liax_pa_nee_'+a.nombre)||'{}');
+      var nee=((window._PA_CACHE||{})[a.nombre] && (window._PA_CACHE||{})[a.nombre].nee || JSON.parse('{}'));
       html += trow([a.nombre, nee.perm||a.nee||'—', nee.trans||a.neeT||'—', nee.pie==='si'?'Sí':'No'], i%2===0?'#F5F0FF':'#fff');
     });
     html += '</table>';
@@ -28990,7 +29008,7 @@ async function informeCursoIA(curso) {
       showSaveToast('Informe descargado: ' + nombre);
 
       // Abrir agente IA con análisis adicional si hay API key
-      var apiKey = localStorage.getItem('liax_anthropic_key');
+      var apiKey = (window._cachedAnthropicKey||'');
       if (apiKey) {
         var lines = [
           'Analiza estos datos del curso ' + curso + ' y entrega recomendaciones pedagógicas específicas:',
@@ -29020,7 +29038,7 @@ async function informeCursoIA(curso) {
 
 async function testApiKeyConnection() {
   var ak  = (document.getElementById('apiKeyInput')?.value || '').trim()
-          || localStorage.getItem('liax_anthropic_key') || '';
+          || (window._cachedAnthropicKey||'') || '';
   var box = document.getElementById('apiDiagBox');
   if (!box) return;
 
@@ -29068,7 +29086,7 @@ async function testApiKeyConnection() {
 
     if (res.ok && data.content) {
       // Save immediately on successful test
-      localStorage.setItem('liax_anthropic_key', ak);
+      window._cachedAnthropicKey = ak;
       box.style.background = 'rgba(62,207,142,.12)';
       box.style.border     = '1px solid rgba(62,207,142,.3)';
       box.style.color      = '#3ecf8e';
@@ -29137,13 +29155,13 @@ function _backupCustomAgents() {
     var customs = AGENTS.filter(function(a){ return a.custom; });
     // Always write, even empty, so stale data doesn't resurrect deleted agents
     // Use v:2 to match _vaultSaveAgents format - no more format race condition
-    localStorage.setItem(AGENTS_BACKUP_KEY, JSON.stringify({ v:2, agents: customs, savedAt: new Date().toISOString() }));
+    window._AGENTS_BACKUP_MEM = JSON.stringify({ v:2, agents: customs, savedAt: new Date().toISOString() });
   } catch(e) {}
 }
 
 function _restoreCustomAgentsFromBackup() {
   try {
-    var raw = localStorage.getItem(AGENTS_BACKUP_KEY);
+    var raw = (window._AGENTS_BACKUP_MEM||null);
     if (!raw) return 0;
     var data = JSON.parse(raw);
     if (!data || !data.agents || !data.agents.length) return 0;
@@ -29164,13 +29182,13 @@ function exportBackupCompleto() {
     var customs = AGENTS.filter(function(a){ return a.custom; });
     var docsBackup = {};
     customs.forEach(function(a) {
-      docsBackup[a.id] = JSON.parse(localStorage.getItem('liax_docs_' + a.id) || '[]');
+      docsBackup[a.id] = (AGENT_STORE._docs[a.id]||[]);
     });
     var ajustesBackup = {};
     customs.forEach(function(a) {
       ajustesBackup[a.id] = {
-        colegio: localStorage.getItem('liax_ajuste_colegio_' + a.id) || '',
-        usuario: localStorage.getItem('liax_ajuste_usuario_' + a.id) || '',
+        colegio: (AJUSTE_STORE._colegio[a.id]||'') || '',
+        usuario: (AJUSTE_STORE._usuario[a.id]||'') || '',
       };
     });
     var backup = {
@@ -29229,7 +29247,7 @@ function importBackupCompleto(file) {
           if (data.docs) {
             var docKeys = Object.keys(data.docs);
             docKeys.forEach(function(k) {
-              try { localStorage.setItem('liax_docs_' + k, JSON.stringify(data.docs[k])); }
+              try { AGENT_STORE._docs[k] = data.docs[k]; }
               catch(se) { console.warn('Doc save failed:', k); }
             });
           }
@@ -29237,8 +29255,8 @@ function importBackupCompleto(file) {
           if (data.ajustes) {
             Object.keys(data.ajustes).forEach(function(k) {
               var aj = data.ajustes[k];
-              if (aj && aj.colegio) localStorage.setItem('liax_ajuste_colegio_' + k, aj.colegio);
-              if (aj && aj.usuario) localStorage.setItem('liax_ajuste_usuario_' + k, aj.usuario);
+              if (aj && aj.colegio) AJUSTE_STORE._colegio[k] = aj.colegio;
+              if (aj && aj.usuario) AJUSTE_STORE._usuario[k] = aj.usuario;
             });
           }
           _backupCustomAgents();
@@ -29647,8 +29665,8 @@ async function sendDashQueryInicio() {
   chat.scrollTop = chat.scrollHeight;
 
   try {
-    var apiKey = localStorage.getItem('liax_anthropic_key') || window._cachedAnthropicKey || '';
-    if (!apiKey) { try { apiKey = await AGENT_VAULT.loadSetting('anthropic_key') || ''; if(apiKey){localStorage.setItem('liax_anthropic_key',apiKey);window._cachedAnthropicKey=apiKey;} } catch(e){} }
+    var apiKey = (window._cachedAnthropicKey||'') || window._cachedAnthropicKey || '';
+    if (!apiKey) { try { apiKey = await AGENT_VAULT.loadSetting('anthropic_key') || ''; if(apiKey){window._cachedAnthropicKey = apiKey;window._cachedAnthropicKey=apiKey;} } catch(e){} }
     if (!apiKey) throw new Error('Configura tu API Key en ⚙️ Configurar IAs');
 
     var isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -29749,8 +29767,8 @@ async function procesarEstiloPlanificacion(file) {
     if (statusEl) statusEl.innerHTML = '🤖 Analizando tu estilo de planificación…';
 
     // ── 2. Llamar a la IA para extraer el estilo ─────────────
-    var apiKey = localStorage.getItem('liax_anthropic_key') || window._cachedAnthropicKey || '';
-    if (!apiKey) { try { apiKey = await AGENT_VAULT.loadSetting('anthropic_key') || ''; if(apiKey){localStorage.setItem('liax_anthropic_key',apiKey);window._cachedAnthropicKey=apiKey;} } catch(e){} }
+    var apiKey = (window._cachedAnthropicKey||'') || window._cachedAnthropicKey || '';
+    if (!apiKey) { try { apiKey = await AGENT_VAULT.loadSetting('anthropic_key') || ''; if(apiKey){window._cachedAnthropicKey = apiKey;window._cachedAnthropicKey=apiKey;} } catch(e){} }
     if (!apiKey) throw new Error('Configura tu API Key en ⚙️ Configurar IAs');
 
     var prompt = 'Analiza la siguiente planificación de clase y extrae su ESTRUCTURA, FORMATO Y ESTILO.\n\n' +
@@ -30109,7 +30127,7 @@ async function wzGenerarPrompt() {
   var promptEl = document.getElementById('wz-prompt-edit');
   if (statusEl) statusEl.innerHTML = '⏳ Generando configuración con IA…';
 
-  var apiKey = localStorage.getItem('liax_anthropic_key');
+  var apiKey = (window._cachedAnthropicKey||'');
   if (!apiKey) {
     // Generate a basic prompt without AI
     var prompt = wzGenerarPromptLocal();
@@ -30408,8 +30426,8 @@ function repoSetView(v) {
 // ══════════════════════════════════════════════════════════════
 
 var NIVEL_STORE = {
-  get:  function()  { return JSON.parse(localStorage.getItem('liax_nivel_ia') || '{"nivel":1,"logros":[]}'); },
-  set:  function(d) { localStorage.setItem('liax_nivel_ia', JSON.stringify(d)); },
+  get:  function()  { return (window._NIVEL_IA_MEM||{}); },
+  set:  function(d) { window._NIVEL_IA_MEM = d; },
 };
 
 var LOGROS_DEF = [
@@ -30450,7 +30468,7 @@ function getNivelStats() {
   // Días activos (rough estimate from convs)
   var diasSet = new Set();
   AGENTS.forEach(function(a) {
-    var hist = JSON.parse(localStorage.getItem('liax_hist_'+a.id)||'[]');
+    var hist = (AGENT_STORE._hist[a.id]||[]);
     hist.forEach(function(s){ if(s.savedAt) diasSet.add(s.savedAt.slice(0,10)); });
   });
 
@@ -30616,8 +30634,8 @@ function renderMiProgreso() {
 
 var BANCO_STORE = {
   KEY: 'liax_banco_recursos',
-  getAll: function() { return JSON.parse(localStorage.getItem(this.KEY)||'[]'); },
-  save:   function(items) { localStorage.setItem(this.KEY, JSON.stringify(items)); },
+  getAll: function() { return JSON.parse(((window._STORE_CACHE||{})[this.KEY]||null)||'[]'); },
+  save: function(items) { if(!window._STORE_CACHE) window._STORE_CACHE={}; window._STORE_CACHE[this.KEY]=JSON.stringify(items); },
   add:    function(item) {
     var all = this.getAll();
     item.id      = 'banco_' + Date.now();
@@ -30868,11 +30886,11 @@ function _addBancoShareInAjuste() {
 var CUSTOM_Q_KEY = 'liax_custom_preguntas_';
 
 function _getCustomPreguntas(agentId) {
-  return JSON.parse(localStorage.getItem(CUSTOM_Q_KEY + agentId) || '[]');
+  return JSON.parse(((window._CUSTOM_Q_MEM||{})[agentId]||null) || '[]');
 }
 
 function _saveCustomPreguntas(agentId, qs) {
-  localStorage.setItem(CUSTOM_Q_KEY + agentId, JSON.stringify(qs));
+  { if(!window._CUSTOM_Q_MEM) window._CUSTOM_Q_MEM={}; window._CUSTOM_Q_MEM[agentId]=JSON.stringify(qs); }
 }
 
 function _editarCustomPreguntaIdx(agentId, idx) {
@@ -31326,7 +31344,7 @@ async function ayudaWizardSend() {
     '<div id="' + loadId + '" class="ayuda-wizard-bubble" style="color:var(--muted)">⏳ Buscando respuesta…</div>');
   chat.scrollTop = chat.scrollHeight;
 
-  var apiKey = localStorage.getItem('liax_anthropic_key');
+  var apiKey = (window._cachedAnthropicKey||'');
   if (!apiKey) {
     // Offline fallback: answer from FAQ data
     document.getElementById(loadId)?.remove();
@@ -31342,7 +31360,7 @@ async function ayudaWizardSend() {
     'Estás respondiendo a un usuario con rol "' + rol + '". ' +
     'Responde de forma clara, práctica y paso a paso. Máximo 200 palabras. ' +
     'Usa formato markdown con pasos numerados cuando sea apropiado. ' +
-    'Si preguntan sobre privacidad y seguridad, explica que los datos se guardan localmente en el navegador (localStorage), ' +
+    'Si preguntan sobre privacidad y seguridad, explica que los datos se guardan de forma segura en la nube (Supabase), ' +
     'las conversaciones no se almacenan en servidores de LIAX, las API keys van directo a Anthropic/Google, ' +
     'y próximamente habrá integración con Supabase para autenticación segura. ' +
     'Si preguntan cómo hacer algo, da los pasos exactos con nombres de paneles y botones reales de LIAX. ' +
@@ -31375,7 +31393,8 @@ function ayudaOfflineAnswer(q) {
   q = q.toLowerCase();
   if (/excel|subir|archivo|dato/.test(q)) return 'Para subir un Excel:\n1. Ve a **Mis Cursos** → tu curso\n2. Haz clic en el botón de subir archivo\n3. El sistema detecta automáticamente las columnas\n4. Activa el dataset en la barra azul del agente';
   if (/agente|crear|wizard/.test(q)) return 'Para crear un agente:\n1. Panel de Inicio → **¿Quieres crear tu propio agente?**\n2. Describe con tus palabras qué quieres que haga\n3. La IA genera la configuración automáticamente\n4. Revisa y ajusta en 4 pasos guiados';
-  if (/segur|privac|dato|proteg/.test(q)) return 'Tus datos en LIAX:\n- Todo se guarda **localmente en tu navegador** (localStorage)\n- Las conversaciones no se almacenan en servidores LIAX\n- Las API keys van directo a Anthropic/Google\n- Próximamente: autenticación segura con Supabase';
+  if (/segur|privac|dato|proteg/.test(q)) return 'Tus datos en LIAX:
+- Todo se guarda **en la nube** (Supabase';
   if (/prompt|instruc/.test(q)) return 'Un **prompt** es la instrucción que define el comportamiento de un agente. Es como decirle "eres un experto en X, y debes responder de esta manera". En LIAX, el wizard crea el prompt automáticamente cuando describes qué quieres que haga el agente.';
   if (/personal|ajust|configurar/.test(q)) return 'Para personalizar un agente:\n1. Abre el agente\n2. Haz clic en **✨ Personalizar**\n3. **Ajuste Personal**: instrucciones solo para ti\n4. **Mi Estilo de Planificación**: sube tu formato modelo\n5. **Mis Preguntas**: agrega las tuyas en el panel de inicio';
   return 'Para esta consulta necesito conexión a internet. Prueba la pestaña **❓ Preguntas frecuentes** o **📖 Glosario** para respuestas offline.';
@@ -31388,7 +31407,7 @@ function ayudaFAQHTML() {
     { q:'¿Qué pasa si me equivoco al configurar algo?', a:'Todo se puede deshacer o editar. Los agentes, ajustes, preguntas y documentos se pueden modificar en cualquier momento. No hay nada permanente que no puedas cambiar.' },
     { q:'¿Por qué a veces el agente no completa lo que pedí?', a:'Puede ser por dos razones: (1) La respuesta fue muy larga y el modelo la cortó — en ese caso pide "continúa desde donde quedaste". (2) El modelo necesita más contexto — dale más detalles sobre tu curso, alumnos y objetivos.' },
     { q:'¿Puedo usar LIAX sin API key?', a:'La plataforma funciona para explorar, pero sin API key la IA no puede responder. Necesitas al menos una key: Anthropic (Claude), Google (Gemini) u OpenAI. La más económica para empezar es Gemini de Google.' },
-    { q:'¿Mis conversaciones se guardan en algún servidor?', a:'No. Las conversaciones se guardan localmente en tu navegador (localStorage). LIAX no tiene acceso a tus conversaciones. Las API keys van directo a Anthropic/Google sin pasar por servidores LIAX.' },
+    { q:'¿Mis conversaciones se guardan en algún servidor?', a:'Sí. Las conversaciones se guardan de forma segura en Supabase. Nada queda en el navegador local.' },
     { q:'¿Cómo recupero datos si cambio de computador?', a:'Por ahora usa el botón ⬇️ Backup en el panel de Agentes para exportar tus agentes custom. Próximamente con Supabase podrás acceder desde cualquier dispositivo.' },
     { q:'¿El director puede ver mis conversaciones?', a:'No. El director solo ve estadísticas agregadas (cuántos documentos generó cada docente, qué agentes usa más), no el contenido de las conversaciones.' },
     { q:'¿Qué modelos de IA usa LIAX?', a:'Por defecto: Gemini 1.5 Flash para texto simple (más barato), Gemini 1.5 Pro para análisis y archivos, Claude Sonnet para tareas críticas (NEE). El router IA elige automáticamente el más eficiente para cada tarea.' },
@@ -31421,9 +31440,9 @@ function ayudaToggleFAQ(idx) {
 function ayudaPrivacidadHTML() {
   var items = [
     { icon:'💾', titulo:'¿Dónde se guardan mis datos?', color:'#60a5fa',
-      desc:'Hoy todos los datos de LIAX se guardan en el <strong>localStorage de tu navegador</strong>. Eso significa que están en tu dispositivo, no en ningún servidor externo. Nadie puede acceder a ellos remotamente. Próximamente con Supabase, los datos se moverán a un servidor seguro con autenticación.' },
+      desc:'Los datos de LIAX se guardan de forma segura en la nube con <strong>Supabase</strong>. Nada se almacena en el navegador.' },
     { icon:'🔑', titulo:'¿Qué pasa con mis API keys?', color:'#f59e0b',
-      desc:'Las API keys (Anthropic, Gemini, OpenAI) se guardan en tu localStorage y viajan <strong>directo al proveedor correspondiente</strong> cuando haces una consulta. LIAX no intercepta ni almacena las keys en ningún servidor propio. Recomendamos usar una key específica para LIAX con límite de gasto configurado.' },
+      desc:'Las API keys (Anthropic, Gemini, OpenAI) se guardan en la sesión de Supabase y viajan <strong>directo al proveedor</strong> al momento de usarlas.' },
     { icon:'💬', titulo:'¿Se guardan mis conversaciones?', color:'#34d399',
       desc:'Las conversaciones se guardan <strong>localmente en tu navegador</strong> para mostrarte el historial. No se envían a servidores de LIAX. Lo que SÍ se envía a Anthropic/Google/OpenAI es el contenido de cada mensaje para generar la respuesta, exactamente igual que usar ChatGPT directamente.' },
     { icon:'👨‍🎓', titulo:'Datos de alumnos (LOPD/MINEDUC)', color:'#c084fc',
@@ -31461,7 +31480,7 @@ function ayudaGlosarioHTML() {
     { t:'Contexto', d:'La información adicional que le das al agente sobre tu situación: curso, alumnos, asignatura, NEE. Mejora significativamente la calidad de las respuestas.' },
     { t:'Dataset', d:'Un conjunto de datos académicos que subes (Excel de notas, asistencia, evaluaciones). El agente los lee y los incluye en su análisis.' },
     { t:'RAG', d:'Retrieval-Augmented Generation. Sistema que permite al agente buscar en documentos específicos (reglamentos, decretos, normativas) antes de responder. Los RAGs se inyectan automáticamente.' },
-    { t:'localStorage', d:'Almacenamiento del navegador web. Es donde LIAX guarda tus datos actualmente. Son locales a tu dispositivo y no accesibles por internet.' },
+    { t:'Supabase', d:'Base de datos en la nube donde LIAX guarda todos tus datos de forma segura. La sesión dura mientras estés autenticado.' },
     { t:'Supabase', d:'Plataforma de base de datos segura que usaremos próximamente. Permitirá login con contraseña, datos compartidos entre dispositivos y control de acceso por rol.' },
     { t:'Fine-tuning', d:'Proceso de entrenar un modelo de IA con datos propios para que mejore en tareas específicas. LIAX_BRAIN recopila feedback para eventualmente hacer fine-tuning con las interacciones del colegio.' },
     { t:'Token', d:'Unidad de medida del uso de IA. Aproximadamente 4 caracteres = 1 token. Los modelos cobran por tokens procesados (input + output).' },
@@ -31599,10 +31618,7 @@ function _vaultSaveAgents() {
   var customs = AGENTS.filter(function(a){ return a.custom; });
   // Always save - even empty - so stale backup is cleared after deletes
   AGENT_VAULT.saveAgents(customs).catch(function(){});
-  try {
-    localStorage.setItem('liax_custom_agents_backup',
-      JSON.stringify({ v:2, agents: customs, savedAt: new Date().toISOString() }));
-  } catch(e) {}
+  window._AGENTS_BACKUP_MEM = JSON.stringify({ v:2, agents: customs, savedAt: new Date().toISOString() });
   // Sync to Supabase
   if (typeof _vaultSaveAgents_supaSync === 'function') _vaultSaveAgents_supaSync();
 }
@@ -31633,7 +31649,7 @@ async function _vaultRestoreAgents() {
 
   // 2. Fallback: localStorage backup key
   try {
-    var raw = localStorage.getItem('liax_custom_agents_backup');
+    var raw = (window._AGENTS_BACKUP_MEM||null);
     if (raw) {
       var data = JSON.parse(raw);
       var backupAgents = data.agents || data; // handle both formats
@@ -31650,7 +31666,7 @@ async function _vaultRestoreAgents() {
 
   // 3. Fallback: main snapshot
   try {
-    var raw2 = localStorage.getItem('liax_main_v1');
+    var raw2 = null; // migrado a Supabase
     if (raw2) {
       var snap = JSON.parse(raw2);
       if (snap && snap.customAgents && snap.customAgents.length) {
@@ -31690,10 +31706,10 @@ function iniciarNuevoChat() {
         savedAt:   new Date().toISOString(),
         preview:   chatHistory.find(function(m){ return m.role==='user'; })?.content?.slice(0,80) || 'Conversación',
       };
-      var hist = JSON.parse(localStorage.getItem('liax_hist_' + currentAgent.id) || '[]');
+      var hist = (AGENT_STORE._hist[currentAgent.id]||[]);
       hist.unshift(session);
       if (hist.length > 20) hist = hist.slice(0, 20);
-      localStorage.setItem('liax_hist_' + currentAgent.id, JSON.stringify(hist));
+      AGENT_STORE._hist[currentAgent.id] = hist;
     }
   }
   // Clear and rebuild welcome screen
@@ -31754,7 +31770,7 @@ function buildInterAgentContext(currentAgentId) {
     var files = AGENT_STORE.getFiles ? (AGENT_STORE.getFiles(ag.id) || []) : [];
     // Also check liax_files_ keys
     try {
-      var stored = JSON.parse(localStorage.getItem('liax_files_' + ag.id) || '[]');
+      var stored = JSON.parse(null || '[]');
       files = files.concat(stored);
     } catch(e) {}
     files.forEach(function(f) {
@@ -31793,7 +31809,7 @@ function buildInterAgentContext(currentAgentId) {
   AGENTS.forEach(function(ag) {
     if (ag.id === currentAgentId) return;
     try {
-      var hist = JSON.parse(localStorage.getItem('liax_hist_' + ag.id) || '[]');
+      var hist = (AGENT_STORE._hist[ag.id]||[]);
       if (hist.length > 0) {
         var ultima = hist[0];
         var age2 = ultima.savedAt ? ahora - new Date(ultima.savedAt).getTime() : Infinity;
@@ -32042,7 +32058,7 @@ function gcNuevoCurso() {
     // If user re-creates a previously deleted course, remove from deleted list
     var _elimArr = _getCursosEliminados();
     var _elimIdx = _elimArr.indexOf(nombre);
-    if (_elimIdx > -1) { _elimArr.splice(_elimIdx, 1); localStorage.setItem('liax_cursos_eliminados', JSON.stringify(_elimArr)); }
+    if (_elimIdx > -1) { _elimArr.splice(_elimIdx, 1); window._CURSOS_ELIMINADOS = _elimArr; }
     CURSOS.push(nombre);
     if (typeof _saveCursosCustom === 'function') _saveCursosCustom();
     if (typeof _supaSaveCurso === 'function') _supaSaveCurso(nombre).catch(function(){});
@@ -32445,7 +32461,7 @@ function _getAnthropicHeaders(key) {
   // Use user key, platform key from Supabase config, or cached platform key
   var useKey = (key && key !== 'proxy')
     ? key
-    : (window._platformApiKey || localStorage.getItem('liax_anthropic_key') || '');
+    : (window._platformApiKey || (window._cachedAnthropicKey||'') || '');
   return {
     'Content-Type': 'application/json',
     'x-api-key': useKey,
@@ -32460,7 +32476,7 @@ async function _loadPlatformKey() {
     var r = await _supa.from('config').select('value').eq('key','anthropic_key').maybeSingle();
     if (r.data && r.data.value) {
       window._platformApiKey = r.data.value;
-      localStorage.setItem('liax_anthropic_key', r.data.value);
+      window._cachedAnthropicKey = r.data.value;
       window._cachedAnthropicKey = r.data.value;
       console.log('[LIAX] Platform key loaded from Supabase');
     }
@@ -32487,7 +32503,7 @@ async function _supaLoadCursos() {
 
     // Add exactly what Supabase returns, except deleted ones
     (data || []).forEach(function(c) {
-      if (CURSOS.indexOf(c.nombre) === -1 && !_isCursoDeleted(c.nombre)) {
+      if (CURSOS.indexOf(c.nombre) === -1 && !(window._CURSOS_ELIMINADOS||[]).includes(c.nombre)) {
         CURSOS.push(c.nombre);
       }
     });
@@ -34310,17 +34326,13 @@ async function _supaLoadDatos() {
       .eq('colegio_id', _supaPerfil.colegio_id)
       .order('saved_at', { ascending: false });
     if (data && data.length) {
-      // Merge with localStorage — Supabase wins
-      var local = DATOS_STORE.getAll();
-      var supaIds = new Set(data.map(function(d){ return d.id; }));
-      var onlyLocal = local.filter(function(d){ return !supaIds.has(d.id); });
-      // Convert Supabase format → local format
+      // Supabase es fuente de verdad — cargar directo en DATOS_STORE en memoria
       var supaItems = data.map(function(d){
         return { id:d.id, nombre:d.nombre, tipo:d.tipo, curso:d.curso, periodo:d.periodo,
                  desc:d.descripcion, origen:d.origen, cols:d.cols||[], rows:d.rows||[],
                  rawText:d.raw_text||'', savedAt:d.saved_at, owner:d.owner_rol };
       });
-      DATOS_STORE.save(supaItems.concat(onlyLocal));
+      DATOS_STORE.save(supaItems);
       console.log('[LIAX] Datos cargados desde Supabase:', data.length);
     }
   } catch(e) { console.warn('[LIAX] Error cargando datos:', e.message); }
@@ -34361,11 +34373,8 @@ async function _supaLoadAnotaciones() {
       .eq('colegio_id', _supaPerfil.colegio_id)
       .order('created_at', { ascending: false });
     if (data && data.length) {
-      var local = JSON.parse(localStorage.getItem('liax_anotaciones') || '[]');
-      var supaIds = new Set(data.map(function(a){ return a.id; }));
-      var onlyLocal = local.filter(function(a){ return !supaIds.has(a.id); });
-      var merged = data.concat(onlyLocal);
-      localStorage.setItem('liax_anotaciones', JSON.stringify(merged));
+      // Supabase es la fuente de verdad — almacenar en memoria
+      window._ANOT_CACHE = data;
       console.log('[LIAX] Anotaciones cargadas desde Supabase:', data.length);
     }
   } catch(e) { console.warn('[LIAX] Error cargando anotaciones:', e.message); }
@@ -34397,10 +34406,9 @@ async function _supaLoadPerfilAlumno(nombre) {
       .eq('colegio_id', _supaPerfil.colegio_id)
       .maybeSingle();
     if (data) {
-      // Sync to localStorage
-      if (data.nee)  localStorage.setItem('liax_pa_nee_'  + nombre, JSON.stringify(data.nee));
-      if (data.salud)localStorage.setItem('liax_pa_salud_'+ nombre, JSON.stringify(data.salud));
-      if (data.docs) localStorage.setItem('liax_pa_docs_' + nombre, JSON.stringify(data.docs));
+      // Cachear en memoria de sesión
+      if (!window._PA_CACHE) window._PA_CACHE = {};
+      window._PA_CACHE[nombre] = data;
       return data;
     }
   } catch(e) { console.warn('[LIAX] Error cargando perfil alumno:', e.message); }
@@ -34424,9 +34432,11 @@ async function _supaLoadAjustes() {
       .eq('colegio_id', _supaPerfil.colegio_id);
     if (data && data.length) {
       data.forEach(function(aj) {
-        var key = aj.tipo === 'colegio' ? 'liax_ajuste_colegio_' + aj.agente_id
-                                        : 'liax_ajuste_usuario_' + aj.agente_id;
-        if (aj.valor) localStorage.setItem(key, aj.valor);
+        if (aj.tipo === 'colegio') AJUSTE_STORE._colegio[aj.agente_id] = aj.valor || '';
+        else {
+          AJUSTE_STORE._usuario[aj.agente_id] = aj.valor || '';
+          if (aj.agente_id === '__estilo_plan__') AJUSTE_STORE._estiloPlan = aj.valor || '';
+        }
       });
       console.log('[LIAX] Ajustes agentes cargados:', data.length);
     }
@@ -34456,13 +34466,12 @@ async function _supaLoadDocumentosChat() {
       .eq('user_id', _supaUser.id)
       .order('saved_at', { ascending: false });
     if (data && data.length) {
-      // Merge with localStorage docs
+      // Cargar en AGENT_STORE en memoria
       data.forEach(function(doc) {
-        var key = 'liax_docs_' + doc.agente_id;
-        var local = JSON.parse(localStorage.getItem(key) || '[]');
-        var exists = local.some(function(d){ return d.id === doc.id; });
-        if (!exists) local.unshift({ id: doc.id, title: doc.titulo, content: doc.contenido, savedAt: doc.saved_at });
-        localStorage.setItem(key, JSON.stringify(local));
+        var docs = AGENT_STORE._docs[doc.agente_id] || [];
+        var exists = docs.some(function(d){ return d.id === doc.id; });
+        if (!exists) docs.unshift({ id: doc.id, title: doc.titulo, content: doc.contenido, savedAt: doc.saved_at });
+        AGENT_STORE._docs[doc.agente_id] = docs;
       });
       console.log('[LIAX] Docs chat cargados:', data.length);
     }
@@ -34711,22 +34720,18 @@ setTimeout(async function(){
     }
   }
   // Restore API keys from IndexedDB if localStorage is empty
+  // Restore API keys from IndexedDB into window cache vars
   var keys = ['anthropic_key','gemini_key','openai_key'];
-  var lsKeys = ['liax_anthropic_key','liax_gemini_key','liax_openai_key'];
-  var cacheKeys = ['_cachedAnthropicKey','_cachedGeminiKey','_cachedOpenAIKey'];
+  var cacheKeys = ['_cachedAnthropicKey','_geminiKey','_openaiKey'];
   for (var i = 0; i < keys.length; i++) {
-    if (!localStorage.getItem(lsKeys[i])) {
+    if (!window[cacheKeys[i]]) {
       var val = await AGENT_VAULT.loadSetting(keys[i]);
       if (val) {
-        localStorage.setItem(lsKeys[i], val);
         window[cacheKeys[i]] = val;
         console.log('[LIAX Vault] Restored', keys[i], 'from IndexedDB');
       }
     } else {
-      // Sync to IndexedDB in case it's not there yet
-      var existing = localStorage.getItem(lsKeys[i]);
-      if (existing) AGENT_VAULT.saveSetting(keys[i], existing).catch(function(){});
-      window[cacheKeys[i]] = existing;
+      AGENT_VAULT.saveSetting(keys[i], window[cacheKeys[i]]).catch(function(){});
     }
   }
   // Refresh API key status display
@@ -34735,12 +34740,12 @@ setTimeout(async function(){
   // Only show setup modal on localhost — on Vercel key comes from Supabase
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     setTimeout(function() {
-      var hasKey = localStorage.getItem('liax_anthropic_key') ||
-                   localStorage.getItem('liax_gemini_key') ||
+      var hasKey = (window._cachedAnthropicKey||'') ||
+                   (window._geminiKey||'') ||
                    window._cachedAnthropicKey || window._cachedGeminiKey;
-      var shown = localStorage.getItem('liax_setup_done');
+      var shown = (window._setupDone||null);
       if (!hasKey && !shown) {
-        localStorage.setItem('liax_setup_done', '1');
+        window._setupDone='1';
         setTimeout(function() {
           showSaveToast('👋 Configura tu API Key en ⚙️ Configurar IAs para empezar');
           setTimeout(openApiKeyModal, 1500);
@@ -34764,7 +34769,7 @@ if (currentLang !== 'es' && TRANSLATION_CACHE[currentLang]) {
 } else if (currentLang !== 'es') {
   // Has saved lang but no cache — reset to es silently
   currentLang = 'es';
-  localStorage.setItem('liax_lang', 'es');
+  currentLang = 'es';
 }
 
 if (!dataLoaded) {
