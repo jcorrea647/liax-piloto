@@ -32241,14 +32241,21 @@ function gcNuevoCurso() {
       var colegioId = _supaPerfil?.colegio_id || null;
       // Actualizar DB.docentes en memoria
       var docente = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
-      if (docente) {
-        if (!docente.cursosAsignados) docente.cursosAsignados = [];
-        if (!docente.cursosAsignados.some(function(c){ return c.curso === nombre; })) {
-          docente.cursosAsignados.push({ curso: nombre, asignaturas: [] });
-        }
+      if (!docente) {
+        docente = { id: _supaUser.id, nombre: _supaPerfil?.nombre||'', cursosAsignados: [] };
+        DB.docentes.push(docente);
       }
-      // Guardar en docente_cursos
-      _guardarDocenteCurso(_supaUser.id, nombre, colegioId);
+      if (!docente.cursosAsignados) docente.cursosAsignados = [];
+      if (!docente.cursosAsignados.some(function(c){ return c.curso === nombre; })) {
+        docente.cursosAsignados.push({ curso: nombre, asignaturas: [] });
+      }
+      currentDocenteId = _supaUser.id;
+      // Guardar en docente_cursos y refrescar vista
+      _guardarDocenteCurso(_supaUser.id, nombre, colegioId).then(function() {
+        renderCursoChips();
+        renderCursoResumen();
+        showSaveToast('✅ Curso "' + nombre + '" creado y asignado a tu perfil');
+      });
     }
     portal.remove();
     renderGestionCursos();
@@ -32580,23 +32587,25 @@ function gcConfirmarAsignarDocente(curso, docenteId, btn) {
   showSaveToast('✅ ' + docente.nombre + ' asignado/a a ' + curso);
 }
 
-// Helper: guardar en docente_cursos
+// Helper: guardar en docente_cursos — retorna Promise
 async function _guardarDocenteCurso(docenteId, cursoNombre, colegioId) {
   try {
-    // Primero intentar delete+insert para evitar problemas con UNIQUE y NULL
+    // Borrar primero para evitar duplicados
     await _supa.from('docente_cursos')
       .delete()
       .eq('docente_id', docenteId)
       .eq('curso_nombre', cursoNombre);
 
-    var { error } = await _supa.from('docente_cursos').insert({
+    var row = {
       docente_id:   docenteId,
       curso_nombre: cursoNombre,
-      colegio_id:   colegioId,
       app:          'liax',
-    });
+    };
+    if (colegioId) row.colegio_id = colegioId; // solo incluir si existe
+
+    var { error } = await _supa.from('docente_cursos').insert(row);
     if (error) throw error;
-    console.log('[LIAX] Curso', cursoNombre, 'asignado a docente', docenteId, '| colegio:', colegioId);
+    console.log('[LIAX] Curso', cursoNombre, 'asignado a docente', docenteId);
   } catch(e) {
     console.warn('[LIAX] Error guardando docente_curso:', e.message);
   }
