@@ -3556,13 +3556,12 @@ async function supaLogout() {
 async function _supaLoadPerfil() {
   if (!_supaUser) return;
   var { data } = await _supa.from('usuarios').select('*').eq('id', _supaUser.id).maybeSingle();
+
   if (data) {
     _supaPerfil = data;
-    // Apply role to platform
     var rol = data.rol || 'docente';
-    _origSwitchRole(rol); // use original to bypass guard during init
+    _origSwitchRole(rol);
 
-    // Hide role switcher buttons user can't access
     var HIERARCHY = {
       'superadmin': ['rs-sa','rs-sos','rs-dir','rs-doc','rs-alu'],
       'sostenedor':  ['rs-sos','rs-dir','rs-doc'],
@@ -3575,24 +3574,18 @@ async function _supaLoadPerfil() {
       var el = document.getElementById(id);
       if (!el) return;
       if (allowed.indexOf(id) > -1) {
-        el.style.display = '';
-        el.style.pointerEvents = '';
-        el.style.opacity = '';
+        el.style.display = ''; el.style.pointerEvents = ''; el.style.opacity = '';
       } else {
-        el.style.display = 'none'; // hide completely
+        el.style.display = 'none';
       }
     });
-    // Update display name
     var nameEl = document.getElementById('topUserName');
     if (nameEl) nameEl.textContent = data.nombre || data.email;
-    // Hide/show topbar buttons based on real role
     setTimeout(function(){
-      renderStorageBar();
-      renderApiKeyStatus();
-      _initColegioDefault();
-      initColegioSelector();
+      renderStorageBar(); renderApiKeyStatus();
+      _initColegioDefault(); initColegioSelector();
     }, 300);
-    // Load cloud data
+    // Load cloud data con perfil
     await _loadPlatformKey();
     await _supaLoadCursos();
     await _supaLoadAlumnos();
@@ -3607,6 +3600,13 @@ async function _supaLoadPerfil() {
     await _supaLoadBanco();
     await _supaLoadNivel();
     await _supaLoadCargos();
+  } else {
+    // Sin perfil en tabla usuarios — igual cargar agentes y datos básicos
+    console.warn('[LIAX] Usuario sin perfil en tabla usuarios — cargando agentes igual');
+    var nameEl = document.getElementById('topUserName');
+    if (nameEl) nameEl.textContent = _supaUser.email || 'Usuario';
+    await _supaLoadAgentes();
+    await _loadFavoritesFromSupabase();
   }
 }
 
