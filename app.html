@@ -3567,29 +3567,35 @@ async function _supaLoadPerfil() {
     if (rol === 'docente') {
       var docenteExistente = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
       if (!docenteExistente) {
-        // Crear entrada en DB.docentes desde el perfil de Supabase
         docenteExistente = {
-          id:             _supaUser.id,
-          nombre:         data.nombre || '',
-          apellido:       data.apellido || '',
-          email:          data.email || '',
-          rol:            'docente',
+          id:              _supaUser.id,
+          nombre:          data.nombre || '',
+          apellido:        data.apellido || '',
+          email:           data.email || '',
+          rol:             'docente',
           establecimiento: '',
-          esp:            data.esp || '',
-          exp:            0,
-          avatar:         (data.nombre||'?')[0].toUpperCase(),
+          esp:             data.esp || '',
+          exp:             0,
+          avatar:          (data.nombre||'?')[0].toUpperCase(),
           cursosAsignados: [],
         };
         DB.docentes.push(docenteExistente);
       }
-      // Sincronizar curso asignado desde Supabase
-      if (data.curso) {
-        var cursos = data.curso.split(',').map(function(c){ return c.trim(); }).filter(Boolean);
-        docenteExistente.cursosAsignados = cursos.map(function(c){
-          return { curso: c, asignaturas: [] };
-        });
-      }
       currentDocenteId = _supaUser.id;
+
+      // Cargar cursos asignados desde docente_cursos en Supabase
+      try {
+        var { data: dcData } = await _supa.from('docente_cursos')
+          .select('curso_nombre, asignatura')
+          .eq('docente_id', _supaUser.id)
+          .eq('app', 'liax');
+        if (dcData && dcData.length) {
+          docenteExistente.cursosAsignados = dcData.map(function(dc) {
+            return { curso: dc.curso_nombre, asignaturas: dc.asignatura ? [dc.asignatura] : [] };
+          });
+          console.log('[LIAX] Cursos del docente cargados:', dcData.length);
+        }
+      } catch(e) { console.warn('[LIAX] Error cargando docente_cursos:', e.message); }
     }
 
     var HIERARCHY = {
@@ -32225,6 +32231,29 @@ function gcNuevoCurso() {
     if (typeof _saveCursosCustom === 'function') _saveCursosCustom();
     if (typeof _supaSaveCurso === 'function') _supaSaveCurso(nombre).catch(function(){});
     saveToStorage();
+
+    // ── Flujo 2: Si es docente, autoasignarse el curso ──
+    if (currentRole === 'docente' && _supaUser && _supa) {
+      var colegioId = _supaPerfil?.colegio_id || null;
+      // Actualizar DB.docentes en memoria
+      var docente = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
+      if (docente) {
+        if (!docente.cursosAsignados) docente.cursosAsignados = [];
+        if (!docente.cursosAsignados.some(function(c){ return c.curso === nombre; })) {
+          docente.cursosAsignados.push({ curso: nombre, asignaturas: [] });
+        }
+      }
+      // Guardar en docente_cursos
+      _supa.from('docente_cursos').upsert({
+        docente_id:   _supaUser.id,
+        curso_nombre: nombre,
+        colegio_id:   colegioId,
+        app:          'liax',
+      }, { onConflict: 'docente_id,curso_nombre,colegio_id' }).then(function(r) {
+        if (r.error) console.warn('[LIAX] Error autoasignando curso:', r.error.message);
+        else console.log('[LIAX] Curso', nombre, 'autoasignado al docente');
+      });
+    }
     portal.remove();
     renderGestionCursos();
     if (typeof renderCourseFilter === 'function') renderCourseFilter();
@@ -32525,6 +32554,25 @@ function gcConfirmarAsignarDocente(curso, docenteId, btn) {
   btn.textContent = '✓';
   btn.style.background = '#34d399';
   btn.disabled = true;
+
+  // ── Flujo 1: Guardar en tabla docente_cursos ──
+  if (_supaUser && _supa) {
+    var colegioId = _supaPerfil?.colegio_id || null;
+    // Buscar colegio_id del docente desde SA_USUARIOS o DB
+    var docenteUsuario = SA_USUARIOS.find(function(u){ return u.id === docenteId; });
+    if (docenteUsuario?.colegio) colegioId = docenteUsuario.colegio;
+
+    _supa.from('docente_cursos').upsert({
+      docente_id:   docenteId,
+      curso_nombre: curso,
+      colegio_id:   colegioId,
+      app:          'liax',
+    }, { onConflict: 'docente_id,curso_nombre,colegio_id' }).then(function(r) {
+      if (r.error) console.warn('[LIAX] Error asignando curso a docente:', r.error.message);
+      else console.log('[LIAX] Curso', curso, 'asignado a docente', docenteId, 'en Supabase');
+    });
+  }
+
   setTimeout(function() {
     document.querySelector('div[style*="fixed"][style*="9995"]')?.remove();
     renderGestionCursos();
@@ -32537,6 +32585,18 @@ function gcDesasignarDocente(curso, docenteId) {
   if (!docente || !confirm('¿Desasignar a ' + docente.nombre + ' de ' + curso + '?')) return;
   docente.cursosAsignados = (docente.cursosAsignados||[]).filter(function(c){ return c.curso !== curso; });
   saveToStorage();
+
+  // Eliminar de docente_cursos en Supabase
+  if (_supaUser && _supa) {
+    _supa.from('docente_cursos')
+      .delete()
+      .eq('docente_id', docenteId)
+      .eq('curso_nombre', curso)
+      .then(function(r) {
+        if (r.error) console.warn('[LIAX] Error desasignando curso:', r.error.message);
+      });
+  }
+
   renderGestionCursos();
   showSaveToast('Docente desasignado de ' + curso);
 }
