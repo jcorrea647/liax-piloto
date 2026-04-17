@@ -3563,6 +3563,35 @@ async function _supaLoadPerfil() {
     var rol = data.rol || 'docente';
     _origSwitchRole(rol);
 
+    // Si es docente, sincronizar su perfil con DB.docentes
+    if (rol === 'docente') {
+      var docenteExistente = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
+      if (!docenteExistente) {
+        // Crear entrada en DB.docentes desde el perfil de Supabase
+        docenteExistente = {
+          id:             _supaUser.id,
+          nombre:         data.nombre || '',
+          apellido:       data.apellido || '',
+          email:          data.email || '',
+          rol:            'docente',
+          establecimiento: '',
+          esp:            data.esp || '',
+          exp:            0,
+          avatar:         (data.nombre||'?')[0].toUpperCase(),
+          cursosAsignados: [],
+        };
+        DB.docentes.push(docenteExistente);
+      }
+      // Sincronizar curso asignado desde Supabase
+      if (data.curso) {
+        var cursos = data.curso.split(',').map(function(c){ return c.trim(); }).filter(Boolean);
+        docenteExistente.cursosAsignados = cursos.map(function(c){
+          return { curso: c, asignaturas: [] };
+        });
+      }
+      currentDocenteId = _supaUser.id;
+    }
+
     var HIERARCHY = {
       'superadmin': ['rs-sa','rs-sos','rs-dir','rs-doc','rs-alu'],
       'sostenedor':  ['rs-sos','rs-dir','rs-doc'],
@@ -8653,7 +8682,20 @@ async function saPopulateColegioSelect(selected){
 function saUsuarioRolChange(){
   const r=document.getElementById('saU-rol').value;
   document.getElementById('saU-colegio-group').style.display=['superadmin','sostenedor'].includes(r)?'none':'';
-  document.getElementById('saU-curso-group').style.display=r==='alumno'?'':'none';
+  // Curso: visible para docentes (cursos asignados, separados por coma) y alumnos
+  var cursoGroup = document.getElementById('saU-curso-group');
+  if (cursoGroup) {
+    cursoGroup.style.display = ['docente','alumno'].includes(r) ? '' : 'none';
+    var cursoLabel = cursoGroup.querySelector('.form-label');
+    var cursoInput = document.getElementById('saU-curso');
+    if (r === 'docente') {
+      if (cursoLabel) cursoLabel.textContent = 'Cursos asignados (separados por coma)';
+      if (cursoInput) cursoInput.placeholder = 'Ej: 6°A, 7°B';
+    } else {
+      if (cursoLabel) cursoLabel.textContent = 'Curso / Aula';
+      if (cursoInput) cursoInput.placeholder = 'Ej: 6°A';
+    }
+  }
 }
 function saGenPassword(){
   const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
@@ -8691,8 +8733,10 @@ async function saGuardarUsuario(){
   try {
     if(editId){
       // ── UPDATE en tabla usuarios ──
+      console.log('[LIAX] Actualizando usuario:', editId, 'email:', payload.email);
       const { error } = await _supa.from('usuarios').update(payload).eq('id', editId);
-      if(error) throw error;
+      if(error) { console.error('[LIAX] Error UPDATE:', error.message, error.details); throw error; }
+      console.log('[LIAX] Usuario actualizado OK');
       // Cambiar contraseña si se proporcionó (solo con service role; aquí invocamos una Edge Function si existe)
       if(password){
         try {
