@@ -2039,6 +2039,7 @@
           <div class="page-sub" id="mis-cursos-sub">Resumen de notas, asistencia, evaluaciones y más</div>
         </div>
         <div class="btn-group" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-outline" onclick="gcNuevoCurso()" style="font-size:12px">+ Nuevo Curso</button>
           <button class="btn btn-outline" onclick="openAnotacionModal('','')" style="font-size:12px">📌 Anotación</button>
           <button class="btn btn-outline" onclick="mcAbrirAlumnos()" style="font-size:12px">👤 Ver Alumnos</button>
           <button class="btn btn-outline" onclick="openNuevoDato()" style="font-size:12px">📥 Cargar datos</button>
@@ -32098,6 +32099,8 @@ function gcNuevoCurso() {
     portal.remove();
     renderGestionCursos();
     if (typeof renderCourseFilter === 'function') renderCourseFilter();
+    if (typeof renderCursoChips === 'function') renderCursoChips();
+    if (typeof renderCursoResumen === 'function') renderCursoResumen();
     showSaveToast('✅ Curso "' + nombre + '" creado');
   };
 }
