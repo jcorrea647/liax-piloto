@@ -3636,9 +3636,15 @@ async function _supaLoadAgentes() {
     if (allData.length) {
       allData.forEach(function(ag) {
         var agente = {
-          id: ag.id, dim: ag.dim, nombre: ag.nombre,
-          icon: ag.icon, desc: ag.desc, prompt: ag.prompt,
-          preguntas: ag.preguntas || [], custom: true, _fromSupabase: true,
+          id:        ag.id,
+          dim:       ag.dimension || '',
+          nombre:    ag.nombre,
+          icon:      ag.icono || '🤖',
+          desc:      ag.descripcion || '',
+          prompt:    ag.prompt_text || '',
+          preguntas: ag.preguntas || [],
+          custom:    true,
+          _fromSupabase: true,
         };
         var existing = AGENTS.find(function(a) { return a.id === agente.id; });
         if (!existing) {
@@ -3659,55 +3665,27 @@ async function _supaLoadAgentes() {
 }
 
 async function _supaSaveAgente(agente) {
-  if (!_supaUser || !agente.custom) return;
-  try {
-    const { error } = await _supa.from('agentes_custom').upsert({
-      id:         agente.id,
-      user_id:    _supaUser.id,
-      colegio_id: _supaPerfil?.colegio_id || '',
-      nombre:     agente.nombre,
-      icon:       agente.icon || '🤖',
-      dim:        agente.dim || '',
-      desc:       agente.desc || '',
-      prompt:     agente.prompt || '',
-      preguntas:  agente.preguntas || [],
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'id' });
-    if (error) throw error;
-    console.log('[Supabase] Agente guardado:', agente.nombre);
-  } catch(e) {
-    // Si falla upsert, intentar update directo
-    try {
-      await _supa.from('agentes_custom').update({
-        nombre:     agente.nombre,
-        icon:       agente.icon || '🤖',
-        dim:        agente.dim || '',
-        desc:       agente.desc || '',
-        prompt:     agente.prompt || '',
-        preguntas:  agente.preguntas || [],
-        updated_at: new Date().toISOString(),
-      }).eq('id', agente.id);
-      console.log('[Supabase] Agente actualizado (fallback):', agente.nombre);
-    } catch(e2) {
-      // Si tampoco funciona update, intentar insert
-      try {
-        await _supa.from('agentes_custom').insert({
-          id:         agente.id,
-          user_id:    _supaUser.id,
-          colegio_id: _supaPerfil?.colegio_id || '',
-          nombre:     agente.nombre,
-          icon:       agente.icon || '🤖',
-          dim:        agente.dim || '',
-          desc:       agente.desc || '',
-          prompt:     agente.prompt || '',
-          preguntas:  agente.preguntas || [],
-          updated_at: new Date().toISOString(),
-        });
-        console.log('[Supabase] Agente insertado (fallback2):', agente.nombre);
-      } catch(e3) {
-        console.warn('[Supabase] Error guardando agente:', agente.nombre, e3.message);
-      }
-    }
+  if (!_supaUser) { console.warn('[LIAX] _supaSaveAgente: sin usuario'); return; }
+  if (!agente.custom) { return; }
+
+  const payload = {
+    id:          agente.id,
+    user_id:     _supaUser.id,
+    colegio_id:  _supaPerfil?.colegio_id || null,
+    nombre:      agente.nombre,
+    icono:       agente.icon || '🤖',
+    dimension:   agente.dim || '',
+    descripcion: agente.desc || '',
+    prompt_text: agente.prompt || '',
+    preguntas:   agente.preguntas || [],
+    updated_at:  new Date().toISOString(),
+  };
+
+  const { error } = await _supa.from('agentes_custom').upsert(payload, { onConflict: 'id' });
+  if (error) {
+    console.error('[LIAX] Error guardando agente:', error.message, error.details);
+  } else {
+    console.log('[LIAX] Agente guardado OK:', agente.nombre);
   }
 }
 
@@ -32580,7 +32558,7 @@ async function _supaSaveCurso(nombre) {
     await _supa.from('cursos').upsert({
       id: 'curso_' + (_supaPerfil?.colegio_id || _supaUser.id) + '_' + nombre.toLowerCase().replace(/[^a-z0-9]/g,'_'),
       nombre: nombre,
-      colegio_id: _supaPerfil?.colegio_id || '',
+      colegio_id: _supaPerfil?.colegio_id || null,
       user_id: _supaUser.id,
     });
   } catch(e) { console.warn('[Supabase] Error saving curso:', e.message); }
