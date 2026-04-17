@@ -1482,6 +1482,7 @@
       <div class="nav-item" onclick="showPanel('sa-colegios')"><span>🏫</span> <span id="i18n-colegios">Colegios</span> <span class="nav-count" id="cnt-colegios">3</span></div>
       <div class="nav-item" onclick="showPanel('sa-agentes')"><span>🛠️</span> <span id="i18n-gestionar_agentes">Gestionar Agentes</span></div>
       <div class="nav-item" onclick="showPanel('sa-asignar')"><span>🔗</span> <span id="i18n-asignar_agentes">Asignar Agentes</span></div>
+      <div class="nav-item" onclick="showPanel('sa-usuarios')"><span>👥</span> <span>Usuarios</span> <span class="nav-count" id="cnt-sa-usuarios">0</span></div>
     </div>
 
     <!-- SA + Sostenedor + Director -->
@@ -2426,6 +2427,82 @@
       <div id="denDetalleContainer"></div>
     </div>
 
+    <!-- SA: GESTIÓN DE USUARIOS -->
+    <div class="panel" id="panel-sa-usuarios">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px">
+        <div>
+          <div class="page-title">👥 Gestión de Usuarios</div>
+          <div class="page-sub">Crear, editar y administrar todos los usuarios del sistema — Solo SuperAdmin</div>
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="saUsuariosExportCSV()" style="font-size:11px">📥 Exportar CSV</button>
+          <button class="btn btn-primary" onclick="saOpenNuevoUsuario()">+ Nuevo Usuario</button>
+        </div>
+      </div>
+
+      <!-- Filtros y búsqueda -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+        <div style="position:relative;flex:1;min-width:200px">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px">🔍</span>
+          <input class="search-input" id="saUsuarioSearch" placeholder="Buscar por nombre, email o colegio…" oninput="saRenderUsuarios()" style="padding-left:32px;width:100%;box-sizing:border-box">
+        </div>
+        <select id="saUsuarioFiltroRol" onchange="saRenderUsuarios()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 10px;font-size:11px;font-family:DM Sans,sans-serif;outline:none">
+          <option value="">Todos los roles</option>
+          <option value="superadmin">⚡ SuperAdmin</option>
+          <option value="sostenedor">🏛 Sostenedor</option>
+          <option value="director">🎓 Director</option>
+          <option value="docente">👨‍🏫 Docente</option>
+          <option value="alumno">📚 Alumno</option>
+        </select>
+        <select id="saUsuarioFiltroColegio" onchange="saRenderUsuarios()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 10px;font-size:11px;font-family:DM Sans,sans-serif;outline:none">
+          <option value="">Todos los colegios</option>
+        </select>
+        <select id="saUsuarioFiltroEstado" onchange="saRenderUsuarios()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 10px;font-size:11px;font-family:DM Sans,sans-serif;outline:none">
+          <option value="">Todos los estados</option>
+          <option value="activo">✅ Activo</option>
+          <option value="inactivo">⛔ Inactivo</option>
+          <option value="pendiente">⏳ Pendiente</option>
+        </select>
+      </div>
+
+      <!-- Stats rápidas -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px" id="saUsuariosStats"></div>
+
+      <!-- Tabla -->
+      <div class="table-wrap">
+        <div class="table-top">
+          <div class="table-title">Usuarios del Sistema</div>
+          <div id="saUsuarioCount" style="font-size:11px;color:var(--muted)"></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table id="saUsuariosTable">
+            <thead>
+              <tr>
+                <th style="width:36px"><input type="checkbox" id="saSelAll" onchange="saToggleSelAll(this)" style="cursor:pointer"></th>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Colegio</th>
+                <th>Estado</th>
+                <th>Último acceso</th>
+                <th>Tokens usados</th>
+                <th style="text-align:right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="saUsuariosTbody"></tbody>
+          </table>
+        </div>
+        <!-- Bulk actions bar -->
+        <div id="saBulkBar" style="display:none;align-items:center;gap:10px;padding:10px 16px;background:var(--dim1);border-top:1px solid var(--accent1)44;font-size:12px">
+          <span id="saBulkCount" style="color:var(--accent1);font-weight:700"></span>
+          <button class="btn btn-outline" onclick="saBulkActivar()" style="font-size:11px">✅ Activar</button>
+          <button class="btn btn-outline" onclick="saBulkDesactivar()" style="font-size:11px">⛔ Desactivar</button>
+          <button class="btn btn-outline" onclick="saBulkCambiarColegio()" style="font-size:11px">🏫 Cambiar colegio</button>
+          <button class="btn btn-outline" onclick="saBulkEliminar()" style="font-size:11px;color:var(--accent3);border-color:var(--accent3)44">🗑️ Eliminar</button>
+          <button class="btn btn-outline" style="font-size:11px;margin-left:auto" onclick="saLimpiarSel()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
     <!-- SA: ASIGNAR AGENTES -->
     <div class="panel" id="panel-sa-asignar">
       <div class="page-header">
@@ -2494,6 +2571,78 @@
   </main>
 
 </div><!-- /.app -->
+
+<!-- ══════════════ MODAL USUARIO SA ══════════════ -->
+<div class="modal-overlay" id="saUsuarioModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <div class="modal-icon" style="background:#1a1060;font-size:20px">👤</div>
+      <div>
+        <div class="modal-title" id="saUsuarioModalTitle">Nuevo Usuario</div>
+        <span class="modal-dim" style="background:#1a1060;color:#c084fc">SuperAdmin</span>
+      </div>
+      <button class="modal-close" onclick="saCloseUsuarioModal()">✕</button>
+    </div>
+    <div class="modal-body" style="display:grid;gap:12px">
+      <input type="hidden" id="saUsuarioEditId">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Nombre <span style="color:var(--accent3)">*</span></label>
+          <input class="form-input" id="saU-nombre" placeholder="Ej: María González">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Apellido</label>
+          <input class="form-input" id="saU-apellido" placeholder="Ej: Pérez">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Correo electrónico <span style="color:var(--accent3)">*</span></label>
+          <input class="form-input" id="saU-email" type="email" placeholder="usuario@colegio.cl">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rol <span style="color:var(--accent3)">*</span></label>
+          <select class="form-input" id="saU-rol" onchange="saUsuarioRolChange()">
+            <option value="superadmin">⚡ SuperAdmin</option>
+            <option value="sostenedor">🏛 Sostenedor</option>
+            <option value="director">🎓 Director</option>
+            <option value="docente">👨‍🏫 Docente</option>
+            <option value="alumno">📚 Alumno</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select class="form-input" id="saU-estado">
+            <option value="activo">✅ Activo</option>
+            <option value="inactivo">⛔ Inactivo</option>
+            <option value="pendiente">⏳ Pendiente</option>
+          </select>
+        </div>
+        <div class="form-group" id="saU-colegio-group" style="grid-column:1/-1">
+          <label class="form-label">Colegio</label>
+          <select class="form-input" id="saU-colegio"></select>
+        </div>
+        <div class="form-group" id="saU-curso-group" style="grid-column:1/-1;display:none">
+          <label class="form-label">Curso / Aula</label>
+          <input class="form-input" id="saU-curso" placeholder="Ej: 6°A">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Contraseña <span id="saU-pass-hint" style="color:var(--muted);font-weight:400">(dejar vacío para no cambiar)</span></label>
+          <div style="position:relative">
+            <input class="form-input" id="saU-password" type="password" placeholder="••••••••" style="width:100%;padding-right:80px">
+            <button type="button" onclick="saGenPassword()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:2px 8px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif">Generar</button>
+          </div>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Notas internas</label>
+          <textarea class="form-input" id="saU-notas" rows="2" placeholder="Observaciones del administrador…" style="resize:vertical"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:4px">
+        <button class="btn btn-outline" onclick="saCloseUsuarioModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saGuardarUsuario()">💾 Guardar Usuario</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL NUEVO COLEGIO -->
 <div class="modal-overlay" id="newColegioModal">
@@ -7935,7 +8084,7 @@ function switchRole(r) {
   document.body.classList.add(cfg.bodyClass);
 
   // Redirect away from SA-only panels
-  if (r !== 'superadmin' && ['sa-colegios','sa-agentes','sa-asignar'].includes(currentPanel)) {
+  if (r !== 'superadmin' && ['sa-colegios','sa-agentes','sa-asignar','sa-usuarios'].includes(currentPanel)) {
     showPanel('dashboard');
   }
   // Redirect docente away from usuarios panel
@@ -8105,6 +8254,229 @@ function updateAgentCounts(){
   document.getElementById('nav-agent-count').textContent=AGENTS.length;
 }
 
+// ══════════════════════════════════════════════════════════
+//  SA — GESTIÓN DE USUARIOS
+// ══════════════════════════════════════════════════════════
+let SA_USUARIOS = [
+  { id:'u1', nombre:'Carlos', apellido:'Mendoza', email:'carlos@demo.cl', rol:'director', colegio:'c1', estado:'activo', ultimoAcceso:'2025-04-15', tokens:1240, notas:'' },
+  { id:'u2', nombre:'Ana',    apellido:'Torres',  email:'ana@demo.cl',    rol:'docente',  colegio:'c1', estado:'activo', ultimoAcceso:'2025-04-14', tokens:860, notas:'' },
+  { id:'u3', nombre:'Pedro',  apellido:'Silva',   email:'pedro@demo.cl',  rol:'docente',  colegio:'c2', estado:'inactivo', ultimoAcceso:'2025-03-20', tokens:340, notas:'' },
+  { id:'u4', nombre:'Laura',  apellido:'Rojas',   email:'laura@demo.cl',  rol:'director', colegio:'c2', estado:'activo',  ultimoAcceso:'2025-04-16', tokens:2100, notas:'' },
+  { id:'u5', nombre:'Mateo',  apellido:'Fuentes', email:'mateo@demo.cl',  rol:'alumno',   colegio:'c1', estado:'pendiente', ultimoAcceso:null, tokens:0, notas:'Pendiente verificación de correo' },
+];
+let saSelectedUsers = new Set();
+
+function saInitUsuarios(){
+  saRenderStats();
+  saRenderUsuarios();
+  saPopulateColegioFilter();
+}
+
+function saRenderStats(){
+  const roles = ['superadmin','sostenedor','director','docente','alumno'];
+  const icons = ['⚡','🏛','🎓','👨‍🏫','📚'];
+  const colors = ['#c084fc','#60a5fa','#34d399','#00e5c0','#ffd166'];
+  const bgs   = ['#2d0a5e','#0d2a44','#0d3d26','#0d4040','#5a4400'];
+  const el = document.getElementById('saUsuariosStats');
+  if(!el) return;
+  el.innerHTML = roles.map((r,i)=>{
+    const cnt = SA_USUARIOS.filter(u=>u.rol===r).length;
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:11px 13px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${colors[i]}"></div>
+      <div style="font-size:20px;font-weight:800;color:${colors[i]};font-family:Syne,sans-serif">${cnt}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:1px">${icons[i]} ${r.charAt(0).toUpperCase()+r.slice(1)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('cnt-sa-usuarios').textContent = SA_USUARIOS.length;
+}
+
+function saPopulateColegioFilter(){
+  const sel = document.getElementById('saUsuarioFiltroColegio');
+  if(!sel) return;
+  const saved = sel.value;
+  sel.innerHTML = '<option value="">Todos los colegios</option>' +
+    COLEGIOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  sel.value = saved;
+}
+
+function saRenderUsuarios(){
+  const q     = (document.getElementById('saUsuarioSearch')?.value||'').toLowerCase();
+  const fRol  = document.getElementById('saUsuarioFiltroRol')?.value||'';
+  const fCol  = document.getElementById('saUsuarioFiltroColegio')?.value||'';
+  const fEst  = document.getElementById('saUsuarioFiltroEstado')?.value||'';
+  const tbody = document.getElementById('saUsuariosTbody');
+  if(!tbody) return;
+
+  let list = SA_USUARIOS.filter(u=>{
+    if(fRol  && u.rol!==fRol) return false;
+    if(fCol  && u.colegio!==fCol) return false;
+    if(fEst  && u.estado!==fEst) return false;
+    if(q){
+      const hay = (u.nombre+' '+u.apellido+' '+u.email+(saGetColegio(u.colegio)||'')).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const rolColors = {superadmin:'#c084fc',sostenedor:'#60a5fa',director:'#34d399',docente:'#00e5c0',alumno:'#ffd166'};
+  const rolBgs    = {superadmin:'#2d0a5e',sostenedor:'#0d2a44',director:'#0d3d26',docente:'#0d4040',alumno:'#5a4400'};
+  const estadoMap = {activo:'<span style="color:#34d399;font-size:10px;font-weight:700">✅ Activo</span>',
+                     inactivo:'<span style="color:#f87171;font-size:10px;font-weight:700">⛔ Inactivo</span>',
+                     pendiente:'<span style="color:#fbbf24;font-size:10px;font-weight:700">⏳ Pendiente</span>'};
+  const rolIcons  = {superadmin:'⚡',sostenedor:'🏛',director:'🎓',docente:'👨‍🏫',alumno:'📚'};
+
+  tbody.innerHTML = list.length ? list.map(u=>{
+    const initials = (u.nombre[0]+(u.apellido?u.apellido[0]:'')).toUpperCase();
+    const colNombre = saGetColegio(u.colegio)||'—';
+    const checked = saSelectedUsers.has(u.id);
+    return `<tr>
+      <td><input type="checkbox" ${checked?'checked':''} onchange="saToggleSelUser('${u.id}',this)" style="cursor:pointer"></td>
+      <td>
+        <div class="user-cell">
+          <div class="mini-av" style="background:${rolBgs[u.rol]||'var(--surface2)'};color:${rolColors[u.rol]||'var(--text)'}">${initials}</div>
+          <div>
+            <div style="font-weight:600;font-size:12px">${u.nombre} ${u.apellido||''}</div>
+            <div style="font-size:10px;color:var(--muted)">${u.email}</div>
+          </div>
+        </div>
+      </td>
+      <td><span style="background:${rolBgs[u.rol]};color:${rolColors[u.rol]};font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px">${rolIcons[u.rol]||''} ${u.rol}</span></td>
+      <td style="font-size:11px">${colNombre}</td>
+      <td>${estadoMap[u.estado]||u.estado}</td>
+      <td style="font-size:11px;color:var(--muted)">${u.ultimoAcceso||'Nunca'}</td>
+      <td style="font-size:11px;color:var(--muted)">${(u.tokens||0).toLocaleString()}</td>
+      <td style="text-align:right">
+        <div style="display:flex;gap:5px;justify-content:flex-end">
+          <button onclick="saOpenEditUsuario('${u.id}')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif;transition:all .15s" onmouseover="this.style.borderColor='var(--accent1)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">✏️ Editar</button>
+          <button onclick="saToggleEstado('${u.id}')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif">${u.estado==='activo'?'⛔ Desactivar':'✅ Activar'}</button>
+          <button onclick="saEliminarUsuario('${u.id}')" style="background:none;border:1px solid var(--accent3)33;color:var(--accent3);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;font-size:12px">Sin resultados</td></tr>`;
+
+  document.getElementById('saUsuarioCount').textContent = `${list.length} usuario${list.length!==1?'s':''}`;
+  saUpdateBulkBar();
+}
+
+function saGetColegio(id){ return (COLEGIOS.find(c=>c.id===id)||{}).nombre||null; }
+
+function saToggleSelUser(id, chk){
+  if(chk.checked) saSelectedUsers.add(id);
+  else saSelectedUsers.delete(id);
+  saUpdateBulkBar();
+}
+function saToggleSelAll(chk){
+  const rows = document.querySelectorAll('#saUsuariosTbody input[type=checkbox]');
+  rows.forEach(r=>{ r.checked=chk.checked; const uid=r.getAttribute('onchange')?.match(/'([^']+)'/)?.[1]; if(uid){chk.checked?saSelectedUsers.add(uid):saSelectedUsers.delete(uid);} });
+  saUpdateBulkBar();
+}
+function saLimpiarSel(){ saSelectedUsers.clear(); document.querySelectorAll('#saUsuariosTbody input[type=checkbox]').forEach(r=>r.checked=false); if(document.getElementById('saSelAll'))document.getElementById('saSelAll').checked=false; saUpdateBulkBar(); }
+function saUpdateBulkBar(){ const n=saSelectedUsers.size; const bar=document.getElementById('saBulkBar'); if(!bar)return; bar.style.display=n>0?'flex':'none'; document.getElementById('saBulkCount').textContent=`${n} usuario${n!==1?'s':''} seleccionado${n!==1?'s':''}`; }
+
+function saOpenNuevoUsuario(){
+  document.getElementById('saUsuarioModalTitle').textContent='Nuevo Usuario';
+  document.getElementById('saUsuarioEditId').value='';
+  ['nombre','apellido','email','password','notas','curso'].forEach(f=>{ const el=document.getElementById('saU-'+f); if(el)el.value=''; });
+  document.getElementById('saU-rol').value='docente';
+  document.getElementById('saU-estado').value='activo';
+  document.getElementById('saU-pass-hint').style.display='none';
+  saPopulateColegioSelect();
+  saUsuarioRolChange();
+  document.getElementById('saUsuarioModal').classList.add('open');
+}
+function saOpenEditUsuario(id){
+  const u=SA_USUARIOS.find(x=>x.id===id); if(!u)return;
+  document.getElementById('saUsuarioModalTitle').textContent='Editar Usuario';
+  document.getElementById('saUsuarioEditId').value=id;
+  document.getElementById('saU-nombre').value=u.nombre||'';
+  document.getElementById('saU-apellido').value=u.apellido||'';
+  document.getElementById('saU-email').value=u.email||'';
+  document.getElementById('saU-password').value='';
+  document.getElementById('saU-notas').value=u.notas||'';
+  document.getElementById('saU-rol').value=u.rol||'docente';
+  document.getElementById('saU-estado').value=u.estado||'activo';
+  document.getElementById('saU-pass-hint').style.display='';
+  saPopulateColegioSelect(u.colegio);
+  saUsuarioRolChange();
+  if(u.curso) document.getElementById('saU-curso').value=u.curso;
+  document.getElementById('saUsuarioModal').classList.add('open');
+}
+function saCloseUsuarioModal(){ document.getElementById('saUsuarioModal').classList.remove('open'); }
+
+function saPopulateColegioSelect(selected){
+  const sel=document.getElementById('saU-colegio');
+  sel.innerHTML='<option value="">— Sin colegio —</option>'+COLEGIOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  if(selected) sel.value=selected;
+}
+function saUsuarioRolChange(){
+  const r=document.getElementById('saU-rol').value;
+  const noCol=['superadmin','sostenedor'];
+  const showCol=!noCol.includes(r);
+  document.getElementById('saU-colegio-group').style.display=showCol?'':'none';
+  document.getElementById('saU-curso-group').style.display=r==='alumno'?'':'none';
+}
+function saGenPassword(){
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+  let p=''; for(let i=0;i<12;i++) p+=chars[Math.floor(Math.random()*chars.length)];
+  const el=document.getElementById('saU-password'); el.value=p; el.type='text';
+  setTimeout(()=>el.type='password',3000);
+}
+function saGuardarUsuario(){
+  const nombre=document.getElementById('saU-nombre').value.trim();
+  const email=document.getElementById('saU-email').value.trim();
+  if(!nombre||!email){ alert('Nombre y correo son obligatorios.'); return; }
+  const editId=document.getElementById('saUsuarioEditId').value;
+  const data={
+    nombre, apellido:document.getElementById('saU-apellido').value.trim(),
+    email, rol:document.getElementById('saU-rol').value,
+    estado:document.getElementById('saU-estado').value,
+    colegio:document.getElementById('saU-colegio').value||null,
+    curso:document.getElementById('saU-curso').value.trim()||null,
+    notas:document.getElementById('saU-notas').value.trim(),
+  };
+  if(editId){
+    const idx=SA_USUARIOS.findIndex(u=>u.id===editId);
+    if(idx>-1) SA_USUARIOS[idx]={...SA_USUARIOS[idx],...data};
+  } else {
+    SA_USUARIOS.push({id:'u'+Date.now(),...data,ultimoAcceso:null,tokens:0});
+  }
+  saCloseUsuarioModal();
+  saRenderStats();
+  saRenderUsuarios();
+}
+function saToggleEstado(id){
+  const u=SA_USUARIOS.find(x=>x.id===id); if(!u)return;
+  u.estado=u.estado==='activo'?'inactivo':'activo';
+  saRenderStats(); saRenderUsuarios();
+}
+function saEliminarUsuario(id){
+  if(!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+  SA_USUARIOS=SA_USUARIOS.filter(u=>u.id!==id);
+  saSelectedUsers.delete(id);
+  saRenderStats(); saRenderUsuarios();
+}
+function saBulkActivar(){ saSelectedUsers.forEach(id=>{ const u=SA_USUARIOS.find(x=>x.id===id); if(u) u.estado='activo'; }); saRenderStats(); saRenderUsuarios(); }
+function saBulkDesactivar(){ saSelectedUsers.forEach(id=>{ const u=SA_USUARIOS.find(x=>x.id===id); if(u) u.estado='inactivo'; }); saRenderStats(); saRenderUsuarios(); }
+function saBulkEliminar(){ if(!confirm(`¿Eliminar ${saSelectedUsers.size} usuario(s)?`)) return; SA_USUARIOS=SA_USUARIOS.filter(u=>!saSelectedUsers.has(u.id)); saSelectedUsers.clear(); saRenderStats(); saRenderUsuarios(); }
+function saBulkCambiarColegio(){
+  const colegioId=prompt('Ingresa el ID o nombre del colegio destino:\n'+COLEGIOS.map(c=>c.id+': '+c.nombre).join('\n'));
+  if(!colegioId) return;
+  const c=COLEGIOS.find(x=>x.id===colegioId||x.nombre.toLowerCase()===colegioId.toLowerCase());
+  if(!c){ alert('Colegio no encontrado'); return; }
+  saSelectedUsers.forEach(id=>{ const u=SA_USUARIOS.find(x=>x.id===id); if(u) u.colegio=c.id; });
+  saRenderStats(); saRenderUsuarios();
+}
+function saUsuariosExportCSV(){
+  const cols=['ID','Nombre','Apellido','Email','Rol','Colegio','Estado','Último acceso','Tokens'];
+  const rows=SA_USUARIOS.map(u=>[u.id,u.nombre,u.apellido,u.email,u.rol,saGetColegio(u.colegio)||'',u.estado,u.ultimoAcceso||'',u.tokens||0]);
+  const csv=[cols,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='usuarios_liax.csv'; a.click();
+}
+
+
+
 // ── ASSIGN BY SCHOOL ──────────────────────────────────────
 let selectedSchoolId = null;
 let selectedSchoolAgents = new Set();
@@ -8269,13 +8641,14 @@ function saveUserAssignment(){
 // ── OVERRIDE showPanel FOR SA CHECK ──────────────────────
 const _origShowPanel = showPanel;
 showPanel = function(id){
-  if(['sa-colegios','sa-agentes','sa-asignar'].includes(id) && currentRole!=='superadmin'){
+  if(['sa-colegios','sa-agentes','sa-asignar','sa-usuarios'].includes(id) && currentRole!=='superadmin'){
     alert('⚡ Solo el SuperAdmin puede acceder a esta sección'); return;
   }
   _origShowPanel(id);
   if(id==='sa-colegios') renderColegiosGrid();
   if(id==='sa-agentes') renderSAAgentGrid();
   if(id==='sa-asignar'){ setAssignTab('colegio'); renderAssignSchoolList(); }
+  if(id==='sa-usuarios') saInitUsuarios();
 };
 
 // ── INIT ─────────────────────────────────────────────────
