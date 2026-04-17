@@ -3555,7 +3555,7 @@ async function supaLogout() {
 
 async function _supaLoadPerfil() {
   if (!_supaUser) return;
-  var { data } = await _supa.from('usuarios').select('*').eq('id', _supaUser.id).single();
+  var { data } = await _supa.from('usuarios').select('*').eq('id', _supaUser.id).maybeSingle();
   if (data) {
     _supaPerfil = data;
     // Apply role to platform
@@ -30517,6 +30517,11 @@ function calcNivelActual(stats, logrosObtenidos) {
 
 function checkNiveles() {
   var data  = NIVEL_STORE.get();
+  // Asegurar estructura válida aunque venga vacío
+  if (!data || typeof data !== 'object') data = {};
+  if (!Array.isArray(data.logros)) data.logros = [];
+  if (!data.nivel) data.nivel = 1;
+
   var stats = getNivelStats();
   var nuevos = [];
 
@@ -31632,11 +31637,12 @@ var AGENT_VAULT = (function() {
 // ── Hook: save to IndexedDB every time agents change ──────────
 function _vaultSaveAgents() {
   var customs = AGENTS.filter(function(a){ return a.custom; });
-  // Always save - even empty - so stale backup is cleared after deletes
   AGENT_VAULT.saveAgents(customs).catch(function(){});
   window._AGENTS_BACKUP_MEM = JSON.stringify({ v:2, agents: customs, savedAt: new Date().toISOString() });
-  // Sync to Supabase
-  if (typeof _vaultSaveAgents_supaSync === 'function') _vaultSaveAgents_supaSync();
+  // Sync each agent to Supabase
+  if (_supaUser) {
+    customs.forEach(function(ag) { _supaSaveAgente(ag).catch(function(){}); });
+  }
 }
 
 // ── Restore from IndexedDB on load (primary) ─────────────────
@@ -34732,19 +34738,8 @@ updateDashStats(); renderAgents(); initCtx(); switchRole('superadmin');
 liaxInitAuth();
 // Restore custom agents + API keys from all available sources
 setTimeout(async function(){
-  // Restore agents from local storage / IndexedDB
+  // Restore agents from IndexedDB → syncs to Supabase automatically
   await _vaultRestoreAgents();
-  // After restoring locally, push any custom agents that may not be in Supabase yet
-  // (covers the case where agent was created offline or before session was ready)
-  if (_supaUser && typeof _supaSaveAgente === 'function') {
-    var pendingSync = AGENTS.filter(function(a){ return a.custom && !a._fromSupabase; });
-    pendingSync.forEach(function(ag) {
-      _supaSaveAgente(ag).catch(function(){});
-    });
-    if (pendingSync.length > 0) {
-      console.log('[LIAX] Syncing', pendingSync.length, 'local agent(s) to Supabase');
-    }
-  }
   // Restore API keys from IndexedDB if localStorage is empty
   // Restore API keys from IndexedDB into window cache vars
   var keys = ['anthropic_key','gemini_key','openai_key'];
