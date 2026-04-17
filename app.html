@@ -3898,7 +3898,9 @@ function _markCursoDeleted(curso) {
     _supa.from('config').upsert(
       { key: 'cursos_eliminados_' + _supaUser.id, value: JSON.stringify(lista) },
       { onConflict: 'key' }
-    ).catch(function(){});
+    ).then(function(r) {
+      if (r.error) console.warn('[LIAX] Error guardando cursos eliminados:', r.error.message);
+    });
   }
 }
 function _isCursoDeleted(curso) {
@@ -12235,7 +12237,7 @@ function saveUmbrales() {
     ausencias: parseInt(document.getElementById('thresh-ausencias').value)   || UMBRAL_DEFAULTS.ausencias,
     nivel:     document.getElementById('thresh-nivel').value                 || UMBRAL_DEFAULTS.nivel,
   };
-  window._UMBRALES_MEM = u; if(_supaUser&&_supa){_supa.from('config').upsert({key:'umbrales_'+(_supaPerfil?.colegio_id||_supaUser.id),value:JSON.stringify(u)},{onConflict:'key'}).catch(function(){});}
+  window._UMBRALES_MEM = u; if(_supaUser&&_supa){_supa.from('config').upsert({key:'umbrales_'+(_supaPerfil?.colegio_id||_supaUser.id),value:JSON.stringify(u)},{onConflict:'key'}).then(function(){});}
   const msg = document.getElementById('thresh-saved-msg');
   if (msg) { msg.style.display='block'; setTimeout(()=>msg.style.display='none',3000); }
   showSaveToast('✅ Umbrales guardados');
