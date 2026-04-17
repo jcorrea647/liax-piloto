@@ -3454,50 +3454,43 @@
 // ══════════════════════════════════════════════════════════════
 // LIAX_MEM — Interceptor de localStorage / sessionStorage
 //
-// Toda la app usa localStorage.getItem/setItem/removeItem.
-// Este bloque reemplaza AMBAS APIs con un Map puro en memoria
-// de sesión: NADA se escribe al disco del navegador.
+// Reemplaza las APIs con un Map en memoria puro de sesión.
+// Nada se escribe al disco del navegador.
 // Supabase es la única fuente de verdad persistente.
 // ══════════════════════════════════════════════════════════════
 (function() {
   'use strict';
-  var _store = Object.create(null);  // mapa puro sin herencia
+  var _store = {};
 
   var _mem = {
     getItem:    function(k)    { return Object.prototype.hasOwnProperty.call(_store, k) ? _store[k] : null; },
     setItem:    function(k, v) { _store[String(k)] = String(v); },
     removeItem: function(k)    { delete _store[String(k)]; },
-    clear:      function()     { Object.keys(_store).forEach(function(k){ delete _store[k]; }); },
-    key:        function(i)    { return Object.keys(_store)[i] !== undefined ? Object.keys(_store)[i] : null; },
+    clear:      function()     { _store = {}; },
+    key:        function(i)    { return Object.keys(_store)[i] || null; },
     get length(){ return Object.keys(_store).length; },
     hasOwnProperty: function(k){ return Object.prototype.hasOwnProperty.call(_store, k); },
-    // Iteración for...in (usada por código de reset/backup)
-    _raw: function(){ return _store; },
   };
 
-  // Hacer iterable con for...in (algunos loops iteran las keys)
-  for (var _k in _store) {
-    if (Object.prototype.hasOwnProperty.call(_store, _k)) {
-      Object.defineProperty(_mem, _k, {
-        get: function(key){ return function(){ return _store[key]; }; }(_k),
-        enumerable: true, configurable: true,
-      });
-    }
+  // Override window.localStorage and window.sessionStorage
+  // Use a try/catch for each so one failure doesn't block the other
+  try {
+    Object.defineProperty(window, 'localStorage', {
+      get: function() { return _mem; },
+      configurable: true,
+    });
+  } catch(e) {
+    try { window.localStorage = _mem; } catch(e2) {}
+  }
+  try {
+    Object.defineProperty(window, 'sessionStorage', {
+      get: function() { return _mem; },
+      configurable: true,
+    });
+  } catch(e) {
+    try { window.sessionStorage = _mem; } catch(e2) {}
   }
 
-  function _override(name) {
-    try {
-      Object.defineProperty(window, name, {
-        value: _mem, writable: false, configurable: true,
-      });
-    } catch(e) {
-      try { window[name] = _mem; } catch(e2) {}
-    }
-  }
-  _override('localStorage');
-  _override('sessionStorage');
-
-  // Exponer para debugging interno (no lo usan las APIs del browser)
   window.__LIAX_MEM__ = _store;
 })();
 
@@ -31393,8 +31386,7 @@ function ayudaOfflineAnswer(q) {
   q = q.toLowerCase();
   if (/excel|subir|archivo|dato/.test(q)) return 'Para subir un Excel:\n1. Ve a **Mis Cursos** → tu curso\n2. Haz clic en el botón de subir archivo\n3. El sistema detecta automáticamente las columnas\n4. Activa el dataset en la barra azul del agente';
   if (/agente|crear|wizard/.test(q)) return 'Para crear un agente:\n1. Panel de Inicio → **¿Quieres crear tu propio agente?**\n2. Describe con tus palabras qué quieres que haga\n3. La IA genera la configuración automáticamente\n4. Revisa y ajusta en 4 pasos guiados';
-  if (/segur|privac|dato|proteg/.test(q)) return 'Tus datos en LIAX:
-- Todo se guarda **en la nube** (Supabase';
+  if (/segur|privac|dato|proteg/.test(q)) return 'Tus datos en LIAX:\n- Todo se guarda **en la nube** (Supabase';
   if (/prompt|instruc/.test(q)) return 'Un **prompt** es la instrucción que define el comportamiento de un agente. Es como decirle "eres un experto en X, y debes responder de esta manera". En LIAX, el wizard crea el prompt automáticamente cuando describes qué quieres que haga el agente.';
   if (/personal|ajust|configurar/.test(q)) return 'Para personalizar un agente:\n1. Abre el agente\n2. Haz clic en **✨ Personalizar**\n3. **Ajuste Personal**: instrucciones solo para ti\n4. **Mi Estilo de Planificación**: sube tu formato modelo\n5. **Mis Preguntas**: agrega las tuyas en el panel de inicio';
   return 'Para esta consulta necesito conexión a internet. Prueba la pestaña **❓ Preguntas frecuentes** o **📖 Glosario** para respuestas offline.';
