@@ -3614,11 +3614,25 @@ async function _supaLoadPerfil() {
 async function _supaLoadAgentes() {
   if (!_supaUser) return;
   try {
-    var { data, error } = await _supa.from('agentes_custom').select('*').eq('user_id', _supaUser.id);
-    if (error) throw error;
-    if (data && data.length) {
-      var changed = false;
-      data.forEach(function(ag) {
+    // Cargar agentes del usuario Y del colegio (por si fueron creados con otro user_id)
+    var queries = [
+      _supa.from('agentes_custom').select('*').eq('user_id', _supaUser.id)
+    ];
+    if (_supaPerfil?.colegio_id) {
+      queries.push(_supa.from('agentes_custom').select('*').eq('colegio_id', _supaPerfil.colegio_id));
+    }
+
+    var results = await Promise.all(queries);
+    var seen = new Set();
+    var allData = [];
+    results.forEach(function(r) {
+      (r.data || []).forEach(function(ag) {
+        if (!seen.has(ag.id)) { seen.add(ag.id); allData.push(ag); }
+      });
+    });
+
+    if (allData.length) {
+      allData.forEach(function(ag) {
         var agente = {
           id: ag.id, dim: ag.dim, nombre: ag.nombre,
           icon: ag.icon, desc: ag.desc, prompt: ag.prompt,
@@ -3627,21 +3641,17 @@ async function _supaLoadAgentes() {
         var existing = AGENTS.find(function(a) { return a.id === agente.id; });
         if (!existing) {
           AGENTS.push(agente);
-          changed = true;
         } else {
           Object.assign(existing, agente);
-          changed = true;
         }
       });
-      if (changed) {
-        renderAgents();
-        if (typeof renderSAAgentGrid === 'function') renderSAAgentGrid();
-        if (typeof updateAgentCounts === 'function') updateAgentCounts();
-        // Also persist to local storage so they survive offline
-        saveToStorage();
-        _backupCustomAgents();
-      }
-      console.log('[Supabase] Cargados', data.length, 'agentes desde la nube');
+      renderAgents();
+      if (typeof renderSAAgentGrid === 'function') renderSAAgentGrid();
+      if (typeof updateAgentCounts === 'function') updateAgentCounts();
+      _backupCustomAgents();
+      console.log('[Supabase] Cargados', allData.length, 'agentes desde la nube');
+    } else {
+      console.log('[Supabase] No se encontraron agentes custom en la nube');
     }
   } catch(e) { console.warn('[Supabase] Error cargando agentes:', e.message); }
 }
@@ -31619,53 +31629,59 @@ function _vaultSaveAgents() {
 async function _vaultRestoreAgents() {
   var restored = 0;
 
-  // 1. Try IndexedDB first (most reliable)
+  // 1. Supabase PRIMERO — fuente de verdad principal
+  // (ya se cargó en _supaLoadAgentes durante _supaLoadPerfil)
+  // Si hay agentes de Supabase, ya están en AGENTS con _fromSupabase:true
+  var supaCount = AGENTS.filter(function(a){ return a.custom && a._fromSupabase; }).length;
+  if (supaCount > 0) {
+    console.log('[LIAX] Agentes ya cargados desde Supabase:', supaCount);
+  }
+
+  // 2. IndexedDB — respaldo local para agentes que no llegaron a Supabase
   try {
     var vaultAgents = await AGENT_VAULT.loadAgents();
     if (vaultAgents && vaultAgents.length > 0) {
+      console.log('[LIAX Vault] IndexedDB tiene', vaultAgents.length, 'agente(s)');
       vaultAgents.forEach(function(a) {
-        if (!AGENTS.find(function(x){ return x.id === a.id; })) {
+        var existing = AGENTS.find(function(x){ return x.id === a.id; });
+        if (!existing) {
+          // Está en IndexedDB pero no en Supabase — restaurar y sincronizar
           AGENTS.push(a);
           restored++;
-        } else {
-          // Update existing with vault version (more authoritative)
-          var existing = AGENTS.find(function(x){ return x.id === a.id; });
-          if (existing) Object.assign(existing, a);
+          // Sincronizar a Supabase ahora que tenemos sesión
+          if (_supaUser && typeof _supaSaveAgente === 'function') {
+            _supaSaveAgente(a).catch(function(e){
+              console.warn('[LIAX] No se pudo sincronizar agente a Supabase:', e.message);
+            });
+          }
+        } else if (!existing._fromSupabase) {
+          // Tenemos versión local más reciente — actualizar y sincronizar
+          Object.assign(existing, a);
+          if (_supaUser && typeof _supaSaveAgente === 'function') {
+            _supaSaveAgente(existing).catch(function(){});
+          }
         }
       });
       if (restored > 0) {
-        console.log('[LIAX Vault] Restored', restored, 'agent(s) from IndexedDB');
+        console.log('[LIAX Vault] Restaurados', restored, 'agente(s) desde IndexedDB → sincronizando a Supabase');
       }
     }
   } catch(e) { console.warn('[LIAX Vault] IndexedDB restore failed:', e); }
 
-  // 2. Fallback: localStorage backup key
+  // 3. Fallback: backup en memoria (solo sirve si no se recargó la página)
   try {
-    var raw = (window._AGENTS_BACKUP_MEM||null);
+    var raw = (window._AGENTS_BACKUP_MEM || null);
     if (raw) {
       var data = JSON.parse(raw);
-      var backupAgents = data.agents || data; // handle both formats
+      var backupAgents = data.agents || data;
       if (Array.isArray(backupAgents)) {
         backupAgents.forEach(function(a) {
           if (!AGENTS.find(function(x){ return x.id === a.id; })) {
             AGENTS.push(a);
             restored++;
-          }
-        });
-      }
-    }
-  } catch(e) {}
-
-  // 3. Fallback: main snapshot
-  try {
-    var raw2 = null; // migrado a Supabase
-    if (raw2) {
-      var snap = JSON.parse(raw2);
-      if (snap && snap.customAgents && snap.customAgents.length) {
-        snap.customAgents.forEach(function(a) {
-          if (!AGENTS.find(function(x){ return x.id === a.id; })) {
-            AGENTS.push(a);
-            restored++;
+            if (_supaUser && typeof _supaSaveAgente === 'function') {
+              _supaSaveAgente(a).catch(function(){});
+            }
           }
         });
       }
@@ -31676,10 +31692,14 @@ async function _vaultRestoreAgents() {
     renderAgents();
     if (typeof renderSAAgentGrid === 'function') renderSAAgentGrid();
     if (typeof updateAgentCounts === 'function') updateAgentCounts();
-    showSaveToast('✅ ' + restored + ' agente(s) restaurado(s) automáticamente');
+    showSaveToast('✅ ' + restored + ' agente(s) restaurado(s) y sincronizado(s) a Supabase');
   }
 
-  return restored;
+  // Log estado final
+  var totalCustom = AGENTS.filter(function(a){ return a.custom; }).length;
+  console.log('[LIAX] Estado final de agentes custom:', totalCustom,
+    '| Supabase:', AGENTS.filter(function(a){ return a.custom && a._fromSupabase; }).length,
+    '| IndexedDB restaurados:', restored);
 }
 
 
