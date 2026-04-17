@@ -3588,6 +3588,7 @@ async function _supaLoadPerfil() {
     }, 300);
     // Load cloud data con perfil
     await _loadPlatformKey();
+    await _supaLoadColegios();
     await _supaLoadCursosEliminados(); // cargar primero para filtrar correctamente
     await _supaLoadCursos();
     await _supaLoadAlumnos();
@@ -3609,6 +3610,21 @@ async function _supaLoadPerfil() {
     if (nameEl) nameEl.textContent = _supaUser.email || 'Usuario';
     await _supaLoadAgentes();
     await _loadFavoritesFromSupabase();
+    // Intentar crear perfil básico automáticamente
+    try {
+      await _supa.from('usuarios').insert({
+        id: _supaUser.id,
+        email: _supaUser.email,
+        nombre: _supaUser.email.split('@')[0],
+        rol: 'superadmin',
+        estado: 'activo',
+        password_hash: 'managed_by_supabase_auth',
+      });
+      console.log('[LIAX] Perfil creado automáticamente');
+      // Recargar perfil
+      var { data: newData } = await _supa.from('usuarios').select('*').eq('id', _supaUser.id).maybeSingle();
+      if (newData) _supaPerfil = newData;
+    } catch(e) { /* puede fallar si ya existe con conflicto */ }
   }
 }
 
@@ -4675,7 +4691,20 @@ function renderCursoResumen() {
 
   el.innerHTML = cursos.map(curso => {
     const dsCurso = base.filter(d => d.curso === curso);
-    if (!dsCurso.length) return '';
+    const nAluCurso = DB.alumnos.filter(a => a.esp === curso).length;
+    if (!dsCurso.length) {
+      // Curso sin datos — mostrar tarjeta mínima
+      return `<div class="curso-resumen-card" style="margin-bottom:16px">
+        <div class="curso-resumen-header">
+          <span class="curso-badge">${curso}</span>
+          <span style="font-size:11px;color:var(--muted)">${nAluCurso} alumno(s)</span>
+        </div>
+        <div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:8px;margin-top:8px">
+          Sin datos cargados aún —
+          <button onclick="openNuevoDato()" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:12px;font-family:DM Sans,sans-serif;text-decoration:underline">Cargar datos</button>
+        </div>
+      </div>`;
+    }
 
     // ── Notas ──
     let notasHtml = '';
@@ -8243,12 +8272,35 @@ function saveColegio(){
   const nombre = document.getElementById('nc-nombre').value.trim();
   if(!nombre){ alert('El nombre es requerido'); return; }
   const id = 'c'+Date.now();
-  COLEGIOS.push({ id, nombre, rbd:document.getElementById('nc-rbd').value.trim(), comuna:document.getElementById('nc-comuna').value.trim(), region:document.getElementById('nc-region').value.trim(), dep:document.getElementById('nc-dep').value });
+  const colegio = {
+    id, nombre,
+    rbd:    document.getElementById('nc-rbd').value.trim(),
+    comuna: document.getElementById('nc-comuna').value.trim(),
+    region: document.getElementById('nc-region').value.trim(),
+    dep:    document.getElementById('nc-dep').value,
+  };
+  COLEGIOS.push(colegio);
   schoolAgents[id] = new Set();
   document.getElementById('newColegioModal').classList.remove('open');
   ['nc-nombre','nc-rbd','nc-comuna','nc-region'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('cnt-colegios').textContent = COLEGIOS.length;
   renderColegiosGrid();
+  // Guardar en Supabase con app='liax'
+  if (_supaUser && _supa) {
+    _supa.from('colegios').insert({
+      id:      id,
+      nombre:  nombre,
+      rbd:     colegio.rbd || null,
+      comuna:  colegio.comuna || null,
+      region:  colegio.region || null,
+      dep:     colegio.dep || null,
+      app:     'liax',
+      user_id: _supaUser.id,
+    }).then(function(r){
+      if (r.error) console.warn('[LIAX] Error guardando colegio:', r.error.message);
+      else console.log('[LIAX] Colegio guardado en Supabase:', nombre);
+    });
+  }
 }
 function renderColegiosGrid(){
   document.getElementById('colegiosGrid').innerHTML = COLEGIOS.map(c=>{
@@ -8535,18 +8587,18 @@ function saUpdateBulkBar(){
 }
 
 // ── modal nuevo / editar ──────────────────────────────────
-function saOpenNuevoUsuario(){
+async function saOpenNuevoUsuario(){
   document.getElementById('saUsuarioModalTitle').textContent='Nuevo Usuario';
   document.getElementById('saUsuarioEditId').value='';
   ['nombre','apellido','email','password','notas','curso'].forEach(f=>{ const el=document.getElementById('saU-'+f); if(el)el.value=''; });
   document.getElementById('saU-rol').value='docente';
   document.getElementById('saU-estado').value='activo';
   document.getElementById('saU-pass-hint').style.display='none';
-  saPopulateColegioSelect();
+  await saPopulateColegioSelect();
   saUsuarioRolChange();
   document.getElementById('saUsuarioModal').classList.add('open');
 }
-function saOpenEditUsuario(id){
+async function saOpenEditUsuario(id){
   const u=SA_USUARIOS.find(x=>x.id===id); if(!u)return;
   document.getElementById('saUsuarioModalTitle').textContent='Editar Usuario';
   document.getElementById('saUsuarioEditId').value=id;
@@ -8558,17 +8610,34 @@ function saOpenEditUsuario(id){
   document.getElementById('saU-rol').value=u.rol||'docente';
   document.getElementById('saU-estado').value=u.estado||'activo';
   document.getElementById('saU-pass-hint').style.display='';
-  saPopulateColegioSelect(u.colegio);
+  await saPopulateColegioSelect(u.colegio);
   saUsuarioRolChange();
   if(u.curso) document.getElementById('saU-curso').value=u.curso;
   document.getElementById('saUsuarioModal').classList.add('open');
 }
 function saCloseUsuarioModal(){ document.getElementById('saUsuarioModal').classList.remove('open'); }
 
-function saPopulateColegioSelect(selected){
+async function saPopulateColegioSelect(selected){
   const sel=document.getElementById('saU-colegio');
-  sel.innerHTML='<option value="">— Sin colegio —</option>'+COLEGIOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
-  if(selected) sel.value=selected;
+  if (!sel) return;
+  sel.innerHTML='<option value="">— Sin colegio —</option>';
+  try {
+    // Cargar colegios reales desde Supabase (app=liax)
+    if (_supaUser && _supa) {
+      var { data } = await _supa.from('colegios').select('id,nombre').eq('app','liax');
+      if (data && data.length) {
+        sel.innerHTML += data.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+      } else {
+        // Fallback al array en memoria si Supabase no tiene colegios aún
+        sel.innerHTML += COLEGIOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+      }
+    } else {
+      sel.innerHTML += COLEGIOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+    }
+  } catch(e) {
+    sel.innerHTML += COLEGIOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  }
+  if (selected) sel.value = selected;
 }
 function saUsuarioRolChange(){
   const r=document.getElementById('saU-rol').value;
@@ -31706,8 +31775,11 @@ async function _vaultRestoreAgents() {
 }
 
 // Reintenta sincronizar hasta que _supaUser esté disponible
+var _syncAgentsDone = false;
 function _syncAgentsWhenReady(agents, attempt) {
+  if (_syncAgentsDone) return;
   if (_supaUser) {
+    _syncAgentsDone = true;
     agents.forEach(function(a) {
       _supaSaveAgente(a).then(function() {
         a._fromSupabase = true;
@@ -32552,6 +32624,35 @@ async function _supaLoadCursos() {
   } catch(e) { console.warn('[Supabase] Error cursos:', e.message); }
 }
 
+async function _supaLoadColegios() {
+  if (!_supaUser) return;
+  try {
+    var { data, error } = await _supa.from('colegios')
+      .select('*')
+      .eq('app', 'liax');
+    if (error) throw error;
+    if (data && data.length) {
+      // Merge con COLEGIOS en memoria — evitar duplicados
+      data.forEach(function(c) {
+        if (!COLEGIOS.find(function(x){ return x.id === c.id; })) {
+          COLEGIOS.push({
+            id:     c.id,
+            nombre: c.nombre,
+            rbd:    c.rbd || '',
+            comuna: c.comuna || '',
+            region: c.region || '',
+            dep:    c.dep || '',
+          });
+          if (!schoolAgents[c.id]) schoolAgents[c.id] = new Set();
+        }
+      });
+      document.getElementById('cnt-colegios').textContent = COLEGIOS.length;
+      if (typeof renderColegiosGrid === 'function') renderColegiosGrid();
+      console.log('[LIAX] Colegios cargados desde Supabase:', data.length);
+    }
+  } catch(e) { console.warn('[LIAX] Error cargando colegios:', e.message); }
+}
+
 async function _supaLoadCursosEliminados() {
   if (!_supaUser) return;
   try {
@@ -32583,12 +32684,15 @@ async function _supaDeleteCurso(nombre) {
 async function _supaSaveCurso(nombre) {
   if (!_supaUser) return;
   try {
+    // Para SA sin colegio_id, usar el colegio activo seleccionado
+    var colegioId = _supaPerfil?.colegio_id || _activeColegioId || null;
     await _supa.from('cursos').upsert({
-      id: 'curso_' + (_supaPerfil?.colegio_id || _supaUser.id) + '_' + nombre.toLowerCase().replace(/[^a-z0-9]/g,'_'),
+      id: 'curso_' + (colegioId || _supaUser.id) + '_' + nombre.toLowerCase().replace(/[^a-z0-9]/g,'_'),
       nombre: nombre,
-      colegio_id: _supaPerfil?.colegio_id || null,
+      colegio_id: colegioId,
       user_id: _supaUser.id,
-    });
+    }, { onConflict: 'id' });
+    console.log('[LIAX] Curso guardado en Supabase:', nombre, '| colegio:', colegioId);
   } catch(e) { console.warn('[Supabase] Error saving curso:', e.message); }
 }
 
