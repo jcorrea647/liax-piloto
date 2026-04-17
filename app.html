@@ -3614,22 +3614,24 @@ async function _supaLoadPerfil() {
 async function _supaLoadAgentes() {
   if (!_supaUser) return;
   try {
-    // Cargar agentes del usuario Y del colegio (por si fueron creados con otro user_id)
-    var queries = [
-      _supa.from('agentes_custom').select('*').eq('user_id', _supaUser.id)
-    ];
-    if (_supaPerfil?.colegio_id) {
-      queries.push(_supa.from('agentes_custom').select('*').eq('colegio_id', _supaPerfil.colegio_id));
-    }
+    // Cargar agentes del usuario
+    var { data: byUser, error } = await _supa
+      .from('agentes_custom').select('*').eq('user_id', _supaUser.id);
+    if (error) throw error;
 
-    var results = await Promise.all(queries);
-    var seen = new Set();
-    var allData = [];
-    results.forEach(function(r) {
-      (r.data || []).forEach(function(ag) {
+    var allData = byUser || [];
+
+    // También cargar agentes del colegio creados por otros usuarios (sostenedor/director)
+    if (_supaPerfil?.colegio_id) {
+      var { data: byColegio } = await _supa
+        .from('agentes_custom').select('*')
+        .eq('colegio_id', _supaPerfil.colegio_id)
+        .neq('user_id', _supaUser.id); // solo los que no son del usuario actual
+      var seen = new Set(allData.map(function(a){ return a.id; }));
+      (byColegio || []).forEach(function(ag) {
         if (!seen.has(ag.id)) { seen.add(ag.id); allData.push(ag); }
       });
-    });
+    }
 
     if (allData.length) {
       allData.forEach(function(ag) {
@@ -3659,7 +3661,7 @@ async function _supaLoadAgentes() {
 async function _supaSaveAgente(agente) {
   if (!_supaUser || !agente.custom) return;
   try {
-    await _supa.from('agentes_custom').upsert({
+    const { error } = await _supa.from('agentes_custom').upsert({
       id:         agente.id,
       user_id:    _supaUser.id,
       colegio_id: _supaPerfil?.colegio_id || '',
@@ -3670,9 +3672,43 @@ async function _supaSaveAgente(agente) {
       prompt:     agente.prompt || '',
       preguntas:  agente.preguntas || [],
       updated_at: new Date().toISOString(),
-    });
+    }, { onConflict: 'id' });
+    if (error) throw error;
     console.log('[Supabase] Agente guardado:', agente.nombre);
-  } catch(e) { console.warn('[Supabase] Error guardando agente:', e.message); }
+  } catch(e) {
+    // Si falla upsert, intentar update directo
+    try {
+      await _supa.from('agentes_custom').update({
+        nombre:     agente.nombre,
+        icon:       agente.icon || '🤖',
+        dim:        agente.dim || '',
+        desc:       agente.desc || '',
+        prompt:     agente.prompt || '',
+        preguntas:  agente.preguntas || [],
+        updated_at: new Date().toISOString(),
+      }).eq('id', agente.id);
+      console.log('[Supabase] Agente actualizado (fallback):', agente.nombre);
+    } catch(e2) {
+      // Si tampoco funciona update, intentar insert
+      try {
+        await _supa.from('agentes_custom').insert({
+          id:         agente.id,
+          user_id:    _supaUser.id,
+          colegio_id: _supaPerfil?.colegio_id || '',
+          nombre:     agente.nombre,
+          icon:       agente.icon || '🤖',
+          dim:        agente.dim || '',
+          desc:       agente.desc || '',
+          prompt:     agente.prompt || '',
+          preguntas:  agente.preguntas || [],
+          updated_at: new Date().toISOString(),
+        });
+        console.log('[Supabase] Agente insertado (fallback2):', agente.nombre);
+      } catch(e3) {
+        console.warn('[Supabase] Error guardando agente:', agente.nombre, e3.message);
+      }
+    }
+  }
 }
 
 async function _supaDeleteAgente(agenteId) {
