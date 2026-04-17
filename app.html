@@ -3753,7 +3753,7 @@ async function _supaSaveAlBanco(recurso) {
 async function _supaLoadNivel() {
   if (!_supaUser) return;
   try {
-    var { data } = await _supa.from('niveles_ia').select('*').eq('user_id', _supaUser.id).single();
+    var { data } = await _supa.from('niveles_ia').select('*').eq('user_id', _supaUser.id).maybeSingle();
     if (data) {
       // Nivel cargado en memoria via TOKEN_STORE / renderMiProgreso
       if (typeof renderMiProgreso === 'function') renderMiProgreso();
@@ -5678,12 +5678,13 @@ const FAV_STORE = {
   getAll: function() { return FAV_STORE._set; },
   save: function(s) {
     FAV_STORE._set = s;
-    if (_supaUser && _supaPerfil && _supa) {
-      _supa.from('config').upsert({
-        key: 'favorites_' + _supaUser.id,
-        value: JSON.stringify([...s]),
-        colegio_id: _supaPerfil.colegio_id,
-      }).catch(function(){});
+    if (_supaUser && _supa) {
+      _supa.from('config')
+        .upsert({ key: 'favorites_' + _supaUser.id, value: JSON.stringify([...s]) }, { onConflict: 'key' })
+        .then(function(r) {
+          if (r.error) console.warn('[LIAX] Error guardando favoritos:', r.error.message);
+          else console.log('[LIAX] Favoritos guardados:', s.size);
+        });
     }
   },
   isFav: function(id) { return FAV_STORE._set.has(id); },
@@ -5713,12 +5714,8 @@ function toggleFav(agentId) {
   }
   FAV_STORE.save(favs);
   updateFavCount();
-  // Update star button in agent grid if visible
-  const btn = document.getElementById('fav-btn-' + agentId);
-  if (btn) {
-    btn.classList.toggle('active', favs.has(agentId));
-    btn.title = favs.has(agentId) ? 'Quitar de favoritos' : 'Agregar a favoritos';
-  }
+  // Re-render grid para que la estrella quede activa correctamente
+  renderAgents();
   // Refresh favoritos panel if open
   if (currentPanel === 'favoritos') renderFavoritos();
 }
@@ -12230,7 +12227,7 @@ function saveUmbrales() {
     ausencias: parseInt(document.getElementById('thresh-ausencias').value)   || UMBRAL_DEFAULTS.ausencias,
     nivel:     document.getElementById('thresh-nivel').value                 || UMBRAL_DEFAULTS.nivel,
   };
-  window._UMBRALES_MEM = u; if(_supaUser&&_supa&&_supaPerfil){_supa.from('config').upsert({key:'umbrales_'+_supaPerfil.colegio_id,value:JSON.stringify(u),colegio_id:_supaPerfil.colegio_id}).catch(function(){});}
+  window._UMBRALES_MEM = u; if(_supaUser&&_supa){_supa.from('config').upsert({key:'umbrales_'+(_supaPerfil?.colegio_id||_supaUser.id),value:JSON.stringify(u)},{onConflict:'key'}).catch(function(){});}
   const msg = document.getElementById('thresh-saved-msg');
   if (msg) { msg.style.display='block'; setTimeout(()=>msg.style.display='none',3000); }
   showSaveToast('✅ Umbrales guardados');
