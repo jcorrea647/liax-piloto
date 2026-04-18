@@ -6780,6 +6780,10 @@ async function sendChat(){
 
   chatHistory.push({ role:'user', content: userContent });
 
+  // Snapshot de adjuntos ANTES de vaciar — para detección de modelo posterior
+  var _attachmentsSnapshot = pendingAttachments.slice();
+  window._attachmentsSnapshot = _attachmentsSnapshot;
+
   // Clear pending attachments after sending
   pendingAttachments = [];
 
@@ -6802,21 +6806,29 @@ async function sendChat(){
   var _isNEE       = _msgLower.includes('nee') || _msgLower.includes('dua') ||
                      _msgLower.includes('adaptación') || _msgLower.includes('inclusión');
 
-  // Modelo y tokens — siempre Gemini Pro excepto NEE que merece el mejor
+  // Modelo y tokens — Haiku para Excel/PDF numérico, Gemini Pro para todo lo demás
   var _selectedModel, _selectedTokens;
-  if (_isNEE) {
-    // NEE es crítico — usar Claude Sonnet si está disponible, sino Gemini Pro
-    _selectedModel  = LIAX_MODELS['claude-sonnet'].id;
+  // Detectar si hay archivo numérico adjunto (Excel o PDF)
+  var _hasNumericFile = _hasExcel ||
+    _attachmentsSnapshot.some(function(a){
+      var n = (a.name || '').toLowerCase();
+      return a.type === 'pdf' ||
+             n.endsWith('.xlsx') || n.endsWith('.xls') ||
+             n.endsWith('.csv') || n.endsWith('.pdf');
+    });
+  if (_hasNumericFile) {
+    // Excel o PDF con datos — Claude Haiku temperatura 0 para máxima consistencia
+    _selectedModel  = LIAX_MODELS['claude-haiku'].id;
+    _selectedTokens = 8000;
+  } else if (_isNEE) {
+    // NEE — Gemini Pro (análisis pedagógico complejo)
+    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
     _selectedTokens = 16000;
   } else if (_isInforme || _isDocumento) {
     _selectedModel  = LIAX_MODELS['gemini-pro'].id;
     _selectedTokens = 16000;
-  } else if (_hasExcel) {
-    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
-    _selectedTokens = 8000;
   } else {
     // Todo lo demás — Gemini Pro para consistencia de instrucciones
-    // NO usar Flash para conversaciones — Flash ignora el rol con más frecuencia
     _selectedModel  = LIAX_MODELS['gemini-pro'].id;
     _selectedTokens = 4000;
   }
@@ -6854,12 +6866,15 @@ async function sendChat(){
 
   try{
     const data = await callClaude({
-      model:      _selectedModel,
-      max_tokens: _selectedTokens,
-      system:     _systemFinal,
-      messages:   _historyToSend
+      model:           _selectedModel,
+      max_tokens:      _selectedTokens,
+      system:          _systemFinal,
+      messages:        _historyToSend,
+      _hasNumericFile: _hasNumericFile,
     });
     const reply=data.content?.find(c=>c.type==='text')?.text||'No pude generar una respuesta. Intenta nuevamente.';
+    // Limpiar snapshot — ya fue usado, no debe afectar el siguiente mensaje
+    window._attachmentsSnapshot = [];
     // Store simplified version in history (avoid storing huge base64 in history)
     chatHistory[chatHistory.length-1] = { role:'user', content: finalMsg || '[Archivos adjuntos]' };
     chatHistory.push({role:'assistant',content:reply});
@@ -7038,7 +7053,7 @@ const ROUTER_DEFAULTS = {
   socioemocional:'gemini-pro',    // convivencia, clima → balance
   liderazgo:     'gemini-pro',    // gestión directiva → balance
   recursos:      'gemini-pro',    // consultas con contexto → Pro para consistencia
-  archivos:      'gemini-pro',    // con Excel/PDF → Gemini 1.5 Pro (2M tokens)
+  archivos:      'claude-haiku', // con Excel/PDF → Claude Haiku temperatura 0 (consistencia numérica)
   prep:          'gemini-pro',    // prepárame el día/semana → Gemini Pro (contexto largo)
 };
 
@@ -7135,13 +7150,16 @@ function detectTaskType(messages, system) {
     return 'recursos';
 
   // Archivos adjuntos: detectar si el mensaje contiene file attachments
-  // pendingAttachments is a global array filled when user attaches files
-  if (typeof pendingAttachments !== 'undefined' && pendingAttachments.length > 0)
+  // Usar _attachmentsSnapshot (capturado antes de vaciar pendingAttachments)
+  if (typeof window._attachmentsSnapshot !== 'undefined' && window._attachmentsSnapshot.length > 0)
     return 'archivos';
 
-  // Check if content is multimodal (has image/document blocks)
+  // Check if content is multimodal (has image/document/text-file blocks)
   var lastContent = lastUser && lastUser.content;
-  if (Array.isArray(lastContent) && lastContent.some(function(b){ return b.type==='image'||b.type==='document'; }))
+  if (Array.isArray(lastContent) && lastContent.some(function(b){
+    return b.type === 'image' || b.type === 'document' ||
+           (b.type === 'text' && b.text && b.text.startsWith('[Archivo adjunto:'));
+  }))
     return 'archivos';
 
   // Prep día/semana
@@ -7162,25 +7180,23 @@ function detectTaskType(messages, system) {
 function classifyComplexity(messages, system) {
   var task      = detectTaskType(messages, system);
   var config    = getRouterConfig();
-  var modelKey  = config[task] || 'claude-sonnet';
+  var modelKey  = config[task] || 'claude-haiku';
   var provider  = resolveProvider(modelKey);
   var modelId   = resolveModel(modelKey);
 
   // Fallback if no key for that provider
   // On Vercel, proxy has the keys — don't fallback based on local key presence
   var _isVercel = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  var complexTasks = ['analisis','nee','informe'];
-  var useHaiku = complexTasks.indexOf(task) === -1;
   if (!_isVercel) {
     // On localhost: fallback if no local key
     if (provider === 'gemini' && !getGeminiKey()) {
       provider = 'claude';
-      modelKey = useHaiku ? 'claude-haiku' : 'claude-sonnet';
+      modelKey = 'claude-haiku';
       modelId  = LIAX_MODELS[modelKey].id;
     }
     if (provider === 'openai' && !getOpenAIKey()) {
       provider = 'claude';
-      modelKey = useHaiku ? 'claude-haiku' : 'claude-sonnet';
+      modelKey = 'claude-haiku';
       modelId  = LIAX_MODELS[modelKey].id;
     }
     if (provider === 'claude' && !getApiKey()) {
@@ -7466,10 +7482,11 @@ async function callClaudeDirect(payload) {
       method: 'POST',
       headers: _getAnthropicHeaders(key),
       body: JSON.stringify({
-        model:      payload.model,
-        max_tokens: payload.max_tokens,
-        system:     payload.system,
-        messages:   payload.messages,
+        model:       payload.model,
+        max_tokens:  payload.max_tokens,
+        system:      payload.system,
+        messages:    payload.messages,
+        temperature: payload._hasNumericFile ? 0 : 0.2,
         ...(payload.stream !== undefined && { stream: payload.stream }),
       })
     });
@@ -7490,7 +7507,7 @@ async function callClaudeDirect(payload) {
 
 // ── LLAMADA IA — simple y estable ────────────────────────────
 async function callClaude(payload) {
-  var modelId = payload.model || LIAX_MODELS['gemini-pro'].id;
+  var modelId = payload.model || LIAX_MODELS['claude-haiku'].id;
   var isGemini = modelId.includes('gemini');
   var isClaude = modelId.includes('claude');
 
@@ -8299,7 +8316,11 @@ function openNewColegio(){ document.getElementById('newColegioModal').classList.
 function saveColegio(){
   const nombre = document.getElementById('nc-nombre').value.trim();
   if(!nombre){ alert('El nombre es requerido'); return; }
-  const id = 'c'+Date.now();
+  // UUID v4 compatible con Supabase
+  const id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
   const colegio = {
     id, nombre,
     rbd:    document.getElementById('nc-rbd').value.trim(),
@@ -8319,14 +8340,11 @@ function saveColegio(){
       id:      id,
       nombre:  nombre,
       rbd:     colegio.rbd || null,
-      comuna:  colegio.comuna || null,
-      region:  colegio.region || null,
-      dep:     colegio.dep || null,
       app:     'liax',
       user_id: _supaUser.id,
     }).then(function(r){
       if (r.error) console.warn('[LIAX] Error guardando colegio:', r.error.message);
-      else console.log('[LIAX] Colegio guardado en Supabase:', nombre);
+      else console.log('[LIAX] Colegio guardado en Supabase:', nombre, id);
     });
   }
 }
@@ -28826,7 +28844,7 @@ async function sendChatWithPrompt(promptText) {
 
   try {
     var data = await callClaude({
-      model:      'claude-sonnet-4-6',
+      model:      'claude-haiku-4-5-20251001',
       max_tokens: 4000,
       system:     system,
       messages:   chatHistory,
