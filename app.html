@@ -1445,6 +1445,7 @@
     <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
     <div id="docenteBannerCursos" style="display:none"></div>
     <button onclick="showPanel('mis-cursos')" style="background:var(--surface2);color:#6b7280;border:1px solid #374151;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;transition:all .15s;" onmouseover="this.style.background='#1f2937';this.style.color='#d1d5db'" onmouseout="this.style.background='var(--surface2)';this.style.color='#6b7280'">📂 Ver mis cursos</button>
+    <button onclick="showPanel('mis-docs')" style="background:var(--surface2);color:#6b7280;border:1px solid #374151;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;transition:all .15s;" onmouseover="this.style.background='#1f2937';this.style.color='#d1d5db'" onmouseout="this.style.background='var(--surface2)';this.style.color='#6b7280'">📄 Ver mis docs</button>
     <div style="margin-left:auto">
       <button onclick="showPanel('favoritos')" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:5px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;">🏠 Inicio</button>
     </div>
@@ -2102,6 +2103,36 @@
       <div id="datosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
 
       </div><!-- /mc-sub-resumen -->
+    </div>
+
+    <!-- MIS DOCS -->
+    <div class="panel" id="panel-mis-docs">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+        <div>
+          <div class="page-title">📄 Mis Documentos</div>
+          <div class="page-sub">Documentos guardados desde todos tus agentes</div>
+        </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center">
+        <input id="misDocs-search" type="text" placeholder="🔍 Buscar por título..." oninput="renderMisDocs()"
+          style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px;font-family:DM Sans,sans-serif;width:220px;outline:none"/>
+        <select id="misDocs-agente" onchange="renderMisDocs()"
+          style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px;font-family:DM Sans,sans-serif;outline:none;cursor:pointer">
+          <option value="">Todos los agentes</option>
+        </select>
+        <select id="misDocs-order" onchange="renderMisDocs()"
+          style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px;font-family:DM Sans,sans-serif;outline:none;cursor:pointer">
+          <option value="reciente">Más reciente</option>
+          <option value="antiguo">Más antiguo</option>
+          <option value="titulo">A → Z</option>
+        </select>
+        <span id="misDocs-count" style="margin-left:auto;font-size:12px;color:var(--text2)"></span>
+      </div>
+
+      <!-- LISTA -->
+      <div id="misDocs-list" style="display:flex;flex-direction:column;gap:10px"></div>
     </div>
 
     <!-- INFORMES APODERADOS -->
@@ -3565,7 +3596,6 @@ async function _supaLoadPerfil() {
 
   if (data) {
     _supaPerfil = data;
-    console.log('[LIAX-PERFIL] colegio_id:', data.colegio_id);
     var rol = data.rol || 'docente';
     _origSwitchRole(rol);
 
@@ -4222,6 +4252,7 @@ function showPanel(id) {
   currentPanel=id;
   if(id==='agentes') renderAgents();
   if(id==='mis-cursos')         { initMisCursosPanel(); }
+  if(id==='mis-docs')           { initMisDocsPanel(); }
   if(id==='historial-global')   { renderHistorialGlobal(); }
   if(id==='repositorio-docs')   { renderRepositorioDocs(); }
   if(id==='mi-progreso')        { renderMiProgreso(); }
@@ -4251,6 +4282,7 @@ function showPanel(id) {
   if(id==='historial-global')  { renderHistorialGlobal(); }
   if(id==='repositorio-docs')  { renderRepositorioDocs(); }
   if(id==='mis-cursos') { initMisCursosPanel(); }
+  if(id==='mis-docs')   { initMisDocsPanel(); }
   if(id==='usuarios') { renderTable(); initUsuariosPanel(); }
   if(id==='informes') renderInformes();
   if(id==='dashboard') { updateDashStats(); renderDashboard(); }
@@ -6874,7 +6906,6 @@ async function sendChat(){
       _hasNumericFile: _hasNumericFile,
     });
     const reply=data.content?.find(c=>c.type==='text')?.text||'No pude generar una respuesta. Intenta nuevamente.';
-    // Limpiar snapshot — ya fue usado, no debe afectar el siguiente mensaje
     window._attachmentsSnapshot = [];
     // Store simplified version in history (avoid storing huge base64 in history)
     chatHistory[chatHistory.length-1] = { role:'user', content: finalMsg || '[Archivos adjuntos]' };
@@ -11824,6 +11855,123 @@ function saveToStorage() {
     if (typeof _supaSaveAgente === 'function') _supaSaveAgente(a).catch(function(){});
   });
   showSaveToast('✅ Guardado en la nube');
+}
+
+// ── MIS DOCS PANEL ─────────────────────────────────────────────────────────
+function initMisDocsPanel() {
+  // Poblar selector de agentes
+  var sel = document.getElementById('misDocs-agente');
+  if (!sel) return;
+  // Recopilar todos los docs de todos los agentes
+  var allDocs = [];
+  var agentNames = new Set();
+  if (typeof AGENT_STORE !== 'undefined') {
+    Object.keys(AGENT_STORE._docs || {}).forEach(function(agId) {
+      var docs = AGENT_STORE.getDocs(agId);
+      docs.forEach(function(d) {
+        allDocs.push(d);
+        if (d.agentName) agentNames.add(d.agentName);
+      });
+    });
+  }
+  // Llenar selector
+  sel.innerHTML = '<option value="">Todos los agentes</option>';
+  Array.from(agentNames).sort().forEach(function(name) {
+    var opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  renderMisDocs();
+}
+
+function renderMisDocs() {
+  var search  = (document.getElementById('misDocs-search')?.value || '').toLowerCase();
+  var agente  = document.getElementById('misDocs-agente')?.value || '';
+  var order   = document.getElementById('misDocs-order')?.value || 'reciente';
+  var list    = document.getElementById('misDocs-list');
+  var countEl = document.getElementById('misDocs-count');
+  if (!list) return;
+
+  // Recopilar todos los docs
+  var allDocs = [];
+  if (typeof AGENT_STORE !== 'undefined') {
+    Object.keys(AGENT_STORE._docs || {}).forEach(function(agId) {
+      AGENT_STORE.getDocs(agId).forEach(function(d) { allDocs.push(d); });
+    });
+  }
+
+  // Filtrar
+  var filtered = allDocs.filter(function(d) {
+    var matchSearch = !search || (d.title||'').toLowerCase().includes(search);
+    var matchAgente = !agente || d.agentName === agente;
+    return matchSearch && matchAgente;
+  });
+
+  // Ordenar
+  filtered.sort(function(a, b) {
+    if (order === 'reciente') return new Date(b.savedAt||0) - new Date(a.savedAt||0);
+    if (order === 'antiguo')  return new Date(a.savedAt||0) - new Date(b.savedAt||0);
+    if (order === 'titulo')   return (a.title||'').localeCompare(b.title||'');
+    return 0;
+  });
+
+  if (countEl) countEl.textContent = filtered.length + ' documento' + (filtered.length !== 1 ? 's' : '');
+
+  if (!filtered.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);font-size:14px">No hay documentos que coincidan</div>';
+    return;
+  }
+
+  // Agrupar por agente
+  var groups = {};
+  filtered.forEach(function(d) {
+    var key = d.agentName || 'Sin agente';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(d);
+  });
+
+  list.innerHTML = Object.keys(groups).sort().map(function(agName) {
+    var docs = groups[agName];
+    var docsHtml = docs.map(function(d) {
+      var fecha = d.savedAt ? new Date(d.savedAt).toLocaleDateString('es-CL', {day:'2-digit',month:'short',year:'numeric'}) : '';
+      var preview = (d.content||'').replace(/<[^>]*>/g,'').substring(0, 120);
+      return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+          '<span style="font-weight:700;font-size:14px;color:var(--text)">📄 ' + (d.title||'Sin título') + '</span>' +
+          '<span style="font-size:11px;color:var(--text2);white-space:nowrap">' + fecha + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:var(--text2);line-height:1.5">' + preview + (preview.length >= 120 ? '…' : '') + '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:4px">' +
+          '<button onclick="misDocsOpenDoc(' + JSON.stringify(d.title) + ',' + JSON.stringify(d.agentId) + ')" style="background:var(--accent2);color:#000;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer">Ver</button>' +
+          '<button onclick="misDocsCopyDoc(' + JSON.stringify(d.content||'') + ')" style="background:var(--surface);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer">Copiar</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    return '<div style="margin-bottom:18px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding-left:2px">🤖 ' + agName + ' (' + docs.length + ')</div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px">' + docsHtml + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function misDocsOpenDoc(title, agentId) {
+  // Ir al agente y abrir el doc
+  var agent = (typeof agentesData !== 'undefined' ? agentesData : []).find(function(a){ return a.id === agentId; });
+  if (agent) {
+    showPanel('agentes');
+    setTimeout(function(){
+      if (typeof openAgent === 'function') openAgent(agent);
+    }, 200);
+  }
+}
+
+function misDocsCopyDoc(content) {
+  var text = content.replace(/<[^>]*>/g, '');
+  navigator.clipboard.writeText(text).then(function(){
+    showSaveToast('✅ Documento copiado al portapapeles');
+  });
 }
 
 // ── loadFromStorage: no-op — datos vienen de Supabase en _supaLoadPerfil ──
@@ -34834,7 +34982,6 @@ async function _supaSaveDocChat(agenteId, titulo, contenido, existingId) {
         saved_at:  new Date().toISOString(),
       }).eq('id', existingId).eq('user_id', _supaUser.id);
       if (updErr) console.error('[LIAX-DOCS] Error UPDATE:', updErr.message, updErr.code);
-      else console.log('[LIAX-DOCS] Doc actualizado OK, id:', existingId);
     } else {
       var { data, error: insErr } = await _supa.from('documentos_chat').insert({
         agente_id:  agenteId,
@@ -34844,7 +34991,6 @@ async function _supaSaveDocChat(agenteId, titulo, contenido, existingId) {
         user_id:    _supaUser.id,
       }).select('id').single();
       if (insErr) console.error('[LIAX-DOCS] Error INSERT:', insErr.message, insErr.code);
-      else console.log('[LIAX-DOCS] Doc insertado OK, id:', data?.id);
       if (data?.id) {
         var docs = AGENT_STORE._docs[agenteId] || [];
         var idx  = docs.findIndex(function(d){ return d.title === titulo && !d.id; });
