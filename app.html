@@ -3530,55 +3530,12 @@
               <span id="docCompetCount" style="display:none;font-size:9px;font-weight:800;background:rgba(255,255,255,0.18);border-radius:8px;padding:1px 6px;margin-left:2px"></span>
               <i class="doc-drop-arrow">▾</i>
             </button>
-            <div class="doc-drop-panel" id="docCompetPanel">
+            <div class="doc-drop-panel doc-drop-panel-wide" id="docCompetPanel">
               <div class="doc-drop-panel-title">📋 Capacidades — Detalle Completo</div>
-              <div class="doc-drop-grid3">
-                <div>
-                  <span class="doc-comp-label">Dominio Disciplinar</span>
-                  <select class="doc-comp-select" id="dcp-dominio" onchange="saveDocAll()">
-                    <option value="">— Seleccionar —</option>
-                    <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
-                  </select>
+              <div id="docCapacidadesBody">
+                <div style="text-align:center;padding:18px 0;color:var(--muted);font-size:12px">
+                  🎯 Selecciona primero una <strong>Competencia</strong> para ver sus capacidades
                 </div>
-                <div>
-                  <span class="doc-comp-label">Planificación de Clases</span>
-                  <select class="doc-comp-select" id="dcp-planificacion" onchange="saveDocAll()">
-                    <option value="">— Seleccionar —</option>
-                    <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
-                  </select>
-                </div>
-                <div>
-                  <span class="doc-comp-label">Ambiente de Aprendizaje</span>
-                  <select class="doc-comp-select" id="dcp-ambiente" onchange="saveDocAll()">
-                    <option value="">— Seleccionar —</option>
-                    <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
-                  </select>
-                </div>
-                <div>
-                  <span class="doc-comp-label">Enseñanza para el Aprendizaje</span>
-                  <select class="doc-comp-select" id="dcp-ensenanza" onchange="saveDocAll()">
-                    <option value="">— Seleccionar —</option>
-                    <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
-                  </select>
-                </div>
-                <div>
-                  <span class="doc-comp-label">Responsabilidades Profesionales</span>
-                  <select class="doc-comp-select" id="dcp-responsabilidades" onchange="saveDocAll()">
-                    <option value="">— Seleccionar —</option>
-                    <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
-                  </select>
-                </div>
-                <div>
-                  <span class="doc-comp-label">Competencia Digital</span>
-                  <select class="doc-comp-select" id="dcp-digital" onchange="saveDocAll()">
-                    <option value="">— Seleccionar —</option>
-                    <option>Nivel 4 — Experto</option><option>Nivel 3 — Integrador</option>
-                    <option>Nivel 2 — Explorador</option><option>Nivel 1 — Principiante</option>
-                  </select>
-                </div>
-              </div>
-              <div style="margin-top:10px;text-align:right">
-                <span id="docCompetSaved" style="display:none;font-size:10px;color:var(--accent2);font-weight:700">✅ Guardado</span>
               </div>
             </div>
           </div>
@@ -11375,6 +11332,120 @@ function closeAsignarCursos() {
   acmDocenteId = null; acmCursosTemp = [];
 }
 
+// ══ MAPA CAPACIDADES POR COMPETENCIA ══
+const CAPACIDADES_POR_COMPETENCIA = {
+  'Construye su identidad': [
+    { id:'cap-valora',        label:'Se valora a sí mismo',       desc:'El niño se reconoce como persona valiosa y se identifica con sus características.' },
+    { id:'cap-autorregula',   label:'Autorregula sus emociones',   desc:'Reconoce y expresa sus emociones, buscando estrategias para regularlas.' },
+  ],
+  'Convive y participa democráticamente en la búsqueda del bien común': [
+    { id:'cap-interactua',    label:'Interactúa con todas las personas',             desc:'Se relaciona respetando la diversidad.' },
+    { id:'cap-normas',        label:'Construye normas y asume acuerdos y leyes',     desc:'Participa en la elaboración de normas y las cumple.' },
+    { id:'cap-bienestar',     label:'Participa en acciones que promueven el bienestar común', desc:'Propone y realiza acciones colectivas.' },
+  ],
+  'Construye su identidad como persona humana, amada por Dios': [
+    { id:'cap-dios',          label:'Conoce a Dios y asume su identidad religiosa',  desc:'Reconoce el amor de Dios en su vida y entorno.' },
+    { id:'cap-religion',      label:'Cultiva y valora las manifestaciones religiosas',desc:'Participa en prácticas religiosas de su comunidad.' },
+  ],
+  'Se desenvuelve de manera autónoma a través de su motricidad': [
+    { id:'cap-cuerpo',        label:'Comprende su cuerpo',         desc:'Interioriza su imagen corporal y posibilidades de movimiento.' },
+    { id:'cap-corporal',      label:'Se expresa corporalmente',    desc:'Usa su cuerpo para comunicar ideas, emociones y sentimientos.' },
+  ],
+  'Se comunica oralmente en su lengua materna': [
+    { id:'cap-obtiene-oral',  label:'Obtiene información',         desc:'Extrae datos explícitos.' },
+    { id:'cap-infiere-oral',  label:'Infiere e interpreta',        desc:'Deduce información no dicha.' },
+    { id:'cap-adecua-oral',   label:'Adecúa, organiza y desarrolla', desc:'Adapta el texto al contexto.' },
+    { id:'cap-noverbales',    label:'Utiliza recursos no verbales', desc:'Gestos y posturas.' },
+    { id:'cap-interactua-oral', label:'Interactúa estratégicamente', desc:'Alterna roles de hablante y oyente.' },
+    { id:'cap-reflexiona-oral', label:'Reflexiona y evalúa',       desc:'Opina sobre el contenido.' },
+  ],
+  'Lee diversos tipos de textos escritos en su lengua materna': [
+    { id:'cap-obtiene-lect',  label:'Obtiene información',         desc:'Localiza información en el texto escrito.' },
+    { id:'cap-infiere-lect',  label:'Infiere e interpreta',        desc:'Construye el sentido del texto.' },
+    { id:'cap-reflexiona-lect', label:'Reflexiona y evalúa',       desc:'Distancia el texto para opinar sobre él.' },
+  ],
+  'Escribe diversos tipos de textos en su lengua materna': [
+    { id:'cap-adecua-esc',    label:'Adecúa el texto',             desc:'Considera propósito y destinatario.' },
+    { id:'cap-organiza-esc',  label:'Organiza y desarrolla las ideas', desc:'Ordena ideas de forma lógica.' },
+    { id:'cap-convenciones',  label:'Utiliza convenciones',        desc:'Usa recursos textuales y ortográficos.' },
+    { id:'cap-reflexiona-esc', label:'Reflexiona y evalúa',        desc:'Revisa el texto para mejorarlo.' },
+  ],
+  'Crea proyectos desde los lenguajes artísticos': [
+    { id:'cap-explora',       label:'Explora y experimenta',       desc:'Descubre posibilidades de materiales.' },
+    { id:'cap-aplica',        label:'Aplica procesos creativos',   desc:'Genera ideas y concreta propuestas.' },
+    { id:'cap-socializa',     label:'Socializa sus procesos y proyectos', desc:'Comunica sus creaciones.' },
+  ],
+  'Resuelve problemas de cantidad': [
+    { id:'cap-traduce-cant',  label:'Traduce cantidades',          desc:'Transforma datos a modelos numéricos.' },
+    { id:'cap-comunica-cant', label:'Comunica su comprensión',     desc:'Expresa conceptos numéricos y relaciones.' },
+    { id:'cap-estrategias-cant', label:'Usa estrategias y procedimientos', desc:'Emplea recursos de cálculo y estimación.' },
+  ],
+  'Resuelve problemas de forma, movimiento y localización': [
+    { id:'cap-modela',        label:'Modela objetos',              desc:'Construye modelos con formas geométricas.' },
+    { id:'cap-comunica-forma', label:'Comunica su comprensión',    desc:'Expresa propiedades de las formas.' },
+    { id:'cap-estrategias-forma', label:'Usa estrategias y procedimientos', desc:'Usa recursos para orientarse.' },
+  ],
+  'Indaga mediante métodos científicos para construir sus conocimientos': [
+    { id:'cap-problematiza',  label:'Problematiza situaciones',    desc:'Plantea preguntas e hipótesis.' },
+    { id:'cap-disenha',       label:'Diseña estrategias',          desc:'Propone procedimientos y materiales.' },
+    { id:'cap-genera',        label:'Genera y registra datos',     desc:'Obtiene y registra información fiable.' },
+    { id:'cap-analiza',       label:'Analiza datos',               desc:'Interpreta información y elabora conclusiones.' },
+    { id:'cap-evalua-cien',   label:'Evalúa y comunica',           desc:'Da a conocer dificultades y logros.' },
+  ],
+  'Se desenvuelve en los entornos virtuales generados por las TIC': [
+    { id:'cap-personaliza',   label:'Personaliza entornos virtuales', desc:'Adapta el entorno a sus intereses.' },
+    { id:'cap-gestiona-info', label:'Gestiona información',        desc:'Analiza y organiza información digital.' },
+    { id:'cap-crea-virtual',  label:'Crea objetos virtuales',      desc:'Construye materiales digitales.' },
+  ],
+  'Gestiona su aprendizaje de manera autónoma': [
+    { id:'cap-define',        label:'Define metas',                desc:'Comprende lo que necesita aprender.' },
+    { id:'cap-organiza-ap',   label:'Organiza acciones',           desc:'Proyecta estrategias para sus metas.' },
+    { id:'cap-monitorea',     label:'Monitorea y ajusta',          desc:'Hace seguimiento a su avance y corrige.' },
+  ],
+};
+
+// Renderiza las capacidades según la competencia activa en CTX
+function renderCapacidadesPanel() {
+  var body = document.getElementById('docCapacidadesBody');
+  if (!body) return;
+
+  var competencias = CTX.competencias ? [...CTX.competencias] : [];
+
+  if (!competencias.length) {
+    body.innerHTML = '<div style="text-align:center;padding:18px 0;color:var(--muted);font-size:12px">🎯 Selecciona primero una <strong>Competencia</strong> para ver sus capacidades</div>';
+    return;
+  }
+
+  var html = '';
+  competencias.forEach(function(comp) {
+    var caps = CAPACIDADES_POR_COMPETENCIA[comp];
+    if (!caps) return;
+    html += '<div style="margin-bottom:14px">';
+    html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--accent2);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">' + comp + '</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">';
+    caps.forEach(function(cap) {
+      var saved = (_docDropData.compet && _docDropData.compet[cap.id]) || '';
+      html += '<div>';
+      html += '<span class="doc-comp-label">' + cap.label + '</span>';
+      html += '<div style="font-size:9px;color:var(--muted);margin-bottom:4px;line-height:1.4">' + cap.desc + '</div>';
+      html += '<select class="doc-comp-select" id="' + cap.id + '" onchange="onCompetChange('' + cap.id + '',this.value)">';
+      html += '<option value="">— Seleccionar —</option>';
+      ['Logrado','En proceso','En inicio'].forEach(function(o) {
+        html += '<option' + (saved === o ? ' selected' : '') + '>' + o + '</option>';
+      });
+      html += '</select>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  if (!html) {
+    body.innerHTML = '<div style="text-align:center;padding:18px 0;color:var(--muted);font-size:12px">Sin capacidades registradas para las competencias seleccionadas</div>';
+    return;
+  }
+  body.innerHTML = html;
+}
+
 // ══ DROPDOWNS DOCENTE — BARRA CONTEXTO AGENTE ══
 
 function _toggleDocDropsAgent(show) {
@@ -11436,6 +11507,7 @@ function toggleDocDrop(which, e) {
     document.getElementById(ids[which]).classList.add('open');
     document.getElementById(btns[which]).classList.add('open');
     if (which === 'edad')   renderEdadChips();
+    if (which === 'compet') renderCapacidadesPanel();
     if (which === 'desemp') renderDesempGrid();
     setTimeout(() => {
       document.addEventListener('click', _docDropOutside, { once: true });
@@ -11532,10 +11604,8 @@ function onCompetChange(id, val) {
 
 // Conectar selects de competencias con onCompetChange
 document.addEventListener('DOMContentLoaded', () => {
-  ['dcp-dominio','dcp-planificacion','dcp-ambiente','dcp-ensenanza','dcp-responsabilidades','dcp-digital'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('change', () => onCompetChange(id, el.value));
-  });
+  // Los selects de capacidades se crean dinámicamente en renderCapacidadesPanel()
+  // y usan onchange="onCompetChange(id,value)" inline.
 });
 
 // ── Contadores badge ─────────────────────────────────────────
@@ -15215,8 +15285,8 @@ function ctxRenderList(type) {
         ctxRenderList('comp');
         _updateCtxCompLabel();
       }
-      // Al cambiar competencia: actualizar label
-      if (type === 'comp') _updateCtxCompLabel();
+      // Al cambiar competencia: actualizar label y refrescar panel capacidades
+      if (type === 'comp') { _updateCtxCompLabel(); renderCapacidadesPanel(); }
       updateAgentCtxBadge();
       applyCtxToChat();
     });
@@ -15370,7 +15440,7 @@ function selectAllCtx(type) {
 function clearCtx(type) {
   if (type === 'curso')  { CTX.cursos.clear();      CTX.alumnos.clear(); ctxRenderList('curso'); ctxRenderAlus(); }
   if (type === 'asig')   { CTX.asignaturas.clear(); CTX.competencias.clear(); ctxRenderList('asig'); ctxRenderList('comp'); }
-  if (type === 'comp')   { CTX.competencias.clear(); ctxRenderList('comp'); _updateCtxCompLabel(); }
+  if (type === 'comp')   { CTX.competencias.clear(); ctxRenderList('comp'); _updateCtxCompLabel(); renderCapacidadesPanel(); }
   if (type === 'alu')    { CTX.alumnos.clear();      ctxRenderAlus(); }
   updateAgentCtxBadge(); applyCtxToChat();
 }
