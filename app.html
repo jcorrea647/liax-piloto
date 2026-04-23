@@ -3565,6 +3565,7 @@ async function _supaLoadPerfil() {
 
   if (data) {
     _supaPerfil = data;
+    console.log('[LIAX-PERFIL] colegio_id:', data.colegio_id);
     var rol = data.rol || 'docente';
     _origSwitchRole(rol);
 
@@ -34824,9 +34825,8 @@ async function _supaLoadDocumentosChat() {
 }
 
 async function _supaSaveDocChat(agenteId, titulo, contenido, existingId) {
-  console.log('[LIAX-DOCS] _supaSaveDocChat llamado — user:', !!_supaUser, 'colegio:', _supaPerfil?.colegio_id, 'agente:', agenteId);
   if (!_supaUser) { console.error('[LIAX-DOCS] Sin usuario'); return; }
-  if (!_supaPerfil?.colegio_id) { console.error('[LIAX-DOCS] Sin colegio_id'); return; }
+  if (!_supaPerfil?.colegio_id) { console.error('[LIAX-DOCS] Sin colegio_id — asigna colegio al usuario en Supabase'); return; }
   try {
     if (existingId) {
       var { error: updErr } = await _supa.from('documentos_chat').update({
