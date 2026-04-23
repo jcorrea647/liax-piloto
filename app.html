@@ -3503,7 +3503,7 @@
           </div>
         </div>
 
-        <!-- Competencias multi-select -->
+        <!-- Competencias multi-select (filtrado por Área Curricular) -->
         <div class="ctx-picker-wrap" id="ctxCompWrap">
           <button class="ctx-picker-btn" id="ctxCompBtn" onclick="toggleCtxPicker('comp')">
             <span id="ctxCompLabel">🎯 Competencias…</span>
@@ -3520,35 +3520,18 @@
           </div>
         </div>
 
-        <!-- ══ DROPDOWNS DOCENTE: solo visibles en vista is-docente ══ -->
+        <!-- ══ DROPDOWNS DOCENTE: Capacidades → EDAD → Desempeño (solo is-docente) ══ -->
         <div id="docDropsAgentWrap" style="display:none;align-items:center;gap:4px;flex-shrink:0">
 
-          <!-- Separador -->
-          <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;margin:0 2px"></div>
-
-          <!-- EDAD -->
-          <div style="position:relative;flex-shrink:0" id="docEdadWrap">
-            <button class="doc-drop-btn doc-drop-edad" id="docEdadBtn" onclick="toggleDocDrop('edad',event)">
-              🎂 <strong>EDAD</strong>
-              <span id="docEdadVal" style="font-size:10px;font-weight:800;background:rgba(255,255,255,0.15);border-radius:8px;padding:1px 7px;margin-left:2px;display:none"></span>
-              <i class="doc-drop-arrow">▾</i>
-            </button>
-            <div class="doc-drop-panel" id="docEdadPanel">
-              <div class="doc-drop-panel-title">🎂 Edad del Docente</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="docEdadGrid"></div>
-              <div class="doc-drop-hint">La edad condiciona los niveles de desempeño disponibles</div>
-            </div>
-          </div>
-
-          <!-- COMPETENCIAS -->
+          <!-- CAPACIDADES (detalle completo, antes "Competencias docente") -->
           <div style="position:relative;flex-shrink:0" id="docCompetWrap">
             <button class="doc-drop-btn doc-drop-comp" id="docCompetBtn" onclick="toggleDocDrop('compet',event)">
-              📚 Competencias
+              📋 Capacidades
               <span id="docCompetCount" style="display:none;font-size:9px;font-weight:800;background:rgba(255,255,255,0.18);border-radius:8px;padding:1px 6px;margin-left:2px"></span>
               <i class="doc-drop-arrow">▾</i>
             </button>
             <div class="doc-drop-panel" id="docCompetPanel">
-              <div class="doc-drop-panel-title">📚 Competencias Pedagógicas (MBE)</div>
+              <div class="doc-drop-panel-title">📋 Capacidades — Detalle Completo</div>
               <div class="doc-drop-grid3">
                 <div>
                   <span class="doc-comp-label">Dominio Disciplinar</span>
@@ -3600,6 +3583,20 @@
             </div>
           </div>
 
+          <!-- EDAD -->
+          <div style="position:relative;flex-shrink:0" id="docEdadWrap">
+            <button class="doc-drop-btn doc-drop-edad" id="docEdadBtn" onclick="toggleDocDrop('edad',event)">
+              🎂 <strong>EDAD</strong>
+              <span id="docEdadVal" style="font-size:10px;font-weight:800;background:rgba(255,255,255,0.15);border-radius:8px;padding:1px 7px;margin-left:2px;display:none"></span>
+              <i class="doc-drop-arrow">▾</i>
+            </button>
+            <div class="doc-drop-panel" id="docEdadPanel">
+              <div class="doc-drop-panel-title">🎂 Edad del Alumno</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px" id="docEdadGrid"></div>
+              <div class="doc-drop-hint">Selecciona la edad del alumno para ver los desempeños correspondientes</div>
+            </div>
+          </div>
+
           <!-- DESEMPEÑO -->
           <div style="position:relative;flex-shrink:0" id="docDesempWrap">
             <button class="doc-drop-btn doc-drop-desemp" id="docDesempBtn" onclick="toggleDocDrop('desemp',event)">
@@ -3608,11 +3605,11 @@
               <i class="doc-drop-arrow">▾</i>
             </button>
             <div class="doc-drop-panel doc-drop-panel-wide" id="docDesempPanel">
-              <div class="doc-drop-panel-title">📊 Desempeño Profesional
+              <div class="doc-drop-panel-title">📊 Desempeño del Alumno
                 <span id="docDesempEdadBadge" style="display:none;font-size:10px;font-weight:700;background:var(--dim1);color:var(--accent1);border-radius:8px;padding:2px 9px;margin-left:6px"></span>
               </div>
               <div id="docDesempNoEdad" style="text-align:center;padding:18px 0;color:var(--muted);font-size:12px">
-                ⚠️ Selecciona primero la <strong>EDAD</strong> del docente para ver los indicadores correspondientes
+                ⚠️ Selecciona primero la <strong>EDAD</strong> del alumno para ver los indicadores correspondientes
               </div>
               <div id="docDesempContent" style="display:none">
                 <div class="doc-drop-grid3" id="docDesempGrid"></div>
@@ -11391,47 +11388,35 @@ function _toggleDocDropsAgent(show) {
 const DOC_DATA_KEY = 'liax_docDrops_v2';
 
 // ── Tramos de edad y sus desempeños asociados ──────────────
+// Edades del alumno (nivel inicial)
 const EDAD_TRAMOS = [
-  { id:'22-29', label:'22–29', sub:'Inicio carrera', color:'#60a5fa' },
-  { id:'30-39', label:'30–39', sub:'Desarrollo',     color:'#34d399' },
-  { id:'40-49', label:'40–49', sub:'Consolidación',  color:'#a78bfa' },
-  { id:'50-59', label:'50–59', sub:'Madurez',        color:'#fbbf24' },
-  { id:'60+',   label:'60+',   sub:'Exp. avanzada',  color:'#f87171' },
+  { id:'3', label:'3 años', sub:'Nivel Inicial I',  color:'#60a5fa' },
+  { id:'4', label:'4 años', sub:'Nivel Inicial II', color:'#34d399' },
+  { id:'5', label:'5 años', sub:'Nivel Inicial III',color:'#fbbf24' },
 ];
 
-// Desempeños disponibles por tramo de edad
+// Desempeños disponibles por edad del alumno
 const DESEMP_POR_EDAD = {
-  '22-29': [
-    { id:'dep-result-ev',  label:'Resultado Evaluación Docente', opts:['No evaluado aún','Básico','Competente'] },
-    { id:'dep-mentor',     label:'Mentoría recibida',            opts:['Activa y regular','Ocasional','Sin mentoría'] },
-    { id:'dep-reflexion',  label:'Reflexión pedagógica',         opts:['Alta','Media','En desarrollo'] },
-    { id:'dep-adaptacion', label:'Adaptación al contexto',       opts:['Rápida','Progresiva','Con dificultades'] },
+  '3': [
+    { id:'dep-autonomia',   label:'Autonomía',              opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-motricidad',  label:'Motricidad gruesa',       opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-comunicacion',label:'Comunicación oral',       opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-social',      label:'Interacción social',      opts:['Logrado','En proceso','En inicio'] },
   ],
-  '30-39': [
-    { id:'dep-result-ev',  label:'Resultado Evaluación Docente', opts:['Básico','Competente','Destacado'] },
-    { id:'dep-liderazgo',  label:'Liderazgo en aula',            opts:['Destacado','Competente','Básico','Insatisfactorio'] },
-    { id:'dep-innovacion', label:'Innovación pedagógica',        opts:['Alto','Medio','Inicial','No aplica'] },
-    { id:'dep-ate',        label:'Participación ATE / PD',       opts:['Activo / Regular','Ocasional','No participa','Lidera'] },
+  '4': [
+    { id:'dep-autonomia',   label:'Autonomía',              opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-motricidad',  label:'Motricidad fina y gruesa',opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-lectoesc',    label:'Pre-lectoescritura',      opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-logmat',      label:'Lógico-matemático',       opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-social',      label:'Convivencia y normas',    opts:['Logrado','En proceso','En inicio'] },
   ],
-  '40-49': [
-    { id:'dep-result-ev',  label:'Resultado Evaluación Docente', opts:['Básico','Competente','Destacado'] },
-    { id:'dep-liderazgo',  label:'Liderazgo institucional',      opts:['Destacado','Competente','Básico','Insatisfactorio'] },
-    { id:'dep-mentoria',   label:'Mentoría a pares',             opts:['Lidera procesos','Participa','No participa'] },
-    { id:'dep-formacion',  label:'Formación continua',           opts:['Postgrado activo','Cursos regulares','Esporádica','No realiza'] },
-    { id:'dep-ate',        label:'Participación ATE / PD',       opts:['Activo / Regular','Ocasional','No participa','Lidera'] },
-  ],
-  '50-59': [
-    { id:'dep-result-ev',  label:'Resultado Evaluación Docente', opts:['Competente','Destacado','Básico','No evaluado'] },
-    { id:'dep-experiencia',label:'Transferencia de experiencia', opts:['Activa y sistemática','Ocasional','No realiza'] },
-    { id:'dep-mentoria',   label:'Rol mentor / tutor',           opts:['Formal','Informal','No ejerce'] },
-    { id:'dep-formacion',  label:'Formación continua',           opts:['Postgrado activo','Cursos regulares','Esporádica','No realiza'] },
-    { id:'dep-bienestar',  label:'Bienestar y proyección',       opts:['Planificada','Sin definir'] },
-  ],
-  '60+': [
-    { id:'dep-result-ev',  label:'Resultado Evaluación Docente', opts:['Competente','Destacado','No evaluado','Eximido'] },
-    { id:'dep-experiencia',label:'Transferencia de experiencia', opts:['Activa y sistemática','Ocasional','No realiza'] },
-    { id:'dep-jubilacion', label:'Estado previsional',           opts:['En ejercicio activo','Transición / retiro próximo','Jubilado activo'] },
-    { id:'dep-mentoria',   label:'Rol mentor / tutor',           opts:['Formal','Informal','No ejerce'] },
+  '5': [
+    { id:'dep-autonomia',   label:'Autonomía e iniciativa', opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-lectoesc',    label:'Pre-lectoescritura',      opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-logmat',      label:'Lógico-matemático',       opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-ciencia',     label:'Exploración del entorno', opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-social',      label:'Convivencia democrática', opts:['Logrado','En proceso','En inicio'] },
+    { id:'dep-digital',     label:'Entornos virtuales / TIC',opts:['Logrado','En proceso','En inicio'] },
   ],
 };
 
