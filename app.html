@@ -10062,8 +10062,9 @@ function saveCurrentResponseAsDoc(content) {
   const docs = AGENT_STORE.getDocs(currentAgent.id);
   // Update existing doc with same title, or create new
   const existingIdx = docs.findIndex(function(d){ return d.title === title; });
-  const docObj = { title, content: fullContent, savedAt: new Date().toISOString(), agentId: currentAgent.id, agentName: currentAgent.nombre };
-  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(currentAgent.id, title, fullContent).catch(function(){});
+  const existingId  = existingIdx > -1 ? docs[existingIdx].id : null;
+  const docObj = { title, content: fullContent, savedAt: new Date().toISOString(), agentId: currentAgent.id, agentName: currentAgent.nombre, id: existingId };
+  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(currentAgent.id, title, fullContent, existingId).catch(function(){});
   if (existingIdx > -1) {
     docs[existingIdx] = docObj; // update existing
   } else {
@@ -34822,17 +34823,34 @@ async function _supaLoadDocumentosChat() {
   } catch(e) { console.warn('[LIAX] Error cargando docs chat:', e.message); }
 }
 
-async function _supaSaveDocChat(agenteId, titulo, contenido) {
-  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+async function _supaSaveDocChat(agenteId, titulo, contenido, existingId) {
+  if (!_supaUser) { console.error('[LIAX-DOCS] Sin usuario'); return; }
+  if (!_supaPerfil?.colegio_id) { console.error('[LIAX-DOCS] Sin colegio_id'); return; }
   try {
-    await _supa.from('documentos_chat').insert({
-      agente_id:  agenteId,
-      titulo:     titulo,
-      contenido:  contenido,
-      colegio_id: _supaPerfil.colegio_id,
-      user_id:    _supaUser.id,
-    });
-  } catch(e) { console.warn('[LIAX] Error guardando doc chat:', e.message); }
+    if (existingId) {
+      var { error: updErr } = await _supa.from('documentos_chat').update({
+        contenido: contenido,
+        saved_at:  new Date().toISOString(),
+      }).eq('id', existingId).eq('user_id', _supaUser.id);
+      if (updErr) console.error('[LIAX-DOCS] Error UPDATE:', updErr.message, updErr.code);
+      else console.log('[LIAX-DOCS] Doc actualizado OK, id:', existingId);
+    } else {
+      var { data, error: insErr } = await _supa.from('documentos_chat').insert({
+        agente_id:  agenteId,
+        titulo:     titulo,
+        contenido:  contenido,
+        colegio_id: _supaPerfil.colegio_id,
+        user_id:    _supaUser.id,
+      }).select('id').single();
+      if (insErr) console.error('[LIAX-DOCS] Error INSERT:', insErr.message, insErr.code);
+      else console.log('[LIAX-DOCS] Doc insertado OK, id:', data?.id);
+      if (data?.id) {
+        var docs = AGENT_STORE._docs[agenteId] || [];
+        var idx  = docs.findIndex(function(d){ return d.title === titulo && !d.id; });
+        if (idx > -1) docs[idx].id = data.id;
+      }
+    }
+  } catch(e) { console.error('[LIAX-DOCS] Excepcion:', e.message); }
 }
 
 
