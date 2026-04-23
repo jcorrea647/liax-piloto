@@ -34824,6 +34824,7 @@ async function _supaLoadDocumentosChat() {
 }
 
 async function _supaSaveDocChat(agenteId, titulo, contenido, existingId) {
+  console.log('[LIAX-DOCS] _supaSaveDocChat llamado — user:', !!_supaUser, 'colegio:', _supaPerfil?.colegio_id, 'agente:', agenteId);
   if (!_supaUser) { console.error('[LIAX-DOCS] Sin usuario'); return; }
   if (!_supaPerfil?.colegio_id) { console.error('[LIAX-DOCS] Sin colegio_id'); return; }
   try {
