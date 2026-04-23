@@ -1550,110 +1550,6 @@
     <button onclick="showPanel('mis-cursos')" style="background:var(--surface2);color:#6b7280;border:1px solid #374151;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;transition:all .15s;" onmouseover="this.style.background='#1f2937';this.style.color='#d1d5db'" onmouseout="this.style.background='var(--surface2)';this.style.color='#6b7280'">📂 Ver mis cursos</button>
     <button onclick="showPanel('mis-docs')" style="background:var(--surface2);color:#6b7280;border:1px solid #374151;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;transition:all .15s;" onmouseover="this.style.background='#1f2937';this.style.color='#d1d5db'" onmouseout="this.style.background='var(--surface2)';this.style.color='#6b7280'">📄 Ver mis docs</button>
 
-    <!-- ── SEPARADOR ── -->
-    <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
-
-    <!-- ══ DROPDOWN 1: EDAD (destacado) ══ -->
-    <div style="position:relative;flex-shrink:0" id="docEdadWrap">
-      <button class="doc-drop-btn doc-drop-edad" id="docEdadBtn" onclick="toggleDocDrop('edad',event)">
-        🎂 <strong>EDAD</strong>
-        <span id="docEdadVal" style="font-size:10px;font-weight:800;background:rgba(255,255,255,0.15);border-radius:8px;padding:1px 7px;margin-left:2px;display:none"></span>
-        <i class="doc-drop-arrow">▾</i>
-      </button>
-      <div class="doc-drop-panel" id="docEdadPanel">
-        <div class="doc-drop-panel-title">🎂 Edad del Docente</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="docEdadGrid">
-          <!-- generado por JS -->
-        </div>
-        <div class="doc-drop-hint">La edad condiciona los niveles de desempeño disponibles</div>
-      </div>
-    </div>
-
-    <!-- ══ DROPDOWN 2: COMPETENCIAS ══ -->
-    <div style="position:relative;flex-shrink:0" id="docCompetWrap">
-      <button class="doc-drop-btn doc-drop-comp" id="docCompetBtn" onclick="toggleDocDrop('compet',event)">
-        📚 Competencias
-        <span id="docCompetCount" style="display:none;font-size:9px;font-weight:800;background:rgba(255,255,255,0.18);border-radius:8px;padding:1px 6px;margin-left:2px"></span>
-        <i class="doc-drop-arrow">▾</i>
-      </button>
-      <div class="doc-drop-panel" id="docCompetPanel">
-        <div class="doc-drop-panel-title">📚 Competencias Pedagógicas (MBE)</div>
-        <div class="doc-drop-grid3">
-          <div>
-            <span class="doc-comp-label">Dominio Disciplinar</span>
-            <select class="doc-comp-select" id="dcp-dominio" onchange="saveDocAll()">
-              <option value="">— Seleccionar —</option>
-              <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
-            </select>
-          </div>
-          <div>
-            <span class="doc-comp-label">Planificación de Clases</span>
-            <select class="doc-comp-select" id="dcp-planificacion" onchange="saveDocAll()">
-              <option value="">— Seleccionar —</option>
-              <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
-            </select>
-          </div>
-          <div>
-            <span class="doc-comp-label">Ambiente de Aprendizaje</span>
-            <select class="doc-comp-select" id="dcp-ambiente" onchange="saveDocAll()">
-              <option value="">— Seleccionar —</option>
-              <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
-            </select>
-          </div>
-          <div>
-            <span class="doc-comp-label">Enseñanza para el Aprendizaje</span>
-            <select class="doc-comp-select" id="dcp-ensenanza" onchange="saveDocAll()">
-              <option value="">— Seleccionar —</option>
-              <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
-            </select>
-          </div>
-          <div>
-            <span class="doc-comp-label">Responsabilidades Profesionales</span>
-            <select class="doc-comp-select" id="dcp-responsabilidades" onchange="saveDocAll()">
-              <option value="">— Seleccionar —</option>
-              <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
-            </select>
-          </div>
-          <div>
-            <span class="doc-comp-label">Competencia Digital</span>
-            <select class="doc-comp-select" id="dcp-digital" onchange="saveDocAll()">
-              <option value="">— Seleccionar —</option>
-              <option>Nivel 4 — Experto</option><option>Nivel 3 — Integrador</option>
-              <option>Nivel 2 — Explorador</option><option>Nivel 1 — Principiante</option>
-            </select>
-          </div>
-        </div>
-        <div style="margin-top:10px;text-align:right">
-          <span id="docCompetSaved" style="display:none;font-size:10px;color:var(--accent2);font-weight:700">✅ Guardado</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ DROPDOWN 3: DESEMPEÑO (filtrado por edad) ══ -->
-    <div style="position:relative;flex-shrink:0" id="docDesempWrap">
-      <button class="doc-drop-btn doc-drop-desemp" id="docDesempBtn" onclick="toggleDocDrop('desemp',event)">
-        📊 Desempeño
-        <span id="docDesempCount" style="display:none;font-size:9px;font-weight:800;background:rgba(255,255,255,0.18);border-radius:8px;padding:1px 6px;margin-left:2px"></span>
-        <i class="doc-drop-arrow">▾</i>
-      </button>
-      <div class="doc-drop-panel doc-drop-panel-wide" id="docDesempPanel">
-        <div class="doc-drop-panel-title">📊 Desempeño Profesional
-          <span id="docDesempEdadBadge" style="display:none;font-size:10px;font-weight:700;background:var(--dim1);color:var(--accent1);border-radius:8px;padding:2px 9px;margin-left:6px"></span>
-        </div>
-        <!-- Aviso si no hay edad seleccionada -->
-        <div id="docDesempNoEdad" style="text-align:center;padding:18px 0;color:var(--muted);font-size:12px">
-          ⚠️ Selecciona primero la <strong>EDAD</strong> del docente para ver los indicadores correspondientes
-        </div>
-        <!-- Contenido dinámico según edad -->
-        <div id="docDesempContent" style="display:none">
-          <div class="doc-drop-grid3" id="docDesempGrid"></div>
-          <div style="margin-top:10px;text-align:right">
-            <span id="docDesempSaved" style="display:none;font-size:10px;color:var(--accent2);font-weight:700">✅ Guardado</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div style="margin-left:auto">
       <button onclick="showPanel('favoritos')" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:5px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;">🏠 Inicio</button>
     </div>
@@ -2696,6 +2592,7 @@
           <option value="superadmin">⚡ SuperAdmin</option>
           <option value="sostenedor">🏛 Sostenedor</option>
           <option value="director">🎓 Director</option>
+          <option value="equipo_gestion">🧑‍💼 Equipo Gestión</option>
           <option value="docente">👨‍🏫 Docente</option>
           <option value="alumno">📚 Alumno</option>
         </select>
@@ -2849,6 +2746,7 @@
             <option value="superadmin">⚡ SuperAdmin</option>
             <option value="sostenedor">🏛 Sostenedor</option>
             <option value="director">🎓 Director</option>
+            <option value="equipo_gestion">🧑‍💼 Equipo Gestión</option>
             <option value="docente">👨‍🏫 Docente</option>
             <option value="alumno">📚 Alumno</option>
           </select>
@@ -3622,6 +3520,112 @@
           </div>
         </div>
 
+        <!-- ══ DROPDOWNS DOCENTE: solo visibles en vista is-docente ══ -->
+        <div id="docDropsAgentWrap" style="display:none;align-items:center;gap:4px;flex-shrink:0">
+
+          <!-- Separador -->
+          <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;margin:0 2px"></div>
+
+          <!-- EDAD -->
+          <div style="position:relative;flex-shrink:0" id="docEdadWrap">
+            <button class="doc-drop-btn doc-drop-edad" id="docEdadBtn" onclick="toggleDocDrop('edad',event)">
+              🎂 <strong>EDAD</strong>
+              <span id="docEdadVal" style="font-size:10px;font-weight:800;background:rgba(255,255,255,0.15);border-radius:8px;padding:1px 7px;margin-left:2px;display:none"></span>
+              <i class="doc-drop-arrow">▾</i>
+            </button>
+            <div class="doc-drop-panel" id="docEdadPanel">
+              <div class="doc-drop-panel-title">🎂 Edad del Docente</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="docEdadGrid"></div>
+              <div class="doc-drop-hint">La edad condiciona los niveles de desempeño disponibles</div>
+            </div>
+          </div>
+
+          <!-- COMPETENCIAS -->
+          <div style="position:relative;flex-shrink:0" id="docCompetWrap">
+            <button class="doc-drop-btn doc-drop-comp" id="docCompetBtn" onclick="toggleDocDrop('compet',event)">
+              📚 Competencias
+              <span id="docCompetCount" style="display:none;font-size:9px;font-weight:800;background:rgba(255,255,255,0.18);border-radius:8px;padding:1px 6px;margin-left:2px"></span>
+              <i class="doc-drop-arrow">▾</i>
+            </button>
+            <div class="doc-drop-panel" id="docCompetPanel">
+              <div class="doc-drop-panel-title">📚 Competencias Pedagógicas (MBE)</div>
+              <div class="doc-drop-grid3">
+                <div>
+                  <span class="doc-comp-label">Dominio Disciplinar</span>
+                  <select class="doc-comp-select" id="dcp-dominio" onchange="saveDocAll()">
+                    <option value="">— Seleccionar —</option>
+                    <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
+                  </select>
+                </div>
+                <div>
+                  <span class="doc-comp-label">Planificación de Clases</span>
+                  <select class="doc-comp-select" id="dcp-planificacion" onchange="saveDocAll()">
+                    <option value="">— Seleccionar —</option>
+                    <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
+                  </select>
+                </div>
+                <div>
+                  <span class="doc-comp-label">Ambiente de Aprendizaje</span>
+                  <select class="doc-comp-select" id="dcp-ambiente" onchange="saveDocAll()">
+                    <option value="">— Seleccionar —</option>
+                    <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
+                  </select>
+                </div>
+                <div>
+                  <span class="doc-comp-label">Enseñanza para el Aprendizaje</span>
+                  <select class="doc-comp-select" id="dcp-ensenanza" onchange="saveDocAll()">
+                    <option value="">— Seleccionar —</option>
+                    <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
+                  </select>
+                </div>
+                <div>
+                  <span class="doc-comp-label">Responsabilidades Profesionales</span>
+                  <select class="doc-comp-select" id="dcp-responsabilidades" onchange="saveDocAll()">
+                    <option value="">— Seleccionar —</option>
+                    <option>Destacado</option><option>Competente</option><option>Básico</option><option>Insatisfactorio</option>
+                  </select>
+                </div>
+                <div>
+                  <span class="doc-comp-label">Competencia Digital</span>
+                  <select class="doc-comp-select" id="dcp-digital" onchange="saveDocAll()">
+                    <option value="">— Seleccionar —</option>
+                    <option>Nivel 4 — Experto</option><option>Nivel 3 — Integrador</option>
+                    <option>Nivel 2 — Explorador</option><option>Nivel 1 — Principiante</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-top:10px;text-align:right">
+                <span id="docCompetSaved" style="display:none;font-size:10px;color:var(--accent2);font-weight:700">✅ Guardado</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- DESEMPEÑO -->
+          <div style="position:relative;flex-shrink:0" id="docDesempWrap">
+            <button class="doc-drop-btn doc-drop-desemp" id="docDesempBtn" onclick="toggleDocDrop('desemp',event)">
+              📊 Desempeño
+              <span id="docDesempCount" style="display:none;font-size:9px;font-weight:800;background:rgba(255,255,255,0.18);border-radius:8px;padding:1px 6px;margin-left:2px"></span>
+              <i class="doc-drop-arrow">▾</i>
+            </button>
+            <div class="doc-drop-panel doc-drop-panel-wide" id="docDesempPanel">
+              <div class="doc-drop-panel-title">📊 Desempeño Profesional
+                <span id="docDesempEdadBadge" style="display:none;font-size:10px;font-weight:700;background:var(--dim1);color:var(--accent1);border-radius:8px;padding:2px 9px;margin-left:6px"></span>
+              </div>
+              <div id="docDesempNoEdad" style="text-align:center;padding:18px 0;color:var(--muted);font-size:12px">
+                ⚠️ Selecciona primero la <strong>EDAD</strong> del docente para ver los indicadores correspondientes
+              </div>
+              <div id="docDesempContent" style="display:none">
+                <div class="doc-drop-grid3" id="docDesempGrid"></div>
+                <div style="margin-top:10px;text-align:right">
+                  <span id="docDesempSaved" style="display:none;font-size:10px;color:var(--accent2);font-weight:700">✅ Guardado</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <!-- ══ FIN DROPDOWNS DOCENTE ══ -->
+
         <!-- Alumnos multi-select -->
         <div class="ctx-picker-wrap" id="ctxAluWrap">
           <button class="ctx-picker-btn" id="ctxAluBtn" onclick="toggleCtxPicker('alu')">
@@ -4249,42 +4253,48 @@ function _saveCursosCustom() {
 const ASIGS  = ['Personal Social','Psicomotriz','Comunicación','Matemática','Ciencia y Tecnología','Competencia Transversal'];
 // Alias semántico para mayor claridad en el código
 const AREAS_CURRICULARES = ASIGS;
-const COMPETENCIAS = [
-  'L1 - Comprensión del Lenguaje',
-  'L2 - Expresión Oral',
-  'L3 - Vocabulario',
-  'L4 - Conciencia Fonológica',
-  'M5 - Conteo y Cardinalidad',
-  'M6 - Reconocimiento de Números',
-  'M7 - Seriación y Patrones',
-  'M8 - Comparación de Cantidades',
-  'M9 - Nociones de Espacio',
-  'M10 - Nociones de Tiempo',
-  'M11 - Pensamiento Lógico',
-  'MF1 - Coordinación Mano-Ojo',
-  'MF2 - Manipulación de Objetos',
-  'MF3 - Trazo y Prerrafismo',
-  'MG1 - Control Cefálico y Postural',
-  'MG2 - Locomoción',
-  'MG3 - Equilibrio',
-  'MG4 - Coordinación Gruesa',
-  'MG5 - Flexibilidad y Fuerza',
-  'MG6 - Autocontrol Motriz',
-  'S1 - Reconocimiento de Emociones Propias',
-  'S2 - Expresión de Emociones',
-  'S3 - Regulación Emocional',
-  'S4 - Empatía',
-  'S5 - Reconocimiento de Diferencias',
-  'S6 - Autonomía e Independencia',
-  'S7 - Autorregulación',
-  'S8 - Iniciativa y Persistencia',
-  'S9 - Vínculos Afectivos',
-  'S10 - Cooperación y Colaboración',
-  'S11 - Comunicación Social',
-  'S12 - Respeto de Normas',
-  'S13 - Inclusión y Pertenencia',
-  'S14 - Resolución de Conflictos'
-];
+// Mapa de competencias por Área Curricular
+const COMPETENCIAS_POR_AREA = {
+  'Personal Social': [
+    'Construye su identidad',
+    'Convive y participa democráticamente en la búsqueda del bien común',
+    'Construye su identidad como persona humana, amada por Dios',
+  ],
+  'Psicomotriz': [
+    'Se desenvuelve de manera autónoma a través de su motricidad',
+  ],
+  'Comunicación': [
+    'Se comunica oralmente en su lengua materna',
+    'Lee diversos tipos de textos escritos en su lengua materna',
+    'Escribe diversos tipos de textos en su lengua materna',
+    'Crea proyectos desde los lenguajes artísticos',
+  ],
+  'Matemática': [
+    'Resuelve problemas de cantidad',
+    'Resuelve problemas de forma, movimiento y localización',
+  ],
+  'Ciencia y Tecnología': [
+    'Indaga mediante métodos científicos para construir sus conocimientos',
+  ],
+  'Competencia Transversal': [
+    'Se desenvuelve en los entornos virtuales generados por las TIC',
+    'Gestiona su aprendizaje de manera autónoma',
+  ],
+};
+
+// Array plano con todas las competencias (fallback cuando no hay área seleccionada)
+const COMPETENCIAS = Object.values(COMPETENCIAS_POR_AREA).flat();
+
+// Devuelve las competencias filtradas según las áreas seleccionadas en CTX
+function getCompetenciasFiltradas() {
+  if (!CTX.asignaturas || !CTX.asignaturas.size) return COMPETENCIAS;
+  var lista = [];
+  CTX.asignaturas.forEach(function(area) {
+    var comps = COMPETENCIAS_POR_AREA[area];
+    if (comps) comps.forEach(function(c){ if (!lista.includes(c)) lista.push(c); });
+  });
+  return lista.length ? lista : COMPETENCIAS;
+}
 
 const COLORS = {
   liderazgo: {bg:'var(--dim1)',text:'var(--accent1)',border:'#4f7bff44'},
@@ -6253,6 +6263,8 @@ function openAgent(id, autoPrompt, sessionToRestore){
     if (modal.parentElement !== app) app.appendChild(modal);
     modal.classList.add('open');
   }
+  // Mostrar dropdowns docente solo en vista docente
+  _toggleDocDropsAgent(true);
 
   // Resize
   initAgentResize();
@@ -7189,6 +7201,7 @@ function closeModal(){
   var app3   = document.querySelector('.app');
   if (modal3) modal3.classList.remove('open','rsz-full','rsz-large','rsz-normal');
   if (app3)   app3.classList.remove('agent-open');
+  _toggleDocDropsAgent(false);
   // Reset any inline styles set by resizeAgentModal
   var sb3 = document.querySelector('.sidebar');
   if (sb3) sb3.style.display = '';
@@ -8506,11 +8519,12 @@ function downloadErrorReport() {
 // ── ROLES ────────────────────────────────────────────────
 let currentRole = 'superadmin';
 const ROLE_CFG = {
-  superadmin: { label:'⚡ SuperAdmin', avatar:'SA', badgeCls:'role-sa',  rsCls:'active-sa',  bodyClass:'is-superadmin' },
-  sostenedor: { label:'🏢 Sostenedor', avatar:'SO', badgeCls:'role-sos', rsCls:'active-sos', bodyClass:'is-sostenedor' },
-  director:   { label:'🏛️ Director',  avatar:'DA', badgeCls:'role-dir', rsCls:'active-dir', bodyClass:'is-director'   },
-  docente:    { label:'👩‍🏫 Docente', avatar:'DC', badgeCls:'role-doc', rsCls:'active-doc', bodyClass:'is-docente'    },
-  alumno:     { label:'🎓 Alumno',     avatar:'AL', badgeCls:'role-alu', rsCls:'active-alu', bodyClass:'is-alumno'     },
+  superadmin:    { label:'⚡ SuperAdmin',      avatar:'SA', badgeCls:'role-sa',   rsCls:'active-sa',   bodyClass:'is-superadmin'    },
+  sostenedor:    { label:'🏢 Sostenedor',      avatar:'SO', badgeCls:'role-sos',  rsCls:'active-sos',  bodyClass:'is-sostenedor'    },
+  director:      { label:'🏛️ Director',       avatar:'DA', badgeCls:'role-dir',  rsCls:'active-dir',  bodyClass:'is-director'      },
+  equipo_gestion:{ label:'🧑‍💼 Eq. Gestión', avatar:'EG', badgeCls:'role-dir',  rsCls:'active-dir',  bodyClass:'is-director'      },
+  docente:       { label:'👩‍🏫 Docente',      avatar:'DC', badgeCls:'role-doc',  rsCls:'active-doc',  bodyClass:'is-docente'       },
+  alumno:        { label:'🎓 Alumno',          avatar:'AL', badgeCls:'role-alu',  rsCls:'active-alu',  bodyClass:'is-alumno'        },
 };
 const ALL_BODY_CLASSES = ['is-superadmin','is-sostenedor','is-director','is-docente','is-alumno'];
 
@@ -8830,7 +8844,8 @@ function saPopulateColegioFilter(){
   // Cargar colegios reales desde Supabase
   sel.innerHTML = '<option value="">Todos los colegios</option>';
   if (_supaUser && _supa) {
-    _supa.from('colegios').select('id,nombre').eq('app','liax').then(function(r) {
+    // Solo colegios de LIAX
+    _supa.from('colegios').select('id,nombre').eq('app','liax').order('nombre').then(function(r) {
       var items = (r.data && r.data.length) ? r.data : COLEGIOS;
       sel.innerHTML = '<option value="">Todos los colegios</option>' +
         items.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
@@ -8861,14 +8876,14 @@ function saRenderUsuarios(){
     return true;
   });
 
-  const rolColors={superadmin:'#c084fc',sostenedor:'#60a5fa',director:'#34d399',docente:'#00e5c0',alumno:'#ffd166'};
-  const rolBgs   ={superadmin:'#2d0a5e',sostenedor:'#0d2a44',director:'#0d3d26',docente:'#0d4040',alumno:'#5a4400'};
+  const rolColors={superadmin:'#c084fc',sostenedor:'#60a5fa',director:'#34d399',equipo_gestion:'#fb923c',docente:'#00e5c0',alumno:'#ffd166'};
+  const rolBgs   ={superadmin:'#2d0a5e',sostenedor:'#0d2a44',director:'#0d3d26',equipo_gestion:'#431407',docente:'#0d4040',alumno:'#5a4400'};
   const estadoMap={
     activo:   '<span style="color:#34d399;font-size:10px;font-weight:700">✅ Activo</span>',
     inactivo: '<span style="color:#f87171;font-size:10px;font-weight:700">⛔ Inactivo</span>',
     pendiente:'<span style="color:#fbbf24;font-size:10px;font-weight:700">⏳ Pendiente</span>'
   };
-  const rolIcons={superadmin:'⚡',sostenedor:'🏛',director:'🎓',docente:'👨‍🏫',alumno:'📚'};
+  const rolIcons={superadmin:'⚡',sostenedor:'🏛',director:'🎓',equipo_gestion:'🧑‍💼',docente:'👨‍🏫',alumno:'📚'};
 
   tbody.innerHTML = list.length ? list.map(u=>{
     const initials=((u.nombre||'?')[0]+((u.apellido||'')[0]||'')).toUpperCase();
@@ -8960,19 +8975,26 @@ async function saPopulateColegioSelect(selected){
   if (!sel) return;
   sel.innerHTML='<option value="">— Sin colegio —</option>';
   try {
-    // Cargar colegios reales desde Supabase (app=liax)
     if (_supaUser && _supa) {
-      var { data } = await _supa.from('colegios').select('id,nombre').eq('app','liax');
+      // Filtrar SOLO colegios creados en LIAX (app=liax)
+      // Si el campo app no existe en la tabla, hace fallback a todos
+      var { data, error } = await _supa.from('colegios').select('id,nombre').eq('app','liax').order('nombre');
+      if (error) {
+        console.warn('[LIAX] colegios query con filtro app falló, intentando sin filtro:', error.message);
+        var fallback = await _supa.from('colegios').select('id,nombre').order('nombre');
+        data = fallback.data;
+      }
       if (data && data.length) {
         sel.innerHTML += data.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
       } else {
-        // Fallback al array en memoria si Supabase no tiene colegios aún
+        // Sin datos en Supabase: usar array local
         sel.innerHTML += COLEGIOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
       }
     } else {
       sel.innerHTML += COLEGIOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
     }
   } catch(e) {
+    console.warn('[LIAX] saPopulateColegioSelect error:', e.message);
     sel.innerHTML += COLEGIOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
   }
   if (selected) sel.value = selected;
@@ -9011,19 +9033,31 @@ async function saGuardarUsuario(){
   const editId=document.getElementById('saUsuarioEditId').value;
   const password=document.getElementById('saU-password').value;
 
+  // Mapear valor del select al valor exacto que acepta el CHECK constraint de Supabase
+  const ROL_MAP = {
+    superadmin:    'superadmin',
+    sostenedor:    'sostenedor',
+    director:      'director',
+    equipo_gestion:'equipo_gestion',
+    docente:       'docente',
+    alumno:        'alumno',
+  };
+  const rolRaw   = document.getElementById('saU-rol').value;
+  const rolFinal = ROL_MAP[rolRaw] || rolRaw;
+
   const payload={
     nombre,
     apellido:      document.getElementById('saU-apellido').value.trim()||null,
     email,
-    rol:           document.getElementById('saU-rol').value,
+    rol:           rolFinal,
     estado:        document.getElementById('saU-estado').value,
     colegio_id:    document.getElementById('saU-colegio').value||null,
     curso:         document.getElementById('saU-curso').value.trim()||null,
     notas:         document.getElementById('saU-notas').value.trim()||null,
     updated_at:    new Date().toISOString(),
-    app:           'liax',
-    password_hash: 'managed_by_supabase_auth',
   };
+  // Agregar app y password_hash solo si la tabla los acepta
+  try { payload.app = 'liax'; } catch(e){}
 
   const btn=document.querySelector('#saUsuarioModal .btn-primary');
   const origText=btn.textContent; btn.textContent='⏳ Guardando…'; btn.disabled=true;
@@ -9055,7 +9089,7 @@ async function saGuardarUsuario(){
       if(!newId){
         // Fallback: insertar solo el perfil (el usuario deberá hacer signUp por su cuenta o vía invitación)
         const { data: inserted, error } = await _supa.from('usuarios').insert({ ...payload, email }).select('id').single();
-        if(error) throw error;
+        if(error){ console.error('[LIAX] INSERT error:', error.message, '| code:', error.code, '| details:', error.details, '| payload rol:', payload.rol); throw error; }
         newId = inserted.id;
       }
       saToast('✅ Usuario creado');
@@ -11342,6 +11376,15 @@ function guardarCursosDocente() {
 function closeAsignarCursos() {
   document.getElementById('asignarCursosModal').classList.remove('open');
   acmDocenteId = null; acmCursosTemp = [];
+}
+
+// ══ DROPDOWNS DOCENTE — BARRA CONTEXTO AGENTE ══
+
+function _toggleDocDropsAgent(show) {
+  var wrap = document.getElementById('docDropsAgentWrap');
+  if (!wrap) return;
+  var isDocente = document.body.classList.contains('is-docente');
+  wrap.style.display = (show && isDocente) ? 'flex' : 'none';
 }
 
 // ══ DROPDOWNS DOCENTE BANNER: EDAD / COMPETENCIAS / DESEMPEÑO ══
@@ -15127,19 +15170,41 @@ function ctxRenderAll() {
 }
 
 // ── Generic list renderer — NO innerHTML onclick, uses data attrs ──
+// Actualiza el label del botón Competencias con área activa y conteo
+function _updateCtxCompLabel() {
+  var btn = document.getElementById('ctxCompBtn');
+  if (!btn) return;
+  var label = btn.querySelector('#ctxCompLabel');
+  if (!label) return;
+  var n = CTX.competencias.size;
+  if (n > 0) {
+    label.textContent = '🎯 ' + n + ' competencia' + (n > 1 ? 's' : '');
+  } else if (CTX.asignaturas.size > 0) {
+    var total = getCompetenciasFiltradas().length;
+    label.textContent = '🎯 Competencias… (' + total + ')';
+  } else {
+    label.textContent = '🎯 Competencias…';
+  }
+}
+
 function ctxRenderList(type) {
   var elId   = type === 'curso' ? 'ctxCursoList' : type === 'asig' ? 'ctxAsigList' : 'ctxCompList';
   var listEl = document.getElementById(elId);
   if (!listEl) return;
   var items  = type === 'curso' ? (window._ctxCursoList || [])
              : type === 'asig'  ? (window._ctxAsigList || [])
-             : COMPETENCIAS;
+             : getCompetenciasFiltradas();
   var ctxSet = type === 'curso' ? CTX.cursos : type === 'asig' ? CTX.asignaturas : CTX.competencias;
   var filter = listEl.dataset.filter || '';
   if (filter) items = items.filter(function(i){ return i.toLowerCase().includes(filter.toLowerCase()); });
 
   // Build DOM nodes directly — no onclick string, no innerHTML
   listEl.innerHTML = '';
+  // Si es comp y no hay área seleccionada, mostrar instrucción
+  if (type === 'comp' && !CTX.asignaturas.size) {
+    listEl.innerHTML = '<div style="padding:12px 14px;font-size:11px;color:var(--muted);text-align:center;line-height:1.6">📖 Selecciona primero un<br><strong>Área Curricular</strong><br>para ver las competencias</div>';
+    return;
+  }
   if (!items.length) {
     listEl.innerHTML = '<div style="padding:10px 12px;font-size:11px;color:var(--muted)">Sin resultados</div>';
     return;
@@ -15158,6 +15223,15 @@ function ctxRenderList(type) {
       div.classList.toggle('sel', ctxSet.has(item));
       div.querySelector('.ctx-cb').textContent = ctxSet.has(item) ? '✓' : '';
       if (type === 'curso') { CTX.alumnos.clear(); ctxRenderAlus(); }
+      // Al cambiar área curricular: quitar competencias huérfanas y re-renderizar
+      if (type === 'asig') {
+        var validas = new Set(getCompetenciasFiltradas());
+        CTX.competencias.forEach(function(c){ if (!validas.has(c)) CTX.competencias.delete(c); });
+        ctxRenderList('comp');
+        _updateCtxCompLabel();
+      }
+      // Al cambiar competencia: actualizar label
+      if (type === 'comp') _updateCtxCompLabel();
       updateAgentCtxBadge();
       applyCtxToChat();
     });
@@ -15239,6 +15313,7 @@ function toggleCtxPicker(type) {
     drop.style.display = 'block';
     if (type === 'curso') ctxRenderList('curso');
     if (type === 'asig')  ctxRenderList('asig');
+    if (type === 'comp')  ctxRenderList('comp');
     if (type === 'alu')   ctxRenderAlus();
     var inp = drop.querySelector('input');
     if (inp) setTimeout(function(){ inp.focus(); }, 60);
