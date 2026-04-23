@@ -11466,30 +11466,206 @@ const EDAD_TRAMOS = [
   { id:'5', label:'5 años', sub:'Nivel Inicial III',color:'#fbbf24' },
 ];
 
-// Desempeños disponibles por edad del alumno
-const DESEMP_POR_EDAD = {
-  '3': [
-    { id:'dep-autonomia',   label:'Autonomía',              opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-motricidad',  label:'Motricidad gruesa',       opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-comunicacion',label:'Comunicación oral',       opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-social',      label:'Interacción social',      opts:['Logrado','En proceso','En inicio'] },
-  ],
-  '4': [
-    { id:'dep-autonomia',   label:'Autonomía',              opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-motricidad',  label:'Motricidad fina y gruesa',opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-lectoesc',    label:'Pre-lectoescritura',      opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-logmat',      label:'Lógico-matemático',       opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-social',      label:'Convivencia y normas',    opts:['Logrado','En proceso','En inicio'] },
-  ],
-  '5': [
-    { id:'dep-autonomia',   label:'Autonomía e iniciativa', opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-lectoesc',    label:'Pre-lectoescritura',      opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-logmat',      label:'Lógico-matemático',       opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-ciencia',     label:'Exploración del entorno', opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-social',      label:'Convivencia democrática', opts:['Logrado','En proceso','En inicio'] },
-    { id:'dep-digital',     label:'Entornos virtuales / TIC',opts:['Logrado','En proceso','En inicio'] },
-  ],
+// Desempeños por CAPACIDAD y edad
+// Clave: texto completo de la capacidad (tal como aparece en CAPACIDADES_POR_COMPETENCIA)
+// Estructura: DESEMP_TABLA[capacidad_texto][edad] = texto del desempeño
+const DESEMP_TABLA = {
+  // ── Personal Social: Construye su identidad ──
+  'Se valora a sí mismo': {
+    '3': 'Reconoce sus necesidades, sensaciones e intereses; se reconoce como miembro de su familia y aula. Expresa emociones con gestos y palabras.',
+    '4': 'Reconoce sus intereses y características diferenciándose de otros. Comparte hechos de su historia familiar. Expresa emociones y busca consuelo.',
+    '5': 'Reconoce sus cualidades y actúa sin distinciones de género. Se reconoce parte de su IE. Expresa emociones e identifica sus causas.',
+  },
+  'Autorregula sus emociones': {
+    '3': 'Reconoce sus necesidades, sensaciones e intereses; se reconoce como miembro de su familia y aula. Expresa emociones con gestos y palabras.',
+    '4': 'Reconoce sus intereses y características diferenciándose de otros. Comparte hechos de su historia familiar. Expresa emociones y busca consuelo.',
+    '5': 'Reconoce sus cualidades y actúa sin distinciones de género. Se reconoce parte de su IE. Expresa emociones e identifica sus causas.',
+  },
+  // ── Personal Social: Convive y participa ──
+  'Interactúa con todas las personas': {
+    '3': 'Se relaciona con adultos y niños jugando en grupos pequeños. Participa en actividades grupales siguiendo normas conocidas. Cuida materiales compartidos.',
+    '4': 'Se integra en actividades grupales y propone ideas de juego. Participa en la construcción colectiva de acuerdos basados en el respeto.',
+    '5': 'Propone reglas de juego y se pone de acuerdo con el grupo. Se interesa por conocer las costumbres de sus compañeros. Asume responsabilidades en el aula.',
+  },
+  'Construye normas y asume acuerdos y leyes': {
+    '3': 'Se relaciona con adultos y niños jugando en grupos pequeños. Participa en actividades grupales siguiendo normas conocidas. Cuida materiales compartidos.',
+    '4': 'Se integra en actividades grupales y propone ideas de juego. Participa en la construcción colectiva de acuerdos basados en el respeto.',
+    '5': 'Propone reglas de juego y se pone de acuerdo con el grupo. Se interesa por conocer las costumbres de sus compañeros. Asume responsabilidades en el aula.',
+  },
+  'Participa en acciones que promueven el bienestar común': {
+    '3': 'Se relaciona con adultos y niños jugando en grupos pequeños. Participa en actividades grupales siguiendo normas conocidas. Cuida materiales compartidos.',
+    '4': 'Se integra en actividades grupales y propone ideas de juego. Participa en la construcción colectiva de acuerdos basados en el respeto.',
+    '5': 'Propone reglas de juego y se pone de acuerdo con el grupo. Se interesa por conocer las costumbres de sus compañeros. Asume responsabilidades en el aula.',
+  },
+  // ── Personal Social: Identidad religiosa ──
+  'Conoce a Dios y asume su identidad religiosa': {
+    '3': 'Reconoce espontáneamente el amor de su familia como indicio del amor de Dios. Participa en prácticas religiosas de sus padres.',
+    '4': 'Expresa por propia iniciativa el amor y cuidado que recibe. Disfruta de la naturaleza creada por Dios. Es solidario con quien necesita ayuda.',
+    '5': 'Expresa amor y cuidado como indicio del amor de Dios mediante acciones de compartir y ayudar. Participa del cuidado de la Creación.',
+  },
+  'Cultiva y valora las manifestaciones religiosas': {
+    '3': 'Reconoce espontáneamente el amor de su familia como indicio del amor de Dios. Participa en prácticas religiosas de sus padres.',
+    '4': 'Expresa por propia iniciativa el amor y cuidado que recibe. Disfruta de la naturaleza creada por Dios. Es solidario con quien necesita ayuda.',
+    '5': 'Expresa amor y cuidado como indicio del amor de Dios mediante acciones de compartir y ayudar. Participa del cuidado de la Creación.',
+  },
+  // ── Psicomotriz ──
+  'Comprende su cuerpo': {
+    '3': 'Realiza movimientos como correr, saltar y trepar explorando su cuerpo. Reconoce sensaciones corporales como la respiración.',
+    '4': 'Realiza acciones motrices autónomas regulando su fuerza y velocidad. Hace evidentes partes del cuerpo en sus representaciones (dibujo).',
+    '5': 'Combina habilidades motrices básicas mostrando mayor control de un lado de su cuerpo. Realiza movimientos de precisión en límites espaciales.',
+  },
+  'Se expresa corporalmente': {
+    '3': 'Realiza movimientos como correr, saltar y trepar explorando su cuerpo. Reconoce sensaciones corporales como la respiración.',
+    '4': 'Realiza acciones motrices autónomas regulando su fuerza y velocidad. Hace evidentes partes del cuerpo en sus representaciones (dibujo).',
+    '5': 'Combina habilidades motrices básicas mostrando mayor control de un lado de su cuerpo. Realiza movimientos de precisión en límites espaciales.',
+  },
+  // ── Comunicación oral ──
+  'Obtiene información': {
+    '3': 'Expresa necesidades y emociones con palabras de uso frecuente. Participa en conversaciones o escucha relatos formulando preguntas.',
+    '4': 'Expresa experiencias usando diversos volúmenes de voz. Recupera información explícita y deduce relaciones de causa-efecto.',
+    '5': 'Desarrolla ideas en torno a un tema. Participa en diálogos esperando su turno. Deduce características y comenta lo que le gusta dando razones.',
+  },
+  'Infiere e interpreta': {
+    '3': 'Identifica características de personajes en ilustraciones. Dice de qué trata un texto por las imágenes. Comenta emociones generadas.',
+    '4': 'Identifica características en etiquetas o carteles. Predice el final de un texto por las imágenes observadas antes y durante la lectura.',
+    '5': 'Identifica palabras conocidas como su nombre. Dice de qué trata el texto por indicios como el título. Opina dando razones sencillas.',
+  },
+  'Adecúa, organiza y desarrolla': {
+    '3': 'Expresa necesidades y emociones con palabras de uso frecuente. Participa en conversaciones o escucha relatos formulando preguntas.',
+    '4': 'Expresa experiencias usando diversos volúmenes de voz. Recupera información explícita y deduce relaciones de causa-efecto.',
+    '5': 'Desarrolla ideas en torno a un tema. Participa en diálogos esperando su turno. Deduce características y comenta lo que le gusta dando razones.',
+  },
+  'Utiliza recursos no verbales': {
+    '3': 'Expresa necesidades y emociones con palabras de uso frecuente. Participa en conversaciones o escucha relatos formulando preguntas.',
+    '4': 'Expresa experiencias usando diversos volúmenes de voz. Recupera información explícita y deduce relaciones de causa-efecto.',
+    '5': 'Desarrolla ideas en torno a un tema. Participa en diálogos esperando su turno. Deduce características y comenta lo que le gusta dando razones.',
+  },
+  'Interactúa estratégicamente': {
+    '3': 'Expresa necesidades y emociones con palabras de uso frecuente. Participa en conversaciones o escucha relatos formulando preguntas.',
+    '4': 'Expresa experiencias usando diversos volúmenes de voz. Recupera información explícita y deduce relaciones de causa-efecto.',
+    '5': 'Desarrolla ideas en torno a un tema. Participa en diálogos esperando su turno. Deduce características y comenta lo que le gusta dando razones.',
+  },
+  'Reflexiona y evalúa': {
+    '3': 'Identifica características de personajes en ilustraciones. Dice de qué trata un texto por las imágenes. Comenta emociones generadas.',
+    '4': 'Identifica características en etiquetas o carteles. Predice el final de un texto por las imágenes observadas antes y durante la lectura.',
+    '5': 'Identifica palabras conocidas como su nombre. Dice de qué trata el texto por indicios como el título. Opina dando razones sencillas.',
+  },
+  // ── Escritura ──
+  'Adecúa el texto': {
+    '3': 'No se evidencian desempeños específicos para esta edad.',
+    '4': 'Escribe por iniciativa propia a su manera (trazos, grafismos) para expresar ideas en notas o cuentos.',
+    '5': 'Escribe considerando a quién y para qué lo hace. Usa letras de izquierda a derecha sobre línea imaginaria. Revisa lo que ha dictado.',
+  },
+  'Organiza y desarrolla las ideas': {
+    '3': 'No se evidencian desempeños específicos para esta edad.',
+    '4': 'Escribe por iniciativa propia a su manera (trazos, grafismos) para expresar ideas en notas o cuentos.',
+    '5': 'Escribe considerando a quién y para qué lo hace. Usa letras de izquierda a derecha sobre línea imaginaria. Revisa lo que ha dictado.',
+  },
+  'Utiliza convenciones': {
+    '3': 'No se evidencian desempeños específicos para esta edad.',
+    '4': 'Escribe por iniciativa propia a su manera (trazos, grafismos) para expresar ideas en notas o cuentos.',
+    '5': 'Escribe considerando a quién y para qué lo hace. Usa letras de izquierda a derecha sobre línea imaginaria. Revisa lo que ha dictado.',
+  },
+  // ── Lenguajes artísticos ──
+  'Explora y experimenta': {
+    '3': 'Explora materiales libremente descubriendo sus posibilidades. Representa vivencias personales (dibujo, danza, música).',
+    '4': 'Descubre efectos al combinar materiales. Representa ideas sobre sus vivencias. Muestra y comenta espontáneamente lo realizado.',
+    '5': 'Explora materiales individual o grupalmente. Representa vivencias de su contexto. Describe sus creaciones y las de otros.',
+  },
+  'Aplica procesos creativos': {
+    '3': 'Explora materiales libremente descubriendo sus posibilidades. Representa vivencias personales (dibujo, danza, música).',
+    '4': 'Descubre efectos al combinar materiales. Representa ideas sobre sus vivencias. Muestra y comenta espontáneamente lo realizado.',
+    '5': 'Explora materiales individual o grupalmente. Representa vivencias de su contexto. Describe sus creaciones y las de otros.',
+  },
+  'Socializa sus procesos y proyectos': {
+    '3': 'Explora materiales libremente descubriendo sus posibilidades. Representa vivencias personales (dibujo, danza, música).',
+    '4': 'Descubre efectos al combinar materiales. Representa ideas sobre sus vivencias. Muestra y comenta espontáneamente lo realizado.',
+    '5': 'Explora materiales individual o grupalmente. Representa vivencias de su contexto. Describe sus creaciones y las de otros.',
+  },
+  // ── Matemática: cantidad ──
+  'Traduce cantidades': {
+    '3': 'Compara y agrupa objetos por características similares. Usa expresiones como "muchos" o "pocos". Utiliza el conteo espontáneo.',
+    '4': 'Agrupa objetos y realiza seriaciones por tamaño con hasta tres objetos. Establece correspondencia uno a uno. Cuenta hasta 5.',
+    '5': 'Establece el criterio para agrupar. Realiza seriaciones por tamaño, longitud y grosor con hasta cinco objetos. Cuenta hasta 10.',
+  },
+  'Comunica su comprensión': {
+    '3': 'Compara y agrupa objetos por características similares. Usa expresiones como "muchos" o "pocos". Utiliza el conteo espontáneo.',
+    '4': 'Agrupa objetos y realiza seriaciones por tamaño con hasta tres objetos. Establece correspondencia uno a uno. Cuenta hasta 5.',
+    '5': 'Establece el criterio para agrupar. Realiza seriaciones por tamaño, longitud y grosor con hasta cinco objetos. Cuenta hasta 10.',
+  },
+  'Usa estrategias y procedimientos': {
+    '3': 'Establece relaciones de medida (grande/pequeño). Se ubica usando expresiones como "arriba", "abajo", "dentro" y "fuera".',
+    '4': 'Identifica formas de objetos de su entorno. Se ubica y desplaza usando "delante de", "detrás de", "encima", "debajo", entre otros.',
+    '5': 'Relaciona objetos con formas geométricas conocidas. Usa expresiones como "cerca de", "lejos de", "al lado de". Explica cómo construyó un objeto.',
+  },
+  // ── Matemática: forma ──
+  'Modela objetos': {
+    '3': 'Establece relaciones de medida (grande/pequeño). Se ubica usando expresiones como "arriba", "abajo", "dentro" y "fuera".',
+    '4': 'Identifica formas de objetos de su entorno. Se ubica y desplaza usando "delante de", "detrás de", "encima", "debajo", entre otros.',
+    '5': 'Relaciona objetos con formas geométricas conocidas. Usa expresiones como "cerca de", "lejos de", "al lado de". Explica cómo construyó un objeto.',
+  },
+  // ── Ciencia ──
+  'Problematiza situaciones': {
+    '3': 'Hace preguntas sobre objetos o seres vivos. Obtiene información a través de sus sentidos y comunica sus descubrimientos.',
+    '4': 'Pregunta sobre el ambiente y propone acciones para buscar información. Registra datos mediante dibujos o fotos y los compara.',
+    '5': 'Plantea posibles explicaciones a sus preguntas. Propone materiales para resolver problemas. Compara explicaciones con datos obtenidos y concluye.',
+  },
+  'Diseña estrategias': {
+    '3': 'Hace preguntas sobre objetos o seres vivos. Obtiene información a través de sus sentidos y comunica sus descubrimientos.',
+    '4': 'Pregunta sobre el ambiente y propone acciones para buscar información. Registra datos mediante dibujos o fotos y los compara.',
+    '5': 'Plantea posibles explicaciones a sus preguntas. Propone materiales para resolver problemas. Compara explicaciones con datos obtenidos y concluye.',
+  },
+  'Genera y registra datos': {
+    '3': 'Hace preguntas sobre objetos o seres vivos. Obtiene información a través de sus sentidos y comunica sus descubrimientos.',
+    '4': 'Pregunta sobre el ambiente y propone acciones para buscar información. Registra datos mediante dibujos o fotos y los compara.',
+    '5': 'Plantea posibles explicaciones a sus preguntas. Propone materiales para resolver problemas. Compara explicaciones con datos obtenidos y concluye.',
+  },
+  'Analiza datos': {
+    '3': 'Hace preguntas sobre objetos o seres vivos. Obtiene información a través de sus sentidos y comunica sus descubrimientos.',
+    '4': 'Pregunta sobre el ambiente y propone acciones para buscar información. Registra datos mediante dibujos o fotos y los compara.',
+    '5': 'Plantea posibles explicaciones a sus preguntas. Propone materiales para resolver problemas. Compara explicaciones con datos obtenidos y concluye.',
+  },
+  'Evalúa y comunica': {
+    '3': 'Hace preguntas sobre objetos o seres vivos. Obtiene información a través de sus sentidos y comunica sus descubrimientos.',
+    '4': 'Pregunta sobre el ambiente y propone acciones para buscar información. Registra datos mediante dibujos o fotos y los compara.',
+    '5': 'Plantea posibles explicaciones a sus preguntas. Propone materiales para resolver problemas. Compara explicaciones con datos obtenidos y concluye.',
+  },
+  // ── TIC ──
+  'Personaliza entornos virtuales': {
+    '3': 'Sin desempeño específico descrito en Inicial para esta edad.',
+    '4': 'Sin desempeño específico descrito en Inicial para esta edad.',
+    '5': 'Explora dispositivos como cámaras o tablets reconociendo funciones básicas. Produce audios o videos para registrar acontecimientos.',
+  },
+  'Gestiona información': {
+    '3': 'Sin desempeño específico descrito en Inicial para esta edad.',
+    '4': 'Sin desempeño específico descrito en Inicial para esta edad.',
+    '5': 'Explora dispositivos como cámaras o tablets reconociendo funciones básicas. Produce audios o videos para registrar acontecimientos.',
+  },
+  'Crea objetos virtuales': {
+    '3': 'Sin desempeño específico descrito en Inicial para esta edad.',
+    '4': 'Sin desempeño específico descrito en Inicial para esta edad.',
+    '5': 'Explora dispositivos como cámaras o tablets reconociendo funciones básicas. Produce audios o videos para registrar acontecimientos.',
+  },
+  // ── Aprendizaje autónomo ──
+  'Define metas': {
+    '3': 'Identifica qué aprenderá y qué puede lograr para realizar una tarea. Comprende que debe organizarse con acciones cortas.',
+    '4': 'Reflexiona con ayuda sobre lo que necesita para realizar una tarea. Plantea acciones simples para lograr su meta.',
+    '5': 'Reflexiona sobre lo que necesita para una tarea. Plantea estrategias con ayuda y revisa su actuar explicando sus dificultades y logros.',
+  },
+  'Organiza acciones': {
+    '3': 'Identifica qué aprenderá y qué puede lograr para realizar una tarea. Comprende que debe organizarse con acciones cortas.',
+    '4': 'Reflexiona con ayuda sobre lo que necesita para realizar una tarea. Plantea acciones simples para lograr su meta.',
+    '5': 'Reflexiona sobre lo que necesita para una tarea. Plantea estrategias con ayuda y revisa su actuar explicando sus dificultades y logros.',
+  },
+  'Monitorea y ajusta': {
+    '3': 'Identifica qué aprenderá y qué puede lograr para realizar una tarea. Comprende que debe organizarse con acciones cortas.',
+    '4': 'Reflexiona con ayuda sobre lo que necesita para realizar una tarea. Plantea acciones simples para lograr su meta.',
+    '5': 'Reflexiona sobre lo que necesita para una tarea. Plantea estrategias con ayuda y revisa su actuar explicando sus dificultades y logros.',
+  },
 };
+
+// Opciones de logro para cada desempeño
+const DESEMP_OPTS = ['Logrado','En proceso','En inicio'];
 
 // Estado en memoria
 let _docDropData = { edad: null, compet: {}, desemp: {} };
@@ -11564,26 +11740,77 @@ function selectEdad(id, color) {
 
 // ── DESEMPEÑO: renderiza grid según edad ─────────────────────
 function renderDesempGrid() {
-  const noEdad  = document.getElementById('docDesempNoEdad');
-  const content = document.getElementById('docDesempContent');
-  const grid    = document.getElementById('docDesempGrid');
+  var noEdad    = document.getElementById('docDesempNoEdad');
+  var contentEl = document.getElementById('docDesempContent');
+  var grid      = document.getElementById('docDesempGrid');
+
   if (!_docDropData.edad) {
     noEdad.style.display = 'block';
-    content.style.display = 'none';
+    contentEl.style.display = 'none';
     return;
   }
+
   noEdad.style.display = 'none';
-  content.style.display = 'block';
-  const items = DESEMP_POR_EDAD[_docDropData.edad] || [];
-  grid.innerHTML = items.map(item => `
-    <div>
-      <span class="doc-comp-label">${item.label}</span>
-      <select class="doc-comp-select" id="${item.id}" onchange="onDesempChange('${item.id}',this.value)">
-        <option value="">— Seleccionar —</option>
-        ${item.opts.map(o => `<option ${_docDropData.desemp[item.id]===o?'selected':''}>${o}</option>`).join('')}
-      </select>
-    </div>
-  `).join('');
+  contentEl.style.display = 'block';
+
+  var edad = _docDropData.edad;
+  var html = '';
+
+  // Obtener capacidades activas desde _docDropData.compet (las que tienen valor)
+  // o bien todas las capacidades de las competencias seleccionadas en CTX
+  var capsActivas = Object.keys(_docDropData.compet || {}).filter(function(id) {
+    return _docDropData.compet[id]; // solo las que tienen nivel asignado
+  });
+
+  // Construir lista de labels de capacidades para buscar en DESEMP_TABLA
+  // Buscar el label de cada cap id dentro de CAPACIDADES_POR_COMPETENCIA
+  var labelsDeCaps = [];
+  if (capsActivas.length) {
+    Object.values(CAPACIDADES_POR_COMPETENCIA).forEach(function(caps) {
+      caps.forEach(function(cap) {
+        if (capsActivas.indexOf(cap.id) > -1) {
+          labelsDeCaps.push(cap.label);
+        }
+      });
+    });
+  }
+
+  // Si no hay capacidades seleccionadas, usar todas las de las competencias activas en CTX
+  if (!labelsDeCaps.length && CTX && CTX.competencias && CTX.competencias.size) {
+    [...CTX.competencias].forEach(function(comp) {
+      var caps = CAPACIDADES_POR_COMPETENCIA[comp] || [];
+      caps.forEach(function(cap) { labelsDeCaps.push(cap.label); });
+    });
+  }
+
+  // Si aún no hay nada, mostrar todas
+  if (!labelsDeCaps.length) {
+    labelsDeCaps = Object.keys(DESEMP_TABLA);
+  }
+
+  // Renderizar un bloque por cada capacidad
+  labelsDeCaps.forEach(function(capLabel) {
+    var texto = DESEMP_TABLA[capLabel] && DESEMP_TABLA[capLabel][edad];
+    if (!texto) return;
+    var depId = 'dep-' + capLabel.replace(/[^a-zA-Z0-9]/g, '').substring(0, 24);
+    var saved = _docDropData.desemp[depId] || '';
+    html += '<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">';
+    html += '<span class="doc-comp-label" style="color:var(--accent2);font-size:11px">' + capLabel + '</span>';
+    html += '<div style="font-size:11px;color:var(--text);background:var(--surface2);border-radius:7px;padding:7px 10px;margin:5px 0 7px;line-height:1.6">' + texto + '</div>';
+    html += '<select class="doc-comp-select" id="' + depId + '" data-depid="' + depId + '" onchange="onDesempChange(this.dataset.depid,this.value)">';
+    html += '<option value="">— Nivel de logro —</option>';
+    DESEMP_OPTS.forEach(function(o) {
+      html += '<option' + (saved === o ? ' selected' : '') + '>' + o + '</option>';
+    });
+    html += '</select>';
+    html += '</div>';
+  });
+
+  if (!html) {
+    html = '<div style="text-align:center;padding:18px;color:var(--muted);font-size:12px">📋 Selecciona Capacidades para ver sus desempeños</div>';
+  }
+
+  grid.innerHTML = html;
   _updateDesempCount();
 }
 
@@ -15286,7 +15513,7 @@ function ctxRenderList(type) {
         _updateCtxCompLabel();
       }
       // Al cambiar competencia: actualizar label y refrescar panel capacidades
-      if (type === 'comp') { _updateCtxCompLabel(); renderCapacidadesPanel(); }
+      if (type === 'comp') { _updateCtxCompLabel(); renderCapacidadesPanel(); renderDesempGrid(); }
       updateAgentCtxBadge();
       applyCtxToChat();
     });
@@ -15440,7 +15667,7 @@ function selectAllCtx(type) {
 function clearCtx(type) {
   if (type === 'curso')  { CTX.cursos.clear();      CTX.alumnos.clear(); ctxRenderList('curso'); ctxRenderAlus(); }
   if (type === 'asig')   { CTX.asignaturas.clear(); CTX.competencias.clear(); ctxRenderList('asig'); ctxRenderList('comp'); }
-  if (type === 'comp')   { CTX.competencias.clear(); ctxRenderList('comp'); _updateCtxCompLabel(); renderCapacidadesPanel(); }
+  if (type === 'comp')   { CTX.competencias.clear(); ctxRenderList('comp'); _updateCtxCompLabel(); renderCapacidadesPanel(); renderDesempGrid(); }
   if (type === 'alu')    { CTX.alumnos.clear();      ctxRenderAlus(); }
   updateAgentCtxBadge(); applyCtxToChat();
 }
