@@ -11428,7 +11428,7 @@ function renderCapacidadesPanel() {
       html += '<div>';
       html += '<span class="doc-comp-label">' + cap.label + '</span>';
       html += '<div style="font-size:9px;color:var(--muted);margin-bottom:4px;line-height:1.4">' + cap.desc + '</div>';
-      html += '<select class="doc-comp-select" id="' + cap.id + '" onchange="onCompetChange('' + cap.id + '',this.value)">';
+      html += '<select class="doc-comp-select" id="' + cap.id + '" data-capid="' + cap.id + '" onchange="onCompetChange(this.dataset.capid,this.value)">';
       html += '<option value="">— Seleccionar —</option>';
       ['Logrado','En proceso','En inicio'].forEach(function(o) {
         html += '<option' + (saved === o ? ' selected' : '') + '>' + o + '</option>';
