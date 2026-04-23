@@ -15337,6 +15337,10 @@ function filterCtxPicker(type, val) {
     var el = document.getElementById('ctxAsigList');
     if (el) el.dataset.filter = val;
     ctxRenderList('asig');
+  } else if (type === 'comp') {
+    var el = document.getElementById('ctxCompList');
+    if (el) el.dataset.filter = val;
+    ctxRenderList('comp');
   } else {
     ctxRenderAlus(val);
   }
@@ -15351,6 +15355,14 @@ function selectAllCtx(type) {
   } else if (type === 'asig') {
     (window._ctxAsigList||[]).forEach(function(a){ CTX.asignaturas.add(a); });
     ctxRenderList('asig');
+    // refrescar competencias al seleccionar todas las áreas
+    var validas = new Set(getCompetenciasFiltradas());
+    CTX.competencias.forEach(function(c){ if (!validas.has(c)) CTX.competencias.delete(c); });
+    ctxRenderList('comp');
+  } else if (type === 'comp') {
+    getCompetenciasFiltradas().forEach(function(c){ CTX.competencias.add(c); });
+    ctxRenderList('comp');
+    _updateCtxCompLabel();
   } else if (type === 'alu') {
     var base = DB.alumnos;
     if (CTX.cursos.size) base = base.filter(function(a){ return CTX.cursos.has(a.esp); });
@@ -15367,18 +15379,14 @@ function selectAllCtx(type) {
     });
     ctxRenderAlus();
   }
-  updateAgentCtxBadge(); applyCtxToChat();
-  if (type === 'comp') {
-    COMPETENCIAS.forEach(function(c){ CTX.competencias.add(c); });
-    ctxRenderList('comp');
-  }
-  updateAgentCtxBadge(); renderCtxSummary();
+  updateAgentCtxBadge(); applyCtxToChat(); renderCtxSummary();
 }
 
 function clearCtx(type) {
-  if (type === 'curso')  { CTX.cursos.clear();     CTX.alumnos.clear(); ctxRenderList('curso'); ctxRenderAlus(); }
-  if (type === 'asig')   { CTX.asignaturas.clear(); ctxRenderList('asig'); }
-  if (type === 'alu')    { CTX.alumnos.clear();     ctxRenderAlus(); }
+  if (type === 'curso')  { CTX.cursos.clear();      CTX.alumnos.clear(); ctxRenderList('curso'); ctxRenderAlus(); }
+  if (type === 'asig')   { CTX.asignaturas.clear(); CTX.competencias.clear(); ctxRenderList('asig'); ctxRenderList('comp'); }
+  if (type === 'comp')   { CTX.competencias.clear(); ctxRenderList('comp'); _updateCtxCompLabel(); }
+  if (type === 'alu')    { CTX.alumnos.clear();      ctxRenderAlus(); }
   updateAgentCtxBadge(); applyCtxToChat();
 }
 
