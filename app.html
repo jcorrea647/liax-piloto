@@ -7366,6 +7366,8 @@ function openApiKeyModal() {
   if (gkEl) gkEl.value = getGeminiKey();
   var okEl = document.getElementById('openaiKeyInput');
   if (okEl) okEl.value = getOpenAIKey();
+  var tkEl = document.getElementById('togetherKeyInput');
+  if (tkEl) tkEl.value = getTogetherKey();
   // Default to keys tab
   switchApiTab('keys');
   document.getElementById('apiKeyModal').classList.add('open');
@@ -7379,6 +7381,7 @@ function renderApiKeyStatus() {
   var hasAnthropic = !!getApiKey();
   var hasGemini    = !!getGeminiKey();
   var hasOpenAI    = !!getOpenAIKey();
+  var hasTogether  = !!getTogetherKey();
   var btnStyle = 'font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:1px 6px;cursor:pointer;margin-left:4px';
   // On Vercel, proxy handles the key — always show as configured
   if (!hasAnthropic && !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
@@ -7388,6 +7391,7 @@ function renderApiKeyStatus() {
     var badges = '';
     if (hasGemini) badges += '<span style="font-size:9px;background:rgba(66,133,244,.15);color:#4285f4;border:1px solid rgba(66,133,244,.25);border-radius:10px;padding:1px 6px;margin-left:3px;font-weight:700">+Gemini</span>';
     if (hasOpenAI) badges += '<span style="font-size:9px;background:rgba(16,163,127,.12);color:#10a37f;border:1px solid rgba(16,163,127,.25);border-radius:10px;padding:1px 6px;margin-left:3px;font-weight:700">+GPT</span>';
+    if (hasTogether) badges += '<span style="font-size:9px;background:rgba(99,102,241,.15);color:#6366f1;border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:1px 6px;margin-left:3px;font-weight:700">+Imágenes</span>';
     el.innerHTML = '<span style="color:var(--accent2);font-size:11px">🔑 IAs' + badges + '</span>' +
       ' <button onclick="openApiKeyModal()" style="' + btnStyle + '">Configurar</button>';
   } else {
@@ -7438,6 +7442,20 @@ function setOpenAIKey(key) {
 
 // setOpenAIKey defined above with IndexedDB support
 function clearOpenAIKey() { window._openaiKey = ''; renderApiKeyStatus(); }
+
+// ── Together AI key helpers (generación de imágenes) ──────────
+function getTogetherKey() {
+  return (window._togetherKey || '') || (window._cachedTogetherKey || '');
+}
+function setTogetherKey(key) {
+  key = (key || '').trim();
+  window._togetherKey = key;
+  window._cachedTogetherKey = key;
+  if (key) AGENT_VAULT.saveSetting('together_key', key).catch(function(){});
+  if (key) showSaveToast('✅ Together AI Key guardada');
+  renderApiKeyStatus();
+}
+function clearTogetherKey() { window._togetherKey = ''; window._cachedTogetherKey = ''; renderApiKeyStatus(); }
 
 // ── Router config storage ──────────────────────────────────────
 // { taskType: 'claude'|'gemini'|'openai' }
@@ -7686,21 +7704,49 @@ function saveAllApiKeys() {
   var ak = (document.getElementById('apiKeyInput')?.value  || '').trim();
   var gk = (document.getElementById('geminiKeyInput')?.value || '').trim();
   var ok = (document.getElementById('openaiKeyInput')?.value || '').trim();
+  var tk = (document.getElementById('togetherKeyInput')?.value || '').trim();
 
-  // Always save (even empty = clear)
-  if (ak) window._cachedAnthropicKey = ak;
-  else    window._cachedAnthropicKey = '';
-  if (gk) window._geminiKey = gk;
-  else    window._geminiKey = '';
-  if (ok) window._openaiKey = ok;
-  else    window._openaiKey = '';
+  // Update window cache vars
+  window._cachedAnthropicKey = ak || '';
+  window._geminiKey          = gk || '';
+  window._cachedGeminiKey    = gk || '';
+  window._openaiKey          = ok || '';
+  window._cachedOpenAIKey    = ok || '';
+  window._togetherKey        = tk || '';
+  window._cachedTogetherKey  = tk || '';
+
+  // Persist to Supabase config table (single source of truth)
+  if (_supa && _supaUser) {
+    var keysToSave = [
+      { key: 'anthropic_key', value: ak },
+      { key: 'gemini_key',    value: gk },
+      { key: 'openai_key',    value: ok },
+      { key: 'together_key',  value: tk },
+    ].filter(function(r){ return r.value; });
+
+    keysToSave.forEach(function(r) {
+      _supa.from('config').upsert(
+        { key: r.key, value: r.value, updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      ).then(function(res){
+        if (res.error) console.warn('[LIAX] Error guardando', r.key, res.error.message);
+        else console.log('[LIAX] Guardado en Supabase:', r.key);
+      }).catch(function(e){ console.warn('[LIAX] upsert error:', e.message); });
+    });
+  }
+
+  // Also persist to IndexedDB as local backup
+  if (ak) AGENT_VAULT.saveSetting('anthropic_key', ak).catch(function(){});
+  if (gk) AGENT_VAULT.saveSetting('gemini_key',    gk).catch(function(){});
+  if (ok) AGENT_VAULT.saveSetting('openai_key',    ok).catch(function(){});
+  if (tk) AGENT_VAULT.saveSetting('together_key',  tk).catch(function(){});
 
   document.getElementById('apiKeyModal').classList.remove('open');
 
-  if (!ak && !gk && !ok) {
+  if (!ak && !gk && !ok && !tk) {
     showSaveToast('⚠️ No guardaste ninguna API key');
   } else {
-    showSaveToast('✅ API key guardada — ya puedes usar la IA');
+    showSaveToast('✅ API keys guardadas en Supabase');
   }
   renderApiKeyStatus();
 }
@@ -16039,25 +16085,77 @@ async function handleGenerarImagen(containerId, prompt) {
   var wrap = document.getElementById(containerId);
   if (!wrap) return;
 
+  // ── Intentar cargar Together key desde vault si no está en memoria ──
+  var togetherKey = getTogetherKey();
+  if (!togetherKey) {
+    try {
+      var tk = await AGENT_VAULT.loadSetting('together_key');
+      if (tk) { window._togetherKey = tk; window._cachedTogetherKey = tk; togetherKey = tk; }
+    } catch(e) {}
+  }
+
+  // ── 1. Together AI (FLUX.1-schnell) — rápido y barato ──
+  if (togetherKey) {
+    try {
+      wrap.innerHTML =
+        '<div class="img-search-loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
+        '<span style="margin-left:6px">⚡ Together AI · FLUX.1-schnell...</span></div>';
+
+      var togetherBody = {
+        model: 'black-forest-labs/FLUX.1-schnell-Free',
+        prompt: 'Educational illustration, clean style, bright colors, white background, no text. Topic: ' + prompt,
+        width: 1024, height: 768,
+        steps: 4,
+        n: 1,
+        response_format: 'url'
+      };
+
+      var tres = await fetch('https://api.together.xyz/v1/images/generations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + togetherKey },
+        body: JSON.stringify(togetherBody)
+      });
+
+      if (!tres.ok) {
+        var tErr = await tres.json().catch(function(){ return {}; });
+        throw new Error(tErr.error && tErr.error.message ? tErr.error.message : 'Together error ' + tres.status);
+      }
+
+      var tData = await tres.json();
+      var imgUrl = tData.data && tData.data[0] && tData.data[0].url;
+      if (!imgUrl) throw new Error('No se obtuvo URL de imagen');
+
+      var imgId = 'gen_' + Date.now();
+      _liaxRenderImagenGenerada(wrap, containerId, imgId, imgUrl, false, prompt, 'Together AI · FLUX Schnell', 'linear-gradient(135deg,#6366f1,#8b5cf6)');
+      return;
+
+    } catch(e) {
+      console.warn('[Together Imagen]', e.message);
+      // Continúa al fallback Gemini
+    }
+  }
+
+  // ── 2. Fallback: Gemini Imagen ──
   var geminiKey = getGeminiKey();
   if (!geminiKey) {
-    // Si no hay Gemini key, caer en búsqueda normal
-    wrap.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:6px 0">' +
-      '⚠️ Para generar imágenes necesitas configurar tu <strong>API Key de Gemini</strong> en ⚙️ Configurar IAs.' +
-      '<br><br>Buscando imágenes similares en su lugar...</div>';
-    setTimeout(function() { handleImageTag(containerId, prompt, 'both'); }, 1500);
+    wrap.innerHTML =
+      '<div style="background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);border-radius:8px;padding:10px 14px;font-size:11px;line-height:1.7">' +
+      '🎨 Para generar imágenes con IA, configura una API Key en <button onclick="openApiKeyModal()" ' +
+      'style="background:none;border:none;color:var(--accent1);cursor:pointer;font-size:11px;padding:0;text-decoration:underline">⚙️ Configurar IAs</button>.' +
+      '<br><span style="color:var(--muted)">• <strong>Together AI</strong> (recomendado): ~$0.003/imagen — together.ai<br>' +
+      '• <strong>Google Gemini</strong>: gratis con límites — aistudio.google.com</span>' +
+      '<br><br>Buscando imágenes similares mientras tanto...</div>';
+    setTimeout(function() { handleImageTag(containerId, prompt, 'both'); }, 1800);
     return;
   }
 
   try {
-    // Gemini 2.0 Flash Imagen API
+    wrap.innerHTML =
+      '<div class="img-search-loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
+      '<span style="margin-left:6px">✨ Gemini Imagen generando...</span></div>';
+
     var body = {
-      contents: [{
-        parts: [{
-          text: 'Genera una imagen educativa, simple y clara para usar en una actividad de reforzamiento escolar: ' + prompt +
-                '. Estilo: ilustración pedagógica, colores brillantes, fondo blanco, sin texto.'
-        }]
-      }],
+      contents: [{ parts: [{ text: 'Genera una imagen educativa, simple y clara, colores brillantes, fondo blanco, sin texto: ' + prompt }] }],
       generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
     };
 
@@ -16074,67 +16172,57 @@ async function handleGenerarImagen(containerId, prompt) {
     var data = await res.json();
     var parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
     var imgPart = parts.find(function(p) { return p.inlineData; });
+    if (!imgPart || !imgPart.inlineData) throw new Error('No se obtuvo imagen en la respuesta');
 
-    if (imgPart && imgPart.inlineData) {
-      var mimeType = imgPart.inlineData.mimeType || 'image/png';
-      var b64      = imgPart.inlineData.data;
-      var dataUrl  = 'data:' + mimeType + ';base64,' + b64;
-      var imgId    = 'gen_' + Date.now();
-
-      var imgId = 'gen_' + Date.now();
-      wrap.innerHTML =
-        '<div style="margin:8px 0">' +
-          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:10px;color:var(--muted)">' +
-            '<span style="background:linear-gradient(135deg,#4285f4,#34a853);color:#fff;border-radius:10px;padding:2px 8px;font-size:9px;font-weight:700">Gemini Imagen</span>' +
-            '<span>Imagen generada: ' + prompt.slice(0,40) + '</span>' +
-          '</div>' +
-          '<img id="' + imgId + '" src="' + dataUrl + '" ' +
-            'style="max-width:100%;max-height:320px;border-radius:10px;border:1px solid var(--border);cursor:zoom-in;display:block" ' +
-            'alt="imagen generada">' +
-          '<div style="display:flex;gap:6px;margin-top:6px">' +
-            '<button data-imgid="' + imgId + '" data-action="download" ' +
-              'style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;color:var(--muted)">Descargar</button>' +
-            '<button data-cid="' + containerId + '" data-prompt="' + prompt.replace(/"/g,'') + '" data-action="regen" ' +
-              'style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;color:var(--muted)">Regenerar</button>' +
-          '</div>' +
-        '</div>';
-      // Attach click handlers after render
-      setTimeout(function() {
-        var w2 = document.getElementById(containerId);
-        if (!w2) return;
-        var dlBtn = w2.querySelector('[data-action="download"]');
-        if (dlBtn) dlBtn.onclick = function() {
-          var img = document.getElementById(this.getAttribute('data-imgid'));
-          if (!img) return;
-          var a = document.createElement('a');
-          a.href = img.src;
-          a.download = 'liax_imagen.png';
-          a.click();
-        };
-        var rgBtn = w2.querySelector('[data-action="regen"]');
-        if (rgBtn) rgBtn.onclick = function() {
-          var cid2 = this.getAttribute('data-cid');
-          var pr2  = this.getAttribute('data-prompt');
-          var ww = document.getElementById(cid2);
-          if (ww) ww.innerHTML = '<div style="font-size:11px;padding:6px">Regenerando...</div>';
-          setTimeout(function(){ handleGenerarImagen(cid2, pr2); }, 200);
-        };
-        // Zoom on click
-        var imgEl = document.getElementById(imgId);
-        if (imgEl) imgEl.onclick = function() { liaxZoomImg(this.src); };
-      }, 50);
-
-    } else {
-      throw new Error('No se obtuvo imagen en la respuesta');
-    }
+    var mimeType = imgPart.inlineData.mimeType || 'image/png';
+    var dataUrl  = 'data:' + mimeType + ';base64,' + imgPart.inlineData.data;
+    var imgId    = 'gen_' + Date.now();
+    _liaxRenderImagenGenerada(wrap, containerId, imgId, dataUrl, true, prompt, 'Gemini Imagen', 'linear-gradient(135deg,#4285f4,#34a853)');
 
   } catch(e) {
     console.warn('[Gemini Imagen]', e.message);
-    // Fallback: búsqueda normal
-    wrap.innerHTML =
-      '<div style="font-size:10px;color:var(--muted);margin-bottom:6px">⚠️ No se pudo generar: ' + e.message + ' — buscando imágenes similares...</div>';
+    wrap.innerHTML = '<div style="font-size:10px;color:var(--muted);margin-bottom:6px">⚠️ No se pudo generar: ' + e.message + ' — buscando imágenes similares...</div>';
     setTimeout(function() { handleImageTag(containerId, prompt, 'illustration'); }, 500);
   }
+}
+
+// ── Helper de renderizado compartido para imágenes generadas ──
+function _liaxRenderImagenGenerada(wrap, containerId, imgId, src, isBase64, prompt, label, badgeGradient) {
+  wrap.innerHTML =
+    '<div style="margin:8px 0">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:10px;color:var(--muted)">' +
+        '<span style="background:' + badgeGradient + ';color:#fff;border-radius:10px;padding:2px 8px;font-size:9px;font-weight:700">' + label + '</span>' +
+        '<span>' + prompt.slice(0,50) + (prompt.length>50?'…':'') + '</span>' +
+      '</div>' +
+      '<img id="' + imgId + '" src="' + src + '" loading="lazy" ' +
+        'style="max-width:100%;max-height:320px;border-radius:10px;border:1px solid var(--border);cursor:zoom-in;display:block" ' +
+        'alt="imagen generada">' +
+      '<div style="display:flex;gap:6px;margin-top:6px">' +
+        '<button data-imgid="' + imgId + '" data-action="download" ' +
+          'style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;color:var(--muted)">⬇ Descargar</button>' +
+        '<button data-cid="' + containerId + '" data-prompt="' + prompt.replace(/"/g,'&quot;') + '" data-action="regen" ' +
+          'style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;color:var(--muted)">🔄 Regenerar</button>' +
+      '</div>' +
+    '</div>';
+  setTimeout(function() {
+    var w2 = document.getElementById(containerId);
+    if (!w2) return;
+    var dlBtn = w2.querySelector('[data-action="download"]');
+    if (dlBtn) dlBtn.onclick = function() {
+      var img = document.getElementById(this.getAttribute('data-imgid'));
+      if (!img) return;
+      var a = document.createElement('a'); a.href = img.src; a.download = 'liax_imagen.png'; a.click();
+    };
+    var rgBtn = w2.querySelector('[data-action="regen"]');
+    if (rgBtn) rgBtn.onclick = function() {
+      var cid2 = this.getAttribute('data-cid'), pr2 = this.getAttribute('data-prompt');
+      var ww = document.getElementById(cid2);
+      if (ww) ww.innerHTML = '<div class="img-search-loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span><span style="margin-left:6px">Regenerando...</span></div>';
+      setTimeout(function(){ handleGenerarImagen(cid2, pr2); }, 200);
+    };
+    var imgEl = document.getElementById(imgId);
+    if (imgEl) imgEl.onclick = function() { liaxZoomImg(this.src); };
+  }, 50);
 }
 
 // ── Helpers para imágenes generadas ──────────────────────────
@@ -33897,17 +33985,33 @@ function _getAnthropicHeaders(key) {
   };
 }
 
-// Load platform API key from Supabase config table (set by SA)
+// Load platform API keys from Supabase config table (set by SA)
 async function _loadPlatformKey() {
   try {
-    var r = await _supa.from('config').select('value').eq('key','anthropic_key').maybeSingle();
-    if (r.data && r.data.value) {
-      window._platformApiKey = r.data.value;
-      window._cachedAnthropicKey = r.data.value;
-      window._cachedAnthropicKey = r.data.value;
-      console.log('[LIAX] Platform key loaded from Supabase');
-    }
-  } catch(e) {}
+    var { data, error } = await _supa.from('config')
+      .select('key,value')
+      .in('key', ['anthropic_key','gemini_key','openai_key','together_key']);
+    if (error) throw error;
+    (data || []).forEach(function(row) {
+      if (!row.value) return;
+      if (row.key === 'anthropic_key') {
+        window._platformApiKey     = row.value;
+        window._cachedAnthropicKey = row.value;
+      } else if (row.key === 'gemini_key') {
+        window._geminiKey          = row.value;
+        window._cachedGeminiKey    = row.value;
+      } else if (row.key === 'openai_key') {
+        window._openaiKey          = row.value;
+        window._cachedOpenAIKey    = row.value;
+      } else if (row.key === 'together_key') {
+        window._togetherKey        = row.value;
+        window._cachedTogetherKey  = row.value;
+      }
+    });
+    console.log('[LIAX] Platform keys loaded from Supabase:', (data||[]).map(function(r){return r.key;}).join(', '));
+  } catch(e) {
+    console.warn('[LIAX] _loadPlatformKey error:', e.message);
+  }
 }
 
 
@@ -36234,8 +36338,8 @@ setTimeout(async function(){
   await _vaultRestoreAgents();
   // Restore API keys from IndexedDB if localStorage is empty
   // Restore API keys from IndexedDB into window cache vars
-  var keys = ['anthropic_key','gemini_key','openai_key'];
-  var cacheKeys = ['_cachedAnthropicKey','_geminiKey','_openaiKey'];
+  var keys = ['anthropic_key','gemini_key','openai_key','together_key'];
+  var cacheKeys = ['_cachedAnthropicKey','_geminiKey','_openaiKey','_togetherKey'];
   for (var i = 0; i < keys.length; i++) {
     if (!window[cacheKeys[i]]) {
       var val = await AGENT_VAULT.loadSetting(keys[i]);
@@ -36918,7 +37022,7 @@ if (!dataLoaded) {
       <div class="modal-icon" style="background:#2d1060;font-size:20px">🔑</div>
       <div>
         <div class="modal-title">Configurar IAs y Router</div>
-        <span class="modal-dim" style="background:var(--dim1);color:var(--accent1)">Anthropic · Google · OpenAI</span>
+        <span class="modal-dim" style="background:var(--dim1);color:var(--accent1)">Anthropic · Google · OpenAI · Together AI</span>
       </div>
       <button class="modal-close" onclick="document.getElementById('apiKeyModal').classList.remove('open')">✕</button>
     </div>
@@ -36962,7 +37066,16 @@ if (!dataLoaded) {
           <input class="form-input" id="openaiKeyInput" type="password" placeholder="sk-proj-..." style="font-family:monospace;letter-spacing:1px;margin-bottom:4px">
           <div style="font-size:10px;color:var(--muted)">platform.openai.com → API Keys</div>
         </div>
-      </div>
+        <!-- Together AI -->
+        <div style="background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:11px 14px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:16px">🎨</span>
+            <strong style="font-size:12px">Together AI — Generación de Imágenes</strong>
+            <span style="font-size:10px;color:var(--muted);margin-left:auto">Opcional · ~$0.003/imagen</span>
+          </div>
+          <input class="form-input" id="togetherKeyInput" type="password" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" style="font-family:monospace;letter-spacing:1px;margin-bottom:4px">
+          <div style="font-size:10px;color:var(--muted)">api.together.ai → Settings → API Keys · Usa FLUX.1-schnell · El agente genera imágenes con <code>[GENERA: descripción]</code></div>
+        </div>
 
       <!-- Diagnosis box -->
       <div id="apiDiagBox" style="display:none;margin-top:10px;border-radius:8px;padding:10px 14px;font-size:11px;line-height:1.7"></div>
