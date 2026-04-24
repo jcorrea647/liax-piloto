@@ -7205,29 +7205,24 @@ function _showFileAlert(q, autoSend) {
     'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:9999',
     'background:#1e293b;border:1.5px solid ' + (hasFiles ? '#00e5c0' : '#f59e0b') + ';border-radius:14px',
     'padding:16px 20px;display:flex;align-items:flex-start;gap:12px',
-    'box-shadow:0 8px 32px rgba(0,0,0,.5);max-width:460px;width:92%',
-    'animation:fadeIn .2s ease'
+    'box-shadow:0 8px 32px rgba(0,0,0,.5);max-width:460px;width:92%'
   ].join(';');
 
-  // Escapar la pregunta para usarla en onclick
-  var qEsc = q.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  function closeAlert() { var el = document.getElementById('_requireFileAlert'); if (el) el.remove(); }
+  function sendQ() { closeAlert(); var inp = document.getElementById('chatInput'); if (inp) { inp.value = q; if (autoSend) sendChat(); } }
+  function goFiles() { closeAlert(); switchAgentPanel('files'); }
 
   if (hasFiles) {
-    // Hay archivos cargados — mostrarlos y preguntar
-    var lastFile = files[0];
-    var fecha = lastFile.loadedAt
-      ? new Date(lastFile.loadedAt).toLocaleDateString('es-CL', {day:'2-digit',month:'short'})
-      : '';
     var fileListHtml = files.slice(0,3).map(function(f) {
+      var icon = f.ext==='xlsx'||f.ext==='xls' ? '📊' : f.ext==='csv' ? '📋' : f.ext==='pdf' ? '📄' : '📎';
+      var fecha = f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short'}) : '';
       return '<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#0f172a;border-radius:7px;margin-bottom:4px">' +
-        '<span style="font-size:13px">' + (f.ext==='xlsx'||f.ext==='xls'?'📊':f.ext==='csv'?'📋':f.ext==='pdf'?'📄':'📎') + '</span>' +
-        '<span style="font-size:11px;color:#e2e8f0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">' + f.name + '</span>' +
-        '<span style="font-size:10px;color:#64748b;flex-shrink:0">' + (f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short'}) : '') + '</span>' +
+        '<span style="font-size:13px">' + icon + '</span>' +
+        '<span style="font-size:11px;color:#e2e8f0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">' + f.name + '</span>' +
+        '<span style="font-size:10px;color:#64748b;flex-shrink:0;margin-left:auto">' + fecha + '</span>' +
       '</div>';
     }).join('');
-    if (files.length > 3) {
-      fileListHtml += '<div style="font-size:10px;color:#64748b;padding:2px 8px">+ ' + (files.length-3) + ' más...</div>';
-    }
+    if (files.length > 3) fileListHtml += '<div style="font-size:10px;color:#64748b;padding:2px 8px">+ ' + (files.length-3) + ' más...</div>';
 
     div.innerHTML =
       '<span style="font-size:22px;flex-shrink:0">📂</span>' +
@@ -7237,50 +7232,36 @@ function _showFileAlert(q, autoSend) {
         '<div style="font-size:11px;color:#94a3b8;margin-top:6px">¿Usar este archivo o cargar uno nuevo?</div>' +
       '</div>' +
       '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;margin-left:8px">' +
-        '<button onclick="document.getElementById('_requireFileAlert').remove();' +
-          'var inp=document.getElementById('chatInput');if(inp){inp.value='' + qEsc + '';}' + (autoSend?'sendChat();':'') + '" ' +
-          'style="background:#00e5c0;color:#000;border:none;border-radius:7px;padding:6px 14px;' +
-          'font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap">' +
-          '✅ Usar este' +
-        '</button>' +
-        '<button onclick="document.getElementById('_requireFileAlert').remove();switchAgentPanel('files')" ' +
-          'style="background:#1e3a5f;color:#7dd3fc;border:1px solid #1e40af;border-radius:7px;padding:6px 14px;' +
-          'font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap">' +
-          '📎 Cargar otro' +
-        '</button>' +
-        '<button onclick="document.getElementById('_requireFileAlert').remove()" ' +
-          'style="background:none;border:none;color:#475569;font-size:10px;cursor:pointer;font-family:DM Sans,sans-serif;text-align:center">' +
-          'Cancelar' +
-        '</button>' +
+        '<button id="_fa_use" style="background:#00e5c0;color:#000;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap">✅ Usar este</button>' +
+        '<button id="_fa_other" style="background:#1e3a5f;color:#7dd3fc;border:1px solid #1e40af;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap">📎 Cargar otro</button>' +
+        '<button id="_fa_cancel" style="background:none;border:none;color:#475569;font-size:10px;cursor:pointer;font-family:DM Sans,sans-serif;text-align:center">Cancelar</button>' +
       '</div>';
+
+    document.body.appendChild(div);
+    document.getElementById('_fa_use').addEventListener('click', sendQ);
+    document.getElementById('_fa_other').addEventListener('click', goFiles);
+    document.getElementById('_fa_cancel').addEventListener('click', closeAlert);
+
   } else {
-    // No hay archivos — pedir que cargue uno
     div.innerHTML =
       '<span style="font-size:22px;flex-shrink:0">📂</span>' +
       '<div style="flex:1">' +
         '<div style="font-weight:700;font-size:13px;color:#f59e0b;margin-bottom:3px">Primero carga el archivo de resultados</div>' +
-        '<div style="font-size:11px;color:#94a3b8;line-height:1.5">' +
-          'Este agente necesita los datos para responder.<br>' +
-          'Adjunta el archivo Excel o CSV con los resultados.' +
-        '</div>' +
+        '<div style="font-size:11px;color:#94a3b8;line-height:1.5">Este agente necesita los datos para responder.<br>Adjunta el archivo Excel o CSV con los resultados.</div>' +
       '</div>' +
       '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">' +
-        '<button onclick="document.getElementById('_requireFileAlert').remove();switchAgentPanel('files')" ' +
-          'style="background:#f59e0b;color:#000;border:none;border-radius:7px;padding:6px 14px;' +
-          'font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap">' +
-          '📎 Cargar archivo' +
-        '</button>' +
-        '<button onclick="document.getElementById('_requireFileAlert').remove();' +
-          'var inp=document.getElementById('chatInput');if(inp){inp.value='' + qEsc + '';}' + (autoSend?'sendChat();':'') + '" ' +
-          'style="background:none;border:1px solid #334155;color:#64748b;border-radius:7px;padding:4px 14px;' +
-          'font-size:10px;cursor:pointer;font-family:DM Sans,sans-serif">' +
-          'Igual continuar' +
-        '</button>' +
+        '<button id="_fa_load" style="background:#f59e0b;color:#000;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap">📎 Cargar archivo</button>' +
+        '<button id="_fa_skip" style="background:none;border:1px solid #334155;color:#64748b;border-radius:7px;padding:4px 14px;font-size:10px;cursor:pointer;font-family:DM Sans,sans-serif">Igual continuar</button>' +
       '</div>';
+
+    document.body.appendChild(div);
+    document.getElementById('_fa_load').addEventListener('click', goFiles);
+    document.getElementById('_fa_skip').addEventListener('click', sendQ);
   }
 
-  document.body.appendChild(div);
   setTimeout(function(){ if(div.parentNode) div.remove(); }, 12000);
+}
+
 }
 
 function useQuestion(q, autoSend=false) {
