@@ -1543,19 +1543,20 @@
 
   <!-- DOCENTE VIEW BANNER -->
   <div class="docente-view-banner" id="docenteBanner" style="grid-column:1/-1">
-    <!-- 🏠 Inicio — SIEMPRE visible, primera posición -->
     <button onclick="showPanel('favoritos')"
-      style="background:var(--accent2);color:#000;border:none;border-radius:7px;
-             padding:5px 16px;font-size:12px;font-weight:700;cursor:pointer;
-             font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;
-             flex-shrink:0">🏠 Inicio</button>
+      style="background:#ffffff;color:#374151;border:1.5px solid #d1d5db;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:all .15s"
+      onmouseover="this.style.background='#f3f4f6';this.style.borderColor='#9ca3af'" onmouseout="this.style.background='#ffffff';this.style.borderColor='#d1d5db'">🏠 Inicio</button>
     <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
-    <span style="font-size:16px">👩‍🏫</span>
+    <span style="font-size:15px">👩‍🏫</span>
     <span id="docenteBannerText" style="font-weight:700;font-size:13px;color:#4a5568;flex-shrink:0"></span>
     <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
     <div id="docenteBannerCursos" style="display:none"></div>
-    <button onclick="showPanel('mis-cursos')" style="background:var(--surface2);color:#6b7280;border:1px solid #374151;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;transition:all .15s;" onmouseover="this.style.background='#1f2937';this.style.color='#d1d5db'" onmouseout="this.style.background='var(--surface2)';this.style.color='#6b7280'">📂 Ver mis cursos</button>
-    <button onclick="showPanel('mis-docs')" style="background:var(--surface2);color:#6b7280;border:1px solid #374151;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;transition:all .15s;" onmouseover="this.style.background='#1f2937';this.style.color='#d1d5db'" onmouseout="this.style.background='var(--surface2)';this.style.color='#6b7280'">📄 Ver mis docs</button>
+    <button onclick="showPanel('mis-cursos')"
+      style="background:#ffffff;color:#374151;border:1.5px solid #d1d5db;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:all .15s"
+      onmouseover="this.style.background='#f3f4f6';this.style.borderColor='#9ca3af'" onmouseout="this.style.background='#ffffff';this.style.borderColor='#d1d5db'">📂 Ver mis cursos</button>
+    <button onclick="showPanel('mis-docs')"
+      style="background:#ffffff;color:#374151;border:1.5px solid #d1d5db;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:all .15s"
+      onmouseover="this.style.background='#f3f4f6';this.style.borderColor='#9ca3af'" onmouseout="this.style.background='#ffffff';this.style.borderColor='#d1d5db'">📄 Ver mis docs</button>
   </div>
 
   <!-- SOSTENEDOR BANNER -->
