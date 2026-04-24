@@ -5129,13 +5129,13 @@ function renderCursoResumen() {
       return `<div class="curso-resumen-card" style="margin-bottom:16px">
         <div class="curso-resumen-header">
           <span class="curso-badge">${curso}</span>
-          <span style="font-size:11px;color:var(--muted)">${nAluCurso} alumno(s)</span>
           <button onclick="abrirNominaModal('${encodeURIComponent(curso)}')"
-            style="margin-left:auto;background:var(--dim2);border:1px solid var(--accent2)44;color:var(--accent2);
+            style="background:var(--dim2);border:1px solid var(--accent2)44;color:var(--accent2);
                    border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;
                    font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:4px">
             📋 Nómina
           </button>
+          <span style="font-size:11px;color:var(--muted)">${nAluCurso} alumno(s)</span>
         </div>
         <div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:8px;margin-top:8px">
           Sin datos cargados aún —
@@ -5642,6 +5642,7 @@ async function nominaGuardar(cursoEncoded) {
   // 1. Actualizar DB.alumnos en memoria
   var uid = (_supaUser && _supaUser.id) ? _supaUser.id : 'demo';
   DB.alumnos = DB.alumnos.filter(function(a){ return a.esp !== curso; });
+  alumnos.sort(function(a,b){ return (a.nombre||'').localeCompare(b.nombre||'', 'es'); });
   alumnos.forEach(function(a, i) {
     DB.alumnos.push({
       id: 'alu_mem_' + uid + '_' + i + '_' + curso.replace(/\s/g,''),
@@ -34952,6 +34953,8 @@ async function _supaLoadAlumnos() {
         }
       });
       if (typeof renderCtxAlumnos === 'function') renderCtxAlumnos();
+      // Ordenar DB.alumnos alfabéticamente por nombre
+      DB.alumnos.sort(function(a, b){ return (a.nombre||'').localeCompare(b.nombre||'', 'es'); });
       console.log('[Supabase] Alumnos cargados:', data.length);
     } else {
       console.log('[Supabase] Sin alumnos en Supabase para este docente/colegio');
