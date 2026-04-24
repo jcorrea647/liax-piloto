@@ -1431,15 +1431,6 @@
       </div>
     </div>
 
-    <!-- Botón Inicio docente — siempre visible junto al colegio -->
-    <button id="btnInicioDocente" onclick="showPanel('favoritos')"
-      style="display:flex;align-items:center;gap:5px;margin-left:6px;
-             background:var(--accent2);color:#000;border:none;border-radius:7px;
-             padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;
-             font-family:DM Sans,sans-serif;flex-shrink:0;transition:opacity .15s">
-      🏠 Inicio
-    </button>
-
     <div id="storageBar" style="margin-left:10px"></div>
     <div id="apiKeyStatus" style="margin-left:4px"></div>
     <div class="top-spacer"></div>
@@ -1552,16 +1543,19 @@
 
   <!-- DOCENTE VIEW BANNER -->
   <div class="docente-view-banner" id="docenteBanner" style="grid-column:1/-1">
-    <span style="font-size:18px">👩‍🏫</span>
-    <span id="docenteBannerText" style="font-weight:700;font-size:14px;color:#4a5568"></span>
+    <!-- 🏠 Inicio — SIEMPRE visible, primera posición -->
+    <button onclick="showPanel('favoritos')"
+      style="background:var(--accent2);color:#000;border:none;border-radius:7px;
+             padding:5px 16px;font-size:12px;font-weight:700;cursor:pointer;
+             font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;
+             flex-shrink:0">🏠 Inicio</button>
+    <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
+    <span style="font-size:16px">👩‍🏫</span>
+    <span id="docenteBannerText" style="font-weight:700;font-size:13px;color:#4a5568;flex-shrink:0"></span>
     <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
     <div id="docenteBannerCursos" style="display:none"></div>
     <button onclick="showPanel('mis-cursos')" style="background:var(--surface2);color:#6b7280;border:1px solid #374151;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;transition:all .15s;" onmouseover="this.style.background='#1f2937';this.style.color='#d1d5db'" onmouseout="this.style.background='var(--surface2)';this.style.color='#6b7280'">📂 Ver mis cursos</button>
     <button onclick="showPanel('mis-docs')" style="background:var(--surface2);color:#6b7280;border:1px solid #374151;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;transition:all .15s;" onmouseover="this.style.background='#1f2937';this.style.color='#d1d5db'" onmouseout="this.style.background='var(--surface2)';this.style.color='#6b7280'">📄 Ver mis docs</button>
-
-    <div style="margin-left:auto">
-      <button onclick="showPanel('favoritos')" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:5px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;">🏠 Inicio</button>
-    </div>
   </div>
 
   <!-- SOSTENEDOR BANNER -->
@@ -12725,18 +12719,14 @@ function applyDocenteView() {
 
   if (currentRole !== 'docente') {
     banner.style.display = 'none';
-    // Ocultar botón Inicio solo para roles que tienen sidebar completo
-    var btnInicio = document.getElementById('btnInicioDocente');
-    if (btnInicio) btnInicio.style.display = 'none';
+  
     return;
   }
 
   // Siempre mostrar el banner para docentes — aunque no esté en DB.docentes aún
   banner.style.display = 'flex';
 
-  // Mostrar botón Inicio en topbar — siempre visible para docentes
-  var btnInicio = document.getElementById('btnInicioDocente');
-  if (btnInicio) { btnInicio.style.display = 'flex'; btnInicio.style.visibility = 'visible'; }
+
 
   // Buscar datos del docente — primero DB local, luego _supaPerfil como fallback
   var docente = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
@@ -12816,9 +12806,7 @@ switchRole = function(r) {
       if (avEl) avEl.textContent = doc.avatar || doc.nombre.split(' ').map(w=>w[0]).slice(0,2).join('');
     }
     setTimeout(applyDocenteView, 100);
-    // Mostrar botón Inicio inmediatamente sin esperar applyDocenteView
-    var _btnI = document.getElementById('btnInicioDocente');
-    if (_btnI) _btnI.style.display = 'flex';
+
   } else {
     currentDocenteId = null;
     const banner = document.getElementById('docenteBanner');
