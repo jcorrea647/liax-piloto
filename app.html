@@ -3836,7 +3836,10 @@ async function _supaLoadPerfil() {
     // Cargar docentes reales desde Supabase
     await _supaLoadDocentes();
     // Cargar cursos del docente DESPUÉS de que CURSOS esté poblado
-    if (rol === 'docente') await _supaLoadDocenteCursos();
+    if (rol === 'docente') {
+      await _supaLoadDocenteCursos();
+      setTimeout(applyDocenteView, 150); // banner docente: INICIO + Ver mis cursos + Ver mis docs
+    }
     await _supaLoadAlumnos();
     await _supaLoadRags();
     await denLoad();
@@ -5655,21 +5658,21 @@ async function nominaGuardar(cursoEncoded) {
       // Borrar nómina anterior del curso
       await _supa.from('alumnos')
         .delete()
-        .eq('curso', curso)
+        .eq('curso_nombre', curso)
         .eq('docente_id', _supaUser.id);
 
       // Insertar nuevos
       var colegioId = _supaPerfil?.colegio_id || _activeColegioId || null;
       var inserts = alumnos.map(function(a) {
         return {
-          nombre:     a.nombre,
-          curso:      curso,
-          rut:        a.rut || null,
-          nee:        a.nee === 'Sí',
-          nee_tipo:   a.nee_tipo || null,
-          docente_id: _supaUser.id,
-          colegio_id: colegioId,
-          app:        'liax'
+          nombre:      a.nombre,
+          curso_nombre: curso,
+          rut:         a.rut || null,
+          nee:         a.nee === 'Sí',
+          nee_tipo:    a.nee_tipo || null,
+          docente_id:  _supaUser.id,
+          colegio_id:  colegioId,
+          app:         'liax'
         };
       });
       var { error } = await _supa.from('alumnos').insert(inserts);
@@ -34863,8 +34866,15 @@ async function _supaSaveCurso(nombre) {
 async function _supaLoadAlumnos() {
   if (!_supaUser || !_supaPerfil?.colegio_id) return;
   try {
-    var { data } = await _supa.from('alumnos').select('*')
+    var query = _supa.from('alumnos').select('*')
       .eq('colegio_id', _supaPerfil.colegio_id);
+
+    // Docente solo ve sus propios alumnos
+    if (_supaPerfil.rol === 'docente') {
+      query = query.eq('docente_id', _supaUser.id);
+    }
+
+    var { data } = await query;
     if (data && data.length) {
       var existentes = new Set(DB.alumnos.map(function(a){ return a.id; }));
       data.forEach(function(a) {
