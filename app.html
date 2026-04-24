@@ -5581,6 +5581,15 @@ function nominaImportarArchivo(input, cursoEncoded) {
       };
     }).filter(function(a){ return a.nombre.length > 1; });
 
+    // Deduplicar por nombre: conservar solo el primer registro de cada alumno
+    var _nombresVistos = {};
+    alumnos = alumnos.filter(function(a) {
+      var key = a.nombre.toLowerCase().trim();
+      if (_nombresVistos[key]) return false;
+      _nombresVistos[key] = true;
+      return true;
+    });
+
     var tbody = document.getElementById('nomina-tbody');
     if (tbody) {
       tbody.innerHTML = alumnos.map(function(a, i){ return nominaFila(a, i+1); }).join('');
