@@ -4039,41 +4039,69 @@ async function _supaLoadCargos() {
 }
 
 // ── Áreas Curriculares ─────────────────────────────────────────
+// ── Carga completa desde tablas Supabase: áreas, competencias, capacidades, desempeños ──
 async function _supaLoadAreasCurriculares() {
-  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  if (!_supaUser || !_supa) return;
   try {
-    var { data } = await _supa.from('config')
-      .select('value')
-      .eq('key', 'areas_curriculares_' + _supaPerfil.colegio_id)
-      .maybeSingle();
-    if (data?.value) {
-      var parsed = JSON.parse(data.value);
-      if (Array.isArray(parsed) && parsed.length) {
-        // Sobrescribir el array global con lo guardado en Supabase
-        ASIGS.length = 0;
-        parsed.forEach(function(a){ ASIGS.push(a); });
-        console.log('[LIAX] Áreas curriculares cargadas desde Supabase:', parsed.length);
-      }
-    } else {
-      // Primera vez: guardar las áreas por defecto con el colegio_id
-      await _supaGuardarAreasCurriculares();
+    // 1. Áreas curriculares
+    var { data: areasData, error: e1 } = await _supa
+      .from('areas_curriculares').select('nombre').order('orden');
+    if (!e1 && areasData && areasData.length) {
+      ASIGS.length = 0;
+      areasData.forEach(function(r){ ASIGS.push(r.nombre); });
+      ASIGS_LIST.length = 0;
+      areasData.forEach(function(r){ ASIGS_LIST.push(r.nombre); });
+      console.log('[LIAX] Áreas cargadas:', ASIGS.length);
     }
-  } catch(e) { console.warn('[LIAX] Error cargando áreas curriculares:', e.message); }
+
+    // 2. Competencias → poblar COMPETENCIAS_POR_AREA
+    var { data: compData, error: e2 } = await _supa
+      .from('competencias').select('area_curricular,nombre').order('orden');
+    if (!e2 && compData && compData.length) {
+      Object.keys(COMPETENCIAS_POR_AREA).forEach(function(k){ delete COMPETENCIAS_POR_AREA[k]; });
+      compData.forEach(function(r){
+        if (!COMPETENCIAS_POR_AREA[r.area_curricular]) COMPETENCIAS_POR_AREA[r.area_curricular] = [];
+        COMPETENCIAS_POR_AREA[r.area_curricular].push(r.nombre);
+      });
+      // Reconstruir array plano COMPETENCIAS
+      COMPETENCIAS.length = 0;
+      Object.values(COMPETENCIAS_POR_AREA).forEach(function(arr){
+        arr.forEach(function(c){ COMPETENCIAS.push(c); });
+      });
+      console.log('[LIAX] Competencias cargadas:', COMPETENCIAS.length);
+    }
+
+    // 3. Capacidades → poblar CAPACIDADES_POR_COMPETENCIA
+    var { data: capData, error: e3 } = await _supa
+      .from('capacidades').select('competencia,label,descripcion').order('orden');
+    if (!e3 && capData && capData.length) {
+      Object.keys(CAPACIDADES_POR_COMPETENCIA).forEach(function(k){ delete CAPACIDADES_POR_COMPETENCIA[k]; });
+      capData.forEach(function(r){
+        if (!CAPACIDADES_POR_COMPETENCIA[r.competencia]) CAPACIDADES_POR_COMPETENCIA[r.competencia] = [];
+        // Generar id consistente igual que en renderCapacidadesPanel
+        var capId = 'cap-' + r.label.replace(/[^a-zA-Z0-9]/g,'').substring(0,20);
+        CAPACIDADES_POR_COMPETENCIA[r.competencia].push({ id: capId, label: r.label, desc: r.descripcion });
+      });
+      console.log('[LIAX] Capacidades cargadas');
+    }
+
+    // 4. Desempeños → poblar DESEMP_TABLA
+    var { data: despData, error: e4 } = await _supa
+      .from('desempenos').select('capacidad,edad,descripcion');
+    if (!e4 && despData && despData.length) {
+      Object.keys(DESEMP_TABLA).forEach(function(k){ delete DESEMP_TABLA[k]; });
+      despData.forEach(function(r){
+        if (!DESEMP_TABLA[r.capacidad]) DESEMP_TABLA[r.capacidad] = {};
+        DESEMP_TABLA[r.capacidad][r.edad] = r.descripcion;
+      });
+      console.log('[LIAX] Desempeños cargados:', despData.length);
+    }
+
+  } catch(e) { console.warn('[LIAX] Error cargando tablas curriculares:', e.message); }
 }
 
-async function _supaGuardarAreasCurriculares(areas) {
-  if (!_supaUser || !_supaPerfil?.colegio_id) return;
-  var lista = areas || ASIGS;
-  try {
-    await _supa.from('config').upsert({
-      key:        'areas_curriculares_' + _supaPerfil.colegio_id,
-      value:      JSON.stringify(lista),
-      colegio_id: _supaPerfil.colegio_id,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-    console.log('[LIAX] Áreas curriculares guardadas en Supabase para colegio', _supaPerfil.colegio_id);
-  } catch(e) { console.warn('[LIAX] Error guardando áreas curriculares:', e.message); }
-}
+// Mantener compatibilidad — ya no se usa pero evita errores si algo la llama
+async function _supaGuardarAreasCurriculares() {}
 
 async function _supaInitSession() {
   var { data: { session } } = await _supa.auth.getSession();
@@ -4204,11 +4232,12 @@ function _saveCursosCustom() {
   
   
 }
-const ASIGS  = ['Personal Social','Psicomotriz','Comunicación','Matemática','Ciencia y Tecnología','Competencia Transversal'];
-// Alias semántico para mayor claridad en el código
-const AREAS_CURRICULARES = ASIGS;
-// Mapa de competencias por Área Curricular
-const COMPETENCIAS_POR_AREA = {
+// Arrays mutables — se pueblan desde Supabase al iniciar sesión
+// Fallback hardcodeado mientras carga, o si no hay conexión
+var ASIGS = ['Personal Social','Psicomotriz','Comunicación','Matemática','Ciencia y Tecnología','Competencia Transversal'];
+var AREAS_CURRICULARES = ASIGS;
+
+var COMPETENCIAS_POR_AREA = {
   'Personal Social': [
     'Construye su identidad',
     'Convive y participa democráticamente en la búsqueda del bien común',
@@ -4236,8 +4265,7 @@ const COMPETENCIAS_POR_AREA = {
   ],
 };
 
-// Array plano con todas las competencias (fallback cuando no hay área seleccionada)
-const COMPETENCIAS = Object.values(COMPETENCIAS_POR_AREA).flat();
+var COMPETENCIAS = Object.values(COMPETENCIAS_POR_AREA).flat();
 
 // Devuelve las competencias filtradas según las áreas seleccionadas en CTX
 function getCompetenciasFiltradas() {
@@ -4245,7 +4273,11 @@ function getCompetenciasFiltradas() {
   var lista = [];
   CTX.asignaturas.forEach(function(area) {
     var comps = COMPETENCIAS_POR_AREA[area];
-    if (comps) comps.forEach(function(c){ if (!lista.includes(c)) lista.push(c); });
+    if (comps) comps.forEach(function(c){
+      // c puede ser string (fallback) o string (desde Supabase ya es string)
+      var nombre = typeof c === 'object' ? c.nombre : c;
+      if (!lista.includes(nombre)) lista.push(nombre);
+    });
   });
   return lista.length ? lista : COMPETENCIAS;
 }
@@ -4421,7 +4453,50 @@ function buildClassContext() {
   let c='\n\n════════════════════════════════\nCONTEXTO DE CLASE ACTIVO:\n════════════════════════════════';
   if(CTX.cursos.size) c+=`\nCURSO(S): ${[...CTX.cursos].join(', ')}`;
   if(CTX.asignaturas.size) c+=`\nÁREA CURRICULAR: ${[...CTX.asignaturas].join(', ')}`;
-  if(CTX.competencias.size) c+=`\nCOMPETENCIAS DEL ESTUDIANTE: ${[...CTX.competencias].join(', ')}`;
+  if(CTX.competencias.size) c+=`\nCOMPETENCIAS: ${[...CTX.competencias].join(', ')}`;
+
+  // ── Capacidades, Edad y Desempeño desde _docDropData ──────
+  if(typeof _docDropData !== 'undefined') {
+    // Capacidades con nivel asignado
+    var capsConNivel = [];
+    if(_docDropData.compet) {
+      Object.entries(_docDropData.compet).forEach(function([capId, nivel]) {
+        if(!nivel) return;
+        // Buscar el label de la capacidad por su id
+        var label = capId;
+        Object.values(CAPACIDADES_POR_COMPETENCIA || {}).forEach(function(caps) {
+          caps.forEach(function(cap) {
+            if(cap.id === capId) label = cap.label;
+          });
+        });
+        capsConNivel.push(label + ' [' + nivel + ']');
+      });
+    }
+    if(capsConNivel.length) c += '\nCAPACIDADES EVALUADAS: ' + capsConNivel.join(' | ');
+
+    // Edad del alumno
+    if(_docDropData.edad) c += '\nEDAD DEL ALUMNO: ' + _docDropData.edad + ' años';
+
+    // Desempeños con nivel asignado
+    var despConNivel = [];
+    if(_docDropData.desemp && _docDropData.edad) {
+      Object.entries(_docDropData.desemp).forEach(function([depId, nivel]) {
+        if(!nivel) return;
+        // Buscar el label de la capacidad correspondiente
+        var capLabel = depId;
+        Object.keys(DESEMP_TABLA || {}).forEach(function(label) {
+          var id = 'dep-' + label.replace(/[^a-zA-Z0-9]/g,'').substring(0,24);
+          if(id === depId) capLabel = label;
+        });
+        var texto = (DESEMP_TABLA[capLabel] || {})[ _docDropData.edad] || '';
+        if(texto) despConNivel.push(capLabel + ' → ' + nivel + ': ' + texto);
+      });
+    }
+    if(despConNivel.length) {
+      c += '\n\nDESEMPEÑOS DEL ALUMNO (' + _docDropData.edad + ' años):';
+      despConNivel.forEach(function(d){ c += '\n  • ' + d; });
+    }
+  }
   if(selAlus.length) {
     c+=`\n\nLISTA DE ALUMNOS (${selAlus.length}):`;
     selAlus.forEach((a,i)=>{
@@ -6367,9 +6442,22 @@ function buildAgentDetail(){
   const selAlus=DB.alumnos.filter(a=>CTX.alumnos.has(a.id));
   const neeAlus=selAlus.filter(a=>a.nee||a.neeT);
   const hasCtx=CTX.cursos.size||CTX.asignaturas.size||CTX.alumnos.size;
-  const ctxNote = hasCtx
-    ? `<div class="ctx-note">🎯 Contexto activo: <strong>${[...CTX.cursos].join(', ')||'—'}</strong> · <strong>${[...CTX.asignaturas].join(', ')||'—'}</strong> · ${CTX.alumnos.size} alumno(s)${neeAlus.length?` · <span style="color:#c084fc;font-weight:700">⚠️ ${neeAlus.length} con NEE</span>`:''}</div>`
-    : `<div class="api-note">💡 Selecciona curso, asignatura y alumnos en el panel derecho para enriquecer las respuestas del agente.</div>`;
+  // Datos docente desde _docDropData
+  const _dd = (typeof _docDropData !== 'undefined') ? _docDropData : {};
+  const _hasDocCtx = _dd.edad || (Object.values(_dd.compet||{}).some(v=>v)) || (Object.values(_dd.desemp||{}).some(v=>v));
+  const hasAnyCtx = hasCtx || _hasDocCtx;
+
+  // Construir pills de contexto docente
+  var docPills = '';
+  if(_dd.edad) docPills += `<span style="background:var(--dim1);color:var(--accent1);border-radius:8px;padding:1px 8px;font-size:10px;font-weight:700">🎂 ${_dd.edad} años</span> `;
+  var nCaps = Object.values(_dd.compet||{}).filter(v=>v).length;
+  if(nCaps) docPills += `<span style="background:var(--dim2);color:var(--accent2);border-radius:8px;padding:1px 8px;font-size:10px;font-weight:700">📋 ${nCaps} capacidad${nCaps>1?'es':''}</span> `;
+  var nDesp = Object.values(_dd.desemp||{}).filter(v=>v).length;
+  if(nDesp) docPills += `<span style="background:var(--dim4);color:var(--accent4);border-radius:8px;padding:1px 8px;font-size:10px;font-weight:700">📊 ${nDesp} desempeño${nDesp>1?'s':''}</span> `;
+
+  const ctxNote = hasAnyCtx
+    ? `<div class="ctx-note">🎯 Contexto activo: <strong>${[...CTX.cursos].join(', ')||'—'}</strong>${CTX.asignaturas.size?' · <strong>'+[...CTX.asignaturas].join(', ')+'</strong>':''}${CTX.competencias.size?' · '+CTX.competencias.size+' competencia(s)':''}${docPills?' · '+docPills:''}${CTX.alumnos.size?' · '+CTX.alumnos.size+' alumno(s)':''}${neeAlus.length?` · <span style="color:#c084fc;font-weight:700">⚠️ ${neeAlus.length} con NEE</span>`:''}</div>`
+    : `<div class="api-note">💡 Selecciona curso, área curricular, competencias y alumnos para enriquecer las respuestas del agente.</div>`;
   const neeNote = neeAlus.length
     ? `<div class="nee-note">⚠️ <strong>Alumnos con NEE detectados:</strong> ${neeAlus.map(a=>`${a.nombre.split(' ').slice(0,2).join(' ')} (${[a.nee,a.neeT].filter(Boolean).join(' / ')})`).join(' · ')}. El agente los considerará al responder.</div>`
     : '';
@@ -11333,7 +11421,7 @@ function closeAsignarCursos() {
 }
 
 // ══ MAPA CAPACIDADES POR COMPETENCIA ══
-const CAPACIDADES_POR_COMPETENCIA = {
+var CAPACIDADES_POR_COMPETENCIA = {
   'Construye su identidad': [
     { id:'cap-valora',        label:'Se valora a sí mismo',       desc:'El niño se reconoce como persona valiosa y se identifica con sus características.' },
     { id:'cap-autorregula',   label:'Autorregula sus emociones',   desc:'Reconoce y expresa sus emociones, buscando estrategias para regularlas.' },
@@ -11466,10 +11554,8 @@ const EDAD_TRAMOS = [
   { id:'5', label:'5 años', sub:'Nivel Inicial III',color:'#fbbf24' },
 ];
 
-// Desempeños por CAPACIDAD y edad
-// Clave: texto completo de la capacidad (tal como aparece en CAPACIDADES_POR_COMPETENCIA)
-// Estructura: DESEMP_TABLA[capacidad_texto][edad] = texto del desempeño
-const DESEMP_TABLA = {
+// Desempeños por CAPACIDAD y edad — poblado desde Supabase
+var DESEMP_TABLA = {
   // ── Personal Social: Construye su identidad ──
   'Se valora a sí mismo': {
     '3': 'Reconoce sus necesidades, sensaciones e intereses; se reconoce como miembro de su familia y aula. Expresa emociones con gestos y palabras.',
@@ -11664,8 +11750,8 @@ const DESEMP_TABLA = {
   },
 };
 
-// Opciones de logro para cada desempeño
-const DESEMP_OPTS = ['Logrado','En proceso','En inicio'];
+// Opciones de logro
+var DESEMP_OPTS = ['Logrado','En proceso','En inicio'];
 
 // Estado en memoria
 let _docDropData = { edad: null, compet: {}, desemp: {} };
@@ -11726,9 +11812,8 @@ function selectEdad(id, color) {
   // Actualizar badge Desempeño
   const edadBadge = document.getElementById('docDesempEdadBadge');
   if (edadBadge) { edadBadge.textContent = 'Tramo: ' + id + ' años'; edadBadge.style.display = 'inline'; }
-  // Mostrar / ocultar aviso en panel Desempeño
-  document.getElementById('docDesempNoEdad').style.display = 'none';
-  document.getElementById('docDesempContent').style.display = 'block';
+  // Renderizar grid de desempeño con la nueva edad
+  renderDesempGrid();
   saveDocAll();
   // Cerrar dropdown EDAD y abrir Desempeño automáticamente
   setTimeout(() => {
