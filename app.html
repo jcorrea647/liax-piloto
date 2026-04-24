@@ -4450,10 +4450,10 @@ function buildClassContext() {
   const selAlus = DB.alumnos.filter(a=>CTX.alumnos.has(a.id));
   const neeAlus = selAlus.filter(a=>a.nee||a.neeT);
   if (!CTX.cursos.size && !CTX.asignaturas.size && !CTX.alumnos.size) return '';
-  let c='\n\n════════════════════════════════\nCONTEXTO DE CLASE ACTIVO:\n════════════════════════════════';
-  if(CTX.cursos.size) c+=`\nCURSO(S): ${[...CTX.cursos].join(', ')}`;
-  if(CTX.asignaturas.size) c+=`\nÁREA CURRICULAR: ${[...CTX.asignaturas].join(', ')}`;
-  if(CTX.competencias.size) c+=`\nCOMPETENCIAS: ${[...CTX.competencias].join(', ')}`;
+  let c='\n\n════════════════════════════════\nCONTEXTO DE CLASE ACTIVO — YA DEFINIDO, NO PREGUNTAR:\n════════════════════════════════';
+  if(CTX.cursos.size) c+=`\n✅ CURSO(S): ${[...CTX.cursos].join(', ')}`;
+  if(CTX.asignaturas.size) c+=`\n✅ ÁREA CURRICULAR: ${[...CTX.asignaturas].join(', ')}`;
+  if(CTX.competencias.size) c+=`\n✅ COMPETENCIA(S): ${[...CTX.competencias].join(', ')}`;
 
   // ── Capacidades, Edad y Desempeño desde _docDropData ──────
   if(typeof _docDropData !== 'undefined') {
@@ -4472,10 +4472,10 @@ function buildClassContext() {
         capsConNivel.push(label + ' [' + nivel + ']');
       });
     }
-    if(capsConNivel.length) c += '\nCAPACIDADES EVALUADAS: ' + capsConNivel.join(' | ');
+    if(capsConNivel.length) c += '\n✅ CAPACIDADES: ' + capsConNivel.join(' | ');
 
     // Edad del alumno
-    if(_docDropData.edad) c += '\nEDAD DEL ALUMNO: ' + _docDropData.edad + ' años';
+    if(_docDropData.edad) c += '\n✅ EDAD DEL ALUMNO: ' + _docDropData.edad + ' años';
 
     // Desempeños con nivel asignado
     var despConNivel = [];
@@ -4493,7 +4493,7 @@ function buildClassContext() {
       });
     }
     if(despConNivel.length) {
-      c += '\n\nDESEMPEÑOS DEL ALUMNO (' + _docDropData.edad + ' años):';
+      c += '\n✅ DESEMPEÑOS DEL ALUMNO (' + _docDropData.edad + ' años):';
       despConNivel.forEach(function(d){ c += '\n  • ' + d; });
     }
   }
@@ -7023,6 +7023,7 @@ async function sendChat(){
     '- NUNCA uses introducciones vacías: "¡Claro!", "Por supuesto!", "Entendido!", "¡Claro que sí!".',
     '- Ve directo al punto. Sin relleno.',
     '- Preguntas al usuario: en **negrita**, seguidas de: > _Tu respuesta:_',
+    '- PROHIBIDO preguntar Área Curricular, Competencia, Capacidad, Edad o Desempeño si ya están en el CONTEXTO DE CLASE ACTIVO. Úsalos directamente.',
     '',
     'DOCUMENTOS Y COMPLETITUD:',
     '- Si el usuario pide un informe, planificación, guía, rúbrica o cualquier documento:',
