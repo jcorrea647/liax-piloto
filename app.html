@@ -7166,21 +7166,13 @@ function removeAttach(idx, chipEl) {
   if (preview && preview.children.length === 0) preview.style.display = 'none';
 }
 
-// IDs y palabras clave de agentes que requieren archivo antes de responder
+// IDs de agentes que requieren archivo antes de responder
 const AGENTS_REQUIRE_FILE = ['p6'];
-const AGENTS_REQUIRE_FILE_KEYWORDS = [
-  'análisis de resultado','analisis de resultado',
-  'informe desempeño','informe desempeno','informe de desempeño',
-  'informe psicopedag','genera evaluacion','genera evaluación',
-  'planificación curricular','planificacion curricular'
-];
 
 function _agentRequiresFile(agent) {
   if (!agent) return false;
   if (agent.requiresFile) return true;
-  if (AGENTS_REQUIRE_FILE.indexOf(agent.id) > -1) return true;
-  var nombre = (agent.nombre || '').toLowerCase();
-  return AGENTS_REQUIRE_FILE_KEYWORDS.some(function(k){ return nombre.includes(k); });
+  return AGENTS_REQUIRE_FILE.indexOf(agent.id) > -1;
 }
 
 function _agentHasFile() {
@@ -7260,8 +7252,6 @@ function _showFileAlert(q, autoSend) {
   }
 
   setTimeout(function(){ if(div.parentNode) div.remove(); }, 12000);
-}
-
 }
 
 function useQuestion(q, autoSend=false) {
