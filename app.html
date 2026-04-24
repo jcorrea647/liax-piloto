@@ -5660,21 +5660,19 @@ async function nominaGuardar(cursoEncoded) {
   try {
     var colegioId = (_supaPerfil && _supaPerfil.colegio_id) ? String(_supaPerfil.colegio_id) : null;
 
-    // Borrar nómina anterior
-    var delRes = await _supa.from('alumnos')
-      .delete()
-      .eq('curso_nombre', curso)
-      .eq('user_id', _supaUser.id);
-    if (delRes.error) throw new Error('DELETE falló: ' + delRes.error.message);
+    // Borrar nómina anterior (por user_id y docente_id para cubrir datos viejos)
+    await _supa.from('alumnos').delete().eq('curso_nombre', curso).eq('user_id', _supaUser.id);
+    await _supa.from('alumnos').delete().eq('curso_nombre', curso).eq('docente_id', _supaUser.id);
 
-    // Insertar nuevos
+    // Insertar nuevos — guardar user_id Y docente_id para compatibilidad
     var inserts = alumnos.map(function(a) {
       var row = {
         nombre:       a.nombre,
         curso_nombre: curso,
         rut:          a.rut || null,
         nee:          a.nee === 'Si' ? 'Si' : null,
-        user_id:      _supaUser.id
+        user_id:      _supaUser.id,
+        docente_id:   _supaUser.id
       };
       if (colegioId) row.colegio_id = colegioId;
       return row;
@@ -34796,29 +34794,47 @@ async function _supaLoadColegios() {
 async function _supaLoadDocenteCursos() {
   if (!_supaUser) return;
   try {
-    var { data, error } = await _supa.from('docente_cursos')
-      .select('curso_nombre, asignatura')
-      .eq('docente_id', _supaUser.id);
-    if (error) throw error;
+    // Leer de ambas tablas docente_cursos (una usa curso_nombre, otra usa curso)
+    var r1 = await _supa.from('docente_cursos').select('curso_nombre, asignatura').eq('docente_id', _supaUser.id);
+    var r2 = await _supa.from('docente_cursos_view').select('curso, asignatura').eq('docente_id', _supaUser.id).catch(function(){ return { data: [] }; });
+
+    // Unir resultados normalizando el nombre del campo
+    var rows = [];
+    if (r1.data && r1.data.length) {
+      r1.data.forEach(function(dc) { rows.push({ curso: dc.curso_nombre || dc.curso, asignatura: dc.asignatura || '' }); });
+    }
+    if (r2.data && r2.data.length) {
+      r2.data.forEach(function(dc) {
+        var c = dc.curso_nombre || dc.curso;
+        if (c && !rows.find(function(r){ return r.curso === c; })) rows.push({ curso: c, asignatura: dc.asignatura || '' });
+      });
+    }
+
+    // Si la primera tabla no devolvió nada, intentar con campo "curso" en la misma tabla
+    if (!rows.length) {
+      var r3 = await _supa.from('docente_cursos').select('curso, asignatura').eq('docente_id', _supaUser.id).catch(function(){ return { data: [] }; });
+      if (r3.data && r3.data.length) {
+        r3.data.forEach(function(dc) { rows.push({ curso: dc.curso_nombre || dc.curso, asignatura: dc.asignatura || '' }); });
+      }
+    }
 
     var docente = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
     if (!docente) return;
 
-    if (data && data.length) {
-      docente.cursosAsignados = data.map(function(dc) {
-        return { curso: dc.curso_nombre, asignaturas: dc.asignatura ? [dc.asignatura] : [] };
+    if (rows.length) {
+      docente.cursosAsignados = rows.map(function(dc) {
+        return { curso: dc.curso, asignaturas: dc.asignatura ? [dc.asignatura] : [] };
       });
-      // Asegurarse que los cursos existen en el array CURSOS
-      data.forEach(function(dc) {
-        if (CURSOS.indexOf(dc.curso_nombre) === -1 && !_isCursoDeleted(dc.curso_nombre)) {
-          CURSOS.push(dc.curso_nombre);
+      rows.forEach(function(dc) {
+        if (dc.curso && CURSOS.indexOf(dc.curso) === -1 && !_isCursoDeleted(dc.curso)) {
+          CURSOS.push(dc.curso);
         }
       });
       console.log('[LIAX] Cursos docente cargados:', docente.cursosAsignados.map(function(c){ return c.curso; }));
       renderCursoChips();
       renderCursoResumen();
     } else {
-      console.log('[LIAX] Docente sin cursos asignados');
+      console.log('[LIAX] Docente sin cursos asignados en docente_cursos');
     }
   } catch(e) { console.warn('[LIAX] Error cargando docente_cursos:', e.message); }
 }
@@ -34873,7 +34889,7 @@ async function _supaLoadAlumnos() {
 
     var query;
     if (isDocente) {
-      // Docente: cargar solo sus alumnos por user_id — no necesita colegio_id
+      // Docente: intentar con user_id, si no hay datos intentar con docente_id
       query = _supa.from('alumnos').select('*').eq('user_id', _supaUser.id);
     } else {
       // Otros roles: cargar por colegio_id
@@ -34882,6 +34898,11 @@ async function _supaLoadAlumnos() {
     }
 
     var { data, error } = await query;
+    // Si user_id no devuelve resultados, intentar con docente_id (datos guardados previamente)
+    if ((!data || !data.length) && !error && isDocente) {
+      var r2 = await _supa.from('alumnos').select('*').eq('docente_id', _supaUser.id).catch(function(e){ return { data: [], error: e }; });
+      if (r2.data && r2.data.length) data = r2.data;
+    }
     if (error) {
       console.error('[Supabase] Error cargando alumnos:', error.message);
       showSaveToast('❌ Error cargando alumnos: ' + error.message, false);
