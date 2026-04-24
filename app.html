@@ -3476,7 +3476,7 @@
         <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;margin-left:auto">
           <button onclick="resizeAgentModal('normal')" id="rsz-normal" title="Con sidebar" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center">◧</button>
           <button onclick="resizeAgentModal('full')"   id="rsz-full"   title="Sin sidebar (máximo espacio)" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center">⬜</button>
-          <button onclick="closeModal()" title="Cerrar agente" style="margin-left:4px;background:#ef4444;border:none;color:#fff;border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">✕</button>
+          <button class="modal-close" onclick="closeModal()" style="margin-left:4px">✕</button>
         </div>
       </div>
       <!-- Fila 2: selector multi contexto — alineado con "Vista de Marcela Pinto" -->
@@ -4365,7 +4365,7 @@ Aplicas Diseño Inverso (Wiggins & McTighe), Marco para la Buena Enseñanza y Di
   {id:'p3',dim:'pedagogica',nombre:'Innovación Didáctica',icon:'💡',visual:true,desc:'Promueve estrategias innovadoras y uso pedagógico de la tecnología.',prompt:`Eres especialista en innovación pedagógica. Si hay alumnos con NEE en el contexto, sugiere cómo las metodologías activas pueden beneficiarlos específicamente. Inspiras en ABP, gamificación y herramientas digitales.`,preguntas:['¿Qué metodología activa has probado recientemente?','¿Cómo integras herramientas digitales en la enseñanza?','¿Qué barreras encuentras para innovar cotidianamente?','¿Cómo compartes buenas prácticas con tus colegas?','¿Qué innovación te gustaría explorar y qué apoyo necesitarías?']},
   {id:'p4',dim:'pedagogica',nombre:'Logros de Aprendizaje',icon:'📈',desc:'Analiza resultados e implementa estrategias para mejorar los logros.',prompt:`Eres analista en resultados educativos. Si hay alumnos con NEE, considera sus logros dentro de sus propios parámetros y sugiere cómo medir su progreso individualmente. Ayudas a interpretar datos SIMCE y evaluaciones internas.`,preguntas:['¿Cuáles son los resultados que más te preocupan?','¿Cómo analizan y usan los datos de evaluaciones?','¿Qué grupos de estudiantes requieren mayor atención?','¿Cómo involucras a docentes en el análisis colectivo?','¿Qué metas de mejora han definido y en qué plazos?']},
   {id:'p5',dim:'pedagogica',nombre:'Acompañamiento Docente',icon:'🫂',desc:'Diseña estrategias de mentoría y comunidades de aprendizaje profesional.',prompt:`Eres experto en acompañamiento pedagógico y comunidades profesionales de aprendizaje. Orientas en sistemas de apoyo entre pares usando lesson study y coaching educativo.`,preguntas:['¿Qué estructura de acompañamiento docente existe actualmente?','¿Cómo identificas qué docentes necesitan más apoyo?','¿Existen comunidades de aprendizaje profesional activas?','¿Cómo distribuyes tiempo y recursos para el desarrollo profesional?','¿Qué rol juegan los docentes más experimentados en apoyar a sus pares?']},
-  {id:'p6',dim:'pedagogica',nombre:'Análisis de Resultados',icon:'📊',desc:'Ingresa datos de cualquier instrumento de evaluación y visualiza un dashboard interactivo con análisis IA de los resultados del curso.',prompt:`Eres un experto en evaluación educativa y análisis de resultados de aprendizaje. Tu función es ayudar al docente a interpretar los datos de sus instrumentos de evaluación, identificar patrones, fortalezas y áreas críticas, y proponer estrategias pedagógicas concretas basadas en la evidencia. Cuando el docente comparte resultados, analiza: distribución por niveles de logro, estudiantes en riesgo, factores con mayor alerta, comparaciones entre grupos y recomendaciones de intervención diferenciada. Adapta tu análisis al instrumento específico que se está utilizando (prueba, rúbrica, escala, SIMCE, etc.).`,preguntas:['Ingresar datos del instrumento y resultados','¿Qué patrones críticos detectas en los resultados ingresados?','¿Qué estudiantes requieren intervención prioritaria?','¿Cómo agrupar a los estudiantes según sus resultados para trabajar diferenciado?','¿Qué estrategias pedagógicas recomiendas según estos resultados?'],dashboard:true,requiresFile:true},
+  {id:'p6',dim:'pedagogica',nombre:'Análisis de Resultados',icon:'📊',desc:'Ingresa datos de cualquier instrumento de evaluación y visualiza un dashboard interactivo con análisis IA de los resultados del curso.',prompt:`Eres un experto en evaluación educativa y análisis de resultados de aprendizaje. Tu función es ayudar al docente a interpretar los datos de sus instrumentos de evaluación, identificar patrones, fortalezas y áreas críticas, y proponer estrategias pedagógicas concretas basadas en la evidencia. Cuando el docente comparte resultados, analiza: distribución por niveles de logro, estudiantes en riesgo, factores con mayor alerta, comparaciones entre grupos y recomendaciones de intervención diferenciada. Adapta tu análisis al instrumento específico que se está utilizando (prueba, rúbrica, escala, SIMCE, etc.).`,preguntas:['Ingresar datos del instrumento y resultados','¿Qué patrones críticos detectas en los resultados ingresados?','¿Qué estudiantes requieren intervención prioritaria?','¿Cómo agrupar a los estudiantes según sus resultados para trabajar diferenciado?','¿Qué estrategias pedagógicas recomiendas según estos resultados?'],dashboard:true},
 
   {id:'v1',dim:'pedagogica',nombre:'Diseñador de Material',icon:'🎨',visual:true,
    desc:'Crea fichas, tarjetas de vocabulario, guías y material imprimible con texto e imágenes generadas por IA.',
@@ -7166,111 +7166,9 @@ function removeAttach(idx, chipEl) {
   if (preview && preview.children.length === 0) preview.style.display = 'none';
 }
 
-// IDs y palabras clave de agentes que requieren archivo antes de responder
-const AGENTS_REQUIRE_FILE = ['p6'];
-const AGENTS_REQUIRE_FILE_KEYWORDS = [
-  'análisis de resultado','analisis de resultado',
-  'informe desempeño','informe desempeno','informe de desempeño',
-  'informe psicopedag','genera evaluacion','genera evaluación',
-  'planificación curricular','planificacion curricular'
-];
-
-function _agentRequiresFile(agent) {
-  if (!agent) return false;
-  if (agent.requiresFile) return true;
-  if (AGENTS_REQUIRE_FILE.indexOf(agent.id) > -1) return true;
-  var nombre = (agent.nombre || '').toLowerCase();
-  return AGENTS_REQUIRE_FILE_KEYWORDS.some(function(k){ return nombre.includes(k); });
-}
-
-function _agentHasFile() {
-  if (!currentAgent) return false;
-  var files = AGENT_STORE.getFiles(currentAgent.id);
-  if (files && files.length > 0) return true;
-  var preview = document.getElementById('attachPreview');
-  if (preview && preview.children.length > 0) return true;
-  return false;
-}
-
-function _showFileAlert(q, autoSend) {
-  var existing = document.getElementById('_requireFileAlert');
-  if (existing) existing.remove();
-
-  var files = currentAgent ? AGENT_STORE.getFiles(currentAgent.id) : [];
-  var hasFiles = files && files.length > 0;
-
-  var div = document.createElement('div');
-  div.id = '_requireFileAlert';
-  div.style.cssText = [
-    'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:9999',
-    'background:#1e293b;border:1.5px solid ' + (hasFiles ? '#00e5c0' : '#f59e0b') + ';border-radius:14px',
-    'padding:16px 20px;display:flex;align-items:flex-start;gap:12px',
-    'box-shadow:0 8px 32px rgba(0,0,0,.5);max-width:460px;width:92%'
-  ].join(';');
-
-  function closeAlert() { var el = document.getElementById('_requireFileAlert'); if (el) el.remove(); }
-  function sendQ() { closeAlert(); var inp = document.getElementById('chatInput'); if (inp) { inp.value = q; if (autoSend) sendChat(); } }
-  function goFiles() { closeAlert(); switchAgentPanel('files'); }
-
-  if (hasFiles) {
-    var fileListHtml = files.slice(0,3).map(function(f) {
-      var icon = f.ext==='xlsx'||f.ext==='xls' ? '📊' : f.ext==='csv' ? '📋' : f.ext==='pdf' ? '📄' : '📎';
-      var fecha = f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short'}) : '';
-      return '<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#0f172a;border-radius:7px;margin-bottom:4px">' +
-        '<span style="font-size:13px">' + icon + '</span>' +
-        '<span style="font-size:11px;color:#e2e8f0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">' + f.name + '</span>' +
-        '<span style="font-size:10px;color:#64748b;flex-shrink:0;margin-left:auto">' + fecha + '</span>' +
-      '</div>';
-    }).join('');
-    if (files.length > 3) fileListHtml += '<div style="font-size:10px;color:#64748b;padding:2px 8px">+ ' + (files.length-3) + ' más...</div>';
-
-    div.innerHTML =
-      '<span style="font-size:22px;flex-shrink:0">📂</span>' +
-      '<div style="flex:1;min-width:0">' +
-        '<div style="font-weight:700;font-size:13px;color:#00e5c0;margin-bottom:6px">Archivo(s) ya cargado(s)</div>' +
-        fileListHtml +
-        '<div style="font-size:11px;color:#94a3b8;margin-top:6px">¿Usar este archivo o cargar uno nuevo?</div>' +
-      '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;margin-left:8px">' +
-        '<button id="_fa_use" style="background:#00e5c0;color:#000;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap">✅ Usar este</button>' +
-        '<button id="_fa_other" style="background:#1e3a5f;color:#7dd3fc;border:1px solid #1e40af;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap">📎 Cargar otro</button>' +
-        '<button id="_fa_cancel" style="background:none;border:none;color:#475569;font-size:10px;cursor:pointer;font-family:DM Sans,sans-serif;text-align:center">Cancelar</button>' +
-      '</div>';
-
-    document.body.appendChild(div);
-    document.getElementById('_fa_use').addEventListener('click', sendQ);
-    document.getElementById('_fa_other').addEventListener('click', goFiles);
-    document.getElementById('_fa_cancel').addEventListener('click', closeAlert);
-
-  } else {
-    div.innerHTML =
-      '<span style="font-size:22px;flex-shrink:0">📂</span>' +
-      '<div style="flex:1">' +
-        '<div style="font-weight:700;font-size:13px;color:#f59e0b;margin-bottom:3px">Primero carga el archivo de resultados</div>' +
-        '<div style="font-size:11px;color:#94a3b8;line-height:1.5">Este agente necesita los datos para responder.<br>Adjunta el archivo Excel o CSV con los resultados.</div>' +
-      '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">' +
-        '<button id="_fa_load" style="background:#f59e0b;color:#000;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap">📎 Cargar archivo</button>' +
-        '<button id="_fa_skip" style="background:none;border:1px solid #334155;color:#64748b;border-radius:7px;padding:4px 14px;font-size:10px;cursor:pointer;font-family:DM Sans,sans-serif">Igual continuar</button>' +
-      '</div>';
-
-    document.body.appendChild(div);
-    document.getElementById('_fa_load').addEventListener('click', goFiles);
-    document.getElementById('_fa_skip').addEventListener('click', sendQ);
-  }
-
-  setTimeout(function(){ if(div.parentNode) div.remove(); }, 12000);
-}
-
-}
-
-function useQuestion(q, autoSend=false) {
-  if (_agentRequiresFile(currentAgent)) {
-    _showFileAlert(q, autoSend);
-    return;
-  }
-  const inp = document.getElementById('chatInput');
-  if (inp) { inp.value = q; if (autoSend) sendChat(); }
+function useQuestion(q,autoSend=false){
+  const inp=document.getElementById('chatInput');
+  if(inp){inp.value=q; if(autoSend)sendChat();}
 }
 
 function formatMsg(text) {
