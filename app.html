@@ -3844,6 +3844,8 @@ async function _supaLoadPerfil() {
     await _supaLoadColegios();
     await _supaLoadCursosEliminados();
     await _supaLoadCursos();
+    // Cargar docentes reales desde Supabase
+    await _supaLoadDocentes();
     // Cargar cursos del docente DESPUÉS de que CURSOS esté poblado
     if (rol === 'docente') await _supaLoadDocenteCursos();
     await _supaLoadAlumnos();
@@ -34260,6 +34262,62 @@ function _getAnthropicHeaders(key) {
     'anthropic-version': '2023-06-01',
     'anthropic-dangerous-direct-browser-access': 'true',
   };
+}
+
+// Cargar docentes reales desde Supabase e inyectarlos en DB.docentes
+async function _supaLoadDocentes() {
+  if (!_supaUser || !_supa) return;
+  try {
+    var colegioId = _supaPerfil?.colegio_id || _activeColegioId || null;
+    var query = _supa.from('usuarios')
+      .select('id, nombre, apellido, email, rol, colegio_id, curso, estado')
+      .eq('rol', 'docente')
+      .eq('estado', 'activo');
+    if (colegioId) query = query.eq('colegio_id', colegioId);
+
+    var { data, error } = await query;
+    if (error) throw error;
+    if (!data || !data.length) return;
+
+    // Obtener cursos asignados desde docente_cursos para cada docente
+    var { data: dcData } = await _supa.from('docente_cursos')
+      .select('docente_id, curso_nombre, asignatura')
+      .in('docente_id', data.map(function(d){ return d.id; }));
+
+    var cursosMap = {};
+    (dcData || []).forEach(function(dc) {
+      if (!cursosMap[dc.docente_id]) cursosMap[dc.docente_id] = [];
+      cursosMap[dc.docente_id].push({ curso: dc.curso_nombre, asignaturas: dc.asignatura ? [dc.asignatura] : [] });
+    });
+
+    // Inyectar en DB.docentes — evitar duplicados
+    var existingIds = new Set(DB.docentes.map(function(d){ return d.id; }));
+    data.forEach(function(u) {
+      if (existingIds.has(u.id)) {
+        // Actualizar datos del docente existente
+        var idx = DB.docentes.findIndex(function(d){ return d.id === u.id; });
+        if (idx > -1) {
+          DB.docentes[idx].nombre = (u.nombre || '') + (u.apellido ? ' ' + u.apellido : '');
+          DB.docentes[idx].email  = u.email;
+          DB.docentes[idx].cursosAsignados = cursosMap[u.id] || DB.docentes[idx].cursosAsignados || [];
+        }
+      } else {
+        DB.docentes.push({
+          id:              u.id,
+          nombre:          (u.nombre || '') + (u.apellido ? ' ' + u.apellido : ''),
+          email:           u.email,
+          rol:             'docente',
+          establecimiento: '',
+          esp:             u.curso || '',
+          exp:             0,
+          avatar:          (u.nombre||'?')[0].toUpperCase(),
+          cursosAsignados: cursosMap[u.id] || [],
+          _fromSupabase:   true
+        });
+      }
+    });
+    console.log('[LIAX] Docentes cargados desde Supabase:', data.length);
+  } catch(e) { console.warn('[LIAX] Error cargando docentes:', e.message); }
 }
 
 // Cargar flags visual (imágenes IA) para agentes base desde Supabase config
