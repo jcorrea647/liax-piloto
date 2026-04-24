@@ -9211,7 +9211,7 @@ async function saGuardarUsuario(){
 
       if(!newId){
         // Fallback: insertar solo el perfil (el usuario deberá hacer signUp por su cuenta o vía invitación)
-        const { data: inserted, error } = await _supa.from('usuarios').insert({ ...payload, email }).select('id').single();
+        const { data: inserted, error } = await _supa.from('usuarios').insert({ ...payload, email, password_hash: password }).select('id').single();
         if(error){ console.error('[LIAX] INSERT error:', error.message, '| code:', error.code, '| details:', error.details, '| payload rol:', payload.rol); throw error; }
         newId = inserted.id;
       }
