@@ -6381,6 +6381,14 @@ function renderAgents(){
         <span style="font-size:10px;color:#6A6460">${a.preguntas.length} preguntas guía</span>
         <span style="font-size:10px;font-weight:700;color:#2A2420">Abrir →</span>
       </div>
+      ${currentRole==='superadmin'?`
+      <div style="display:flex;align-items:center;gap:5px;margin-top:8px;padding:5px 8px;background:rgba(0,0,0,.04);border-radius:6px;border:1px solid rgba(0,0,0,.07)">
+        <span style="font-size:10px;flex:1;color:#4A4540">🎨 Imágenes IA</span>
+        <button onclick="event.stopPropagation();saToggleVisualAgent('${a.id}',this)"
+          style="font-size:9px;padding:2px 8px;border-radius:8px;border:none;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:700;
+                 background:${a.visual?'#22c55e':'#d1d5db'};color:${a.visual?'#fff':'#6b7280'}"
+          data-visual="${a.visual?'1':'0'}">${a.visual?'✅ ON':'○ OFF'}</button>
+      </div>`:''}
     </div>`;
   }).join('') + (_canCreateAgent ? createCard : '');
 }
