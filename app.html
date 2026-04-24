@@ -21,6 +21,10 @@
   /* 2-column layout — wide left sidebar */
   .app{display:grid;grid-template-columns:204px 1fr;grid-template-rows:54px 48px auto 1fr;height:100vh;}
 
+  /* ── Botón INICIO fijo en topbar (solo docente) ── */
+  #docenteTopbarInicio { display:none; }
+  body.is-docente #docenteTopbarInicio { display:flex !important; }
+
   /* ── Perfil Docente: ocultar sidebar ── */
   body.is-docente .sidebar { display:none !important; }
   body.is-docente .app {
@@ -254,8 +258,7 @@
     height:0 !important;
     overflow:hidden !important;
   }
-  /* Hide original docente banner when agent is open (info moved to header) */
-  body.is-docente .app.agent-open .docente-view-banner { display:none !important; }
+  /* El banner docente permanece visible siempre; el botón INICIO está en el topbar */
 
   #agentModal.open {
     display:flex !important;
@@ -1377,6 +1380,16 @@
     <span class="logo">Li<span>ax</span></span>
     <span class="top-badge" id="topBadgeLabel">IA Educativa</span>
 
+    <!-- 🏠 Botón INICIO + Nombre Colegio — SIEMPRE visible en perfil Docente -->
+    <div id="docenteTopbarInicio" style="display:none;align-items:center;gap:8px;flex-shrink:0;margin-left:10px">
+      <button onclick="showPanel('favoritos')"
+        style="background:#ffffff;color:#374151;border:1.5px solid #d1d5db;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.12);transition:all .15s;white-space:nowrap"
+        onmouseover="this.style.background='#f3f4f6';this.style.borderColor='#9ca3af'"
+        onmouseout="this.style.background='#ffffff';this.style.borderColor='#d1d5db'">🏠 Inicio</button>
+      <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
+      <span id="docenteTopbarColegio" style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px"></span>
+    </div>
+
     <!-- Selector de colegio (SA y Sostenedor) -->
     <div id="colegioSelectorWrap" style="display:none;position:relative;margin-left:10px">
       <button id="colegioSelectorBtn" onclick="toggleColegioSelector()"
@@ -1514,10 +1527,6 @@
 
   <!-- DOCENTE VIEW BANNER -->
   <div class="docente-view-banner" id="docenteBanner" style="grid-column:1/-1">
-    <button onclick="showPanel('favoritos')"
-      style="background:#ffffff;color:#374151;border:1.5px solid #d1d5db;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:all .15s"
-      onmouseover="this.style.background='#f3f4f6';this.style.borderColor='#9ca3af'" onmouseout="this.style.background='#ffffff';this.style.borderColor='#d1d5db'">🏠 Inicio</button>
-    <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
     <span style="font-size:15px">👩‍🏫</span>
     <span id="docenteBannerText" style="font-weight:700;font-size:13px;color:#4a5568;flex-shrink:0"></span>
     <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
@@ -12706,6 +12715,18 @@ function applyDocenteView() {
     ? docente.nombre.split(' ').slice(0,2).join(' ')
     : (_supaPerfil && _supaPerfil.nombre ? _supaPerfil.nombre.split(' ').slice(0,2).join(' ') : '');
   document.getElementById('docenteBannerText').textContent = nombreDocente;
+
+  // Sincronizar nombre del colegio en el botón INICIO del topbar
+  var colegioTopbarEl = document.getElementById('docenteTopbarColegio');
+  if (colegioTopbarEl) {
+    var colegioNombre = (docente && docente.establecimiento)
+      ? docente.establecimiento
+      : (_supaPerfil && _supaPerfil.establecimiento ? _supaPerfil.establecimiento : '');
+    if (!colegioNombre && DB.colegios && DB.colegios.length > 0) {
+      colegioNombre = DB.colegios[0].nombre || DB.colegios[0].establecimiento || '';
+    }
+    colegioTopbarEl.textContent = colegioNombre ? ('🏫 ' + colegioNombre) : '';
+  }
 
   var cursos = (docente && docente.cursosAsignados) ? docente.cursosAsignados : [];
 
