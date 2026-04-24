@@ -9043,8 +9043,11 @@ function saveNewAgent(){
   _backupCustomAgents(); // also save to dedicated key
 }
 function renderSAAgentGrid(){
+  var el = document.getElementById('saAgentGrid');
+  if (!el) return;
+  const FALLBACK_COLOR = {bg:'var(--surface2)',text:'var(--muted)',border:'var(--border)'};
   document.getElementById('saAgentGrid').innerHTML=AGENTS.map(a=>{
-    const c=COLORS[a.dim];
+    const c=COLORS[a.dim] || FALLBACK_COLOR;
     return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:15px;position:relative;overflow:hidden">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${c.text}"></div>
       ${a.custom?`<div style="position:absolute;top:8px;right:8px"><span class="sa-badge">CUSTOM</span></div>`:''}
