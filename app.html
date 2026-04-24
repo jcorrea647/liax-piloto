@@ -5660,19 +5660,17 @@ async function nominaGuardar(cursoEncoded) {
   try {
     var colegioId = (_supaPerfil && _supaPerfil.colegio_id) ? String(_supaPerfil.colegio_id) : null;
 
-    // Borrar nómina anterior (por user_id y docente_id para cubrir datos viejos)
+    // Borrar nómina anterior
     await _supa.from('alumnos').delete().eq('curso_nombre', curso).eq('user_id', _supaUser.id);
-    await _supa.from('alumnos').delete().eq('curso_nombre', curso).eq('docente_id', _supaUser.id);
 
-    // Insertar nuevos — guardar user_id Y docente_id para compatibilidad
+    // Insertar nuevos
     var inserts = alumnos.map(function(a) {
       var row = {
         nombre:       a.nombre,
         curso_nombre: curso,
         rut:          a.rut || null,
         nee:          a.nee === 'Si' ? 'Si' : null,
-        user_id:      _supaUser.id,
-        docente_id:   _supaUser.id
+        user_id:      _supaUser.id
       };
       if (colegioId) row.colegio_id = colegioId;
       return row;
@@ -34887,22 +34885,34 @@ async function _supaLoadAlumnos() {
   try {
     var isDocente = _supaPerfil && _supaPerfil.rol === 'docente';
 
-    var query;
+    var data = [], error = null;
+
     if (isDocente) {
-      // Docente: intentar con user_id, si no hay datos intentar con docente_id
-      query = _supa.from('alumnos').select('*').eq('user_id', _supaUser.id);
+      // Docente: cargar alumnos de TODOS sus cursos asignados
+      // La relación es: docente → docente_cursos.curso_nombre → alumnos.curso_nombre
+      var docente = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
+      var misCursos = (docente && docente.cursosAsignados)
+        ? docente.cursosAsignados.map(function(c){ return c.curso; }).filter(Boolean)
+        : [];
+
+      if (misCursos.length) {
+        var res = await _supa.from('alumnos').select('*').in('curso_nombre', misCursos);
+        data = res.data || [];
+        error = res.error;
+      } else {
+        // Fallback: si aún no cargaron los cursos, usar user_id
+        var res2 = await _supa.from('alumnos').select('*').eq('user_id', _supaUser.id);
+        data = res2.data || [];
+        error = res2.error;
+      }
     } else {
       // Otros roles: cargar por colegio_id
       if (!_supaPerfil?.colegio_id) return;
-      query = _supa.from('alumnos').select('*').eq('colegio_id', _supaPerfil.colegio_id);
+      var res3 = await _supa.from('alumnos').select('*').eq('colegio_id', _supaPerfil.colegio_id);
+      data = res3.data || [];
+      error = res3.error;
     }
 
-    var { data, error } = await query;
-    // Si user_id no devuelve resultados, intentar con docente_id (datos guardados previamente)
-    if ((!data || !data.length) && !error && isDocente) {
-      var r2 = await _supa.from('alumnos').select('*').eq('docente_id', _supaUser.id).catch(function(e){ return { data: [], error: e }; });
-      if (r2.data && r2.data.length) data = r2.data;
-    }
     if (error) {
       console.error('[Supabase] Error cargando alumnos:', error.message);
       showSaveToast('❌ Error cargando alumnos: ' + error.message, false);
