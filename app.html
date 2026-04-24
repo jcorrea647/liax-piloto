@@ -2776,8 +2776,32 @@
         <div class="form-group" style="grid-column:1/-1">
           <label class="form-label">Contraseña <span id="saU-pass-hint" style="color:var(--muted);font-weight:400">(dejar vacío para no cambiar)</span></label>
           <div style="position:relative">
-            <input class="form-input" id="saU-password" type="password" placeholder="••••••••" style="width:100%;padding-right:80px">
-            <button type="button" onclick="saGenPassword()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:2px 8px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif">Generar</button>
+            <input class="form-input" id="saU-password" type="password" placeholder="••••••••"
+              style="width:100%;padding-right:110px"
+              oninput="saCheckPassword(this.value)">
+            <!-- Ojito -->
+            <button type="button" onclick="saTogglePassVis()"
+              id="saU-pass-eye"
+              title="Mostrar/ocultar contraseña"
+              style="position:absolute;right:58px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;padding:0 4px;color:var(--muted);line-height:1">👁️</button>
+            <!-- Generar -->
+            <button type="button" onclick="saGenPassword()"
+              style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:2px 8px;cursor:pointer;font-size:10px;font-family:DM Sans,sans-serif">Generar</button>
+          </div>
+          <!-- Barra de fortaleza -->
+          <div id="saU-pass-bar-wrap" style="display:none;margin-top:6px">
+            <div style="display:flex;gap:3px;margin-bottom:5px">
+              <div id="saU-bar-1" style="flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .2s"></div>
+              <div id="saU-bar-2" style="flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .2s"></div>
+              <div id="saU-bar-3" style="flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .2s"></div>
+              <div id="saU-bar-4" style="flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .2s"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px" id="saU-pass-rules">
+              <div id="saU-rule-len"   style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px"><span id="saU-r-len-ic">○</span> Mínimo 8 caracteres</div>
+              <div id="saU-rule-upper" style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px"><span id="saU-r-upper-ic">○</span> Al menos una mayúscula</div>
+              <div id="saU-rule-num"   style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px"><span id="saU-r-num-ic">○</span> Al menos un número</div>
+              <div id="saU-rule-spec"  style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px"><span id="saU-r-spec-ic">○</span> Al menos un símbolo (!@#$%^&*)</div>
+            </div>
           </div>
         </div>
         <div class="form-group" style="grid-column:1/-1">
@@ -3826,6 +3850,7 @@ async function _supaLoadPerfil() {
     await _supaLoadRags();
     await denLoad();
     await _supaLoadAgentes();
+    await _supaLoadVisualFlags();
     await _loadFavoritesFromSupabase();
     await _supaLoadDatos();
     await _supaLoadAnotaciones();
@@ -6145,32 +6170,38 @@ const FAV_STORE = {
 async function _loadFavoritesFromSupabase() {
   if (!_supaUser || !_supa) return;
   try {
-    // 1. Intentar cargar favoritos propios del usuario
+    // 1. Cargar favoritos propios del usuario
     var { data } = await _supa.from('config')
       .select('value').eq('key', 'favorites_' + _supaUser.id).maybeSingle();
 
     if (data && data.value) {
-      // El usuario ya tiene sus propios favoritos
       FAV_STORE._set = new Set(JSON.parse(data.value));
       renderFavoritos();
+      updateFavCount();
       return;
     }
 
-    // 2. Si no tiene favoritos, buscar los favoritos default del colegio (definidos por SA)
-    var colegioId = _supaPerfil?.colegio_id;
-    if (colegioId) {
-      var { data: defData } = await _supa.from('config')
-        .select('value').eq('key', 'default_favs_' + colegioId).maybeSingle();
-      if (defData && defData.value) {
-        FAV_STORE._set = new Set(JSON.parse(defData.value));
-        renderFavoritos();
-        updateFavCount();
-        console.log('[LIAX] Favoritos default del colegio cargados:', FAV_STORE._set.size);
-        return;
-      }
-    }
+    // 2. Usuario sin favoritos propios → heredar los favoritos del SuperAdmin
+    // Los favoritos del SA son la "selección curada" de agentes para toda la plataforma
+    try {
+      var { data: saUsers } = await _supa
+        .from('usuarios').select('id').eq('rol', 'superadmin');
+      var saIds = (saUsers || []).map(function(u){ return u.id; });
 
-    // 3. Si tampoco hay default del colegio, dejar vacío (mensaje "Aún no tienes favoritos")
+      for (var i = 0; i < saIds.length; i++) {
+        var { data: saFavs } = await _supa.from('config')
+          .select('value').eq('key', 'favorites_' + saIds[i]).maybeSingle();
+        if (saFavs && saFavs.value) {
+          FAV_STORE._set = new Set(JSON.parse(saFavs.value));
+          renderFavoritos();
+          updateFavCount();
+          console.log('[LIAX] Favoritos del SA heredados para nuevo usuario:', FAV_STORE._set.size);
+          return;
+        }
+      }
+    } catch(e) { console.warn('[LIAX] Error cargando favs SA:', e.message); }
+
+    // 3. Sin favoritos en ningún lado — pantalla vacía
     renderFavoritos();
   } catch(e) { console.warn('[LIAX] _loadFavoritesFromSupabase:', e.message); }
 }
@@ -6325,6 +6356,9 @@ function renderAgents(){
     <div style="font-size:10px;color:#6A6460;line-height:1.4">Diseña tu propio agente personalizado</div>
   </div>`;
 
+  // Card "Crear agente" solo para superadmin
+  var _canCreateAgent = (currentRole === 'superadmin' || currentRole === 'sostenedor' || currentRole === 'director');
+
   document.getElementById('agentGrid').innerHTML = agents.map(a=>{
     const c = COLORS[a.dim] || FALLBACK_COLOR;
     const isFav = FAV_STORE.isFav(a.id);
@@ -6348,7 +6382,7 @@ function renderAgents(){
         <span style="font-size:10px;font-weight:700;color:#2A2420">Abrir →</span>
       </div>
     </div>`;
-  }).join('') + createCard;
+  }).join('') + (_canCreateAgent ? createCard : '');
 }
 
 function openAgent(id, autoPrompt, sessionToRestore){
@@ -9020,6 +9054,16 @@ function renderSAAgentGrid(){
           <div style="font-size:9px;color:${c.text};font-weight:600">${dimNames[a.dim]}</div></div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">${a.desc||'—'}</div>
+      <!-- Flag: imágenes IA (visual) -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:6px 10px;background:var(--surface2);border-radius:7px;border:1px solid var(--border)">
+        <span style="font-size:11px;flex:1;color:var(--text)">🎨 Imágenes IA (Together AI)</span>
+        <button onclick="saToggleVisualAgent('${a.id}',this)"
+          style="font-size:10px;padding:2px 10px;border-radius:10px;border:none;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:700;transition:all .15s;
+                 background:${a.visual?'#22c55e':'var(--border)'};color:${a.visual?'#fff':'var(--muted)'}"
+          data-visual="${a.visual?'1':'0'}">
+          ${a.visual?'✅ Activado':'○ Desactivado'}
+        </button>
+      </div>
       <div style="display:flex;gap:5px">
         <button class="btn btn-outline" style="font-size:10px;flex:1" onclick="openNewAgent('${a.id}')">✏️ Editar</button>
         ${a.custom?`<button class="btn btn-outline" style="font-size:10px;color:var(--accent3);border-color:var(--accent3)33" onclick="deleteAgent('${a.id}')">✕</button>`:''}
@@ -9027,6 +9071,33 @@ function renderSAAgentGrid(){
     </div>`;
   }).join('');
 }
+function saToggleVisualAgent(agentId, btn) {
+  var agent = AGENTS.find(function(a){ return a.id === agentId; });
+  if (!agent) return;
+  agent.visual = !agent.visual;
+  // Actualizar botón visualmente
+  btn.setAttribute('data-visual', agent.visual ? '1' : '0');
+  btn.style.background = agent.visual ? '#22c55e' : 'var(--border)';
+  btn.style.color      = agent.visual ? '#fff'    : 'var(--muted)';
+  btn.textContent      = agent.visual ? '✅ Activado' : '○ Desactivado';
+  // Persistir en Supabase si es agente custom
+  if (agent.custom && typeof _supaSaveAgente === 'function') {
+    _supaSaveAgente(agent).catch(function(){});
+  }
+  // Para agentes base (no custom), guardar flag en config de Supabase
+  if (!agent.custom && _supa && _supaUser) {
+    var key = 'visual_flag_' + agentId;
+    _supa.from('config').upsert(
+      { key: key, value: agent.visual ? '1' : '0', updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    ).catch(function(){});
+  }
+  showSaveToast(agent.visual
+    ? '🎨 Imágenes IA activadas para "' + agent.nombre + '"'
+    : '○ Imágenes IA desactivadas para "' + agent.nombre + '"'
+  );
+}
+
 function deleteAgent(id){
   if(!confirm('¿Eliminar este agente?')) return;
   const idx=AGENTS.findIndex(a=>a.id===id); if(idx>-1) AGENTS.splice(idx,1);
@@ -9237,6 +9308,13 @@ async function saOpenNuevoUsuario(){
   document.getElementById('saU-rol').value='docente';
   document.getElementById('saU-estado').value='activo';
   document.getElementById('saU-pass-hint').style.display='none';
+  // Reset password bar
+  var barWrap = document.getElementById('saU-pass-bar-wrap');
+  if (barWrap) barWrap.style.display = 'none';
+  var passEl = document.getElementById('saU-password');
+  if (passEl) { passEl.type = 'password'; }
+  var eye = document.getElementById('saU-pass-eye');
+  if (eye) eye.textContent = '👁️';
   await saPopulateColegioSelect();
   saUsuarioRolChange();
   document.getElementById('saUsuarioModal').classList.add('open');
@@ -9308,10 +9386,60 @@ function saUsuarioRolChange(){
   }
 }
 function saGenPassword(){
-  const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
   let p=''; for(let i=0;i<12;i++) p+=chars[Math.floor(Math.random()*chars.length)];
   const el=document.getElementById('saU-password'); el.value=p; el.type='text';
-  setTimeout(()=>el.type='password',3000);
+  saCheckPassword(p);
+  setTimeout(()=>{ el.type='password'; }, 3000);
+}
+
+function saTogglePassVis(){
+  var el  = document.getElementById('saU-password');
+  var eye = document.getElementById('saU-pass-eye');
+  if (!el) return;
+  if (el.type === 'password') {
+    el.type = 'text';
+    if (eye) eye.textContent = '🙈';
+  } else {
+    el.type = 'password';
+    if (eye) eye.textContent = '👁️';
+  }
+}
+
+function saCheckPassword(val){
+  var wrap = document.getElementById('saU-pass-bar-wrap');
+  if (!wrap) return;
+  if (!val) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+
+  var hasLen   = val.length >= 8;
+  var hasUpper = /[A-Z]/.test(val);
+  var hasNum   = /[0-9]/.test(val);
+  var hasSpec  = /[!@#$%^&*()_+\-=\[\]{};':"\|,.<>\/?]/.test(val);
+
+  var score = [hasLen, hasUpper, hasNum, hasSpec].filter(Boolean).length;
+
+  // Colores barra
+  var colors = ['', '#ef4444', '#f97316', '#eab308', '#22c55e'];
+  var bars = ['saU-bar-1','saU-bar-2','saU-bar-3','saU-bar-4'];
+  bars.forEach(function(id, i) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.style.background = i < score ? colors[score] : 'var(--border)';
+  });
+
+  // Iconos reglas
+  function setRule(icId, ruleId, ok) {
+    var ic = document.getElementById(icId);
+    var row = document.getElementById(ruleId);
+    if (!ic || !row) return;
+    ic.textContent  = ok ? '✅' : '○';
+    row.style.color = ok ? '#22c55e' : 'var(--muted)';
+  }
+  setRule('saU-r-len-ic',   'saU-rule-len',   hasLen);
+  setRule('saU-r-upper-ic', 'saU-rule-upper', hasUpper);
+  setRule('saU-r-num-ic',   'saU-rule-num',   hasNum);
+  setRule('saU-r-spec-ic',  'saU-rule-spec',  hasSpec);
 }
 
 // ── guardar (crear o actualizar en Supabase) ──────────────
@@ -12239,18 +12367,25 @@ function resetDocCompetencias() {
 let currentDocenteId = null; // which docente is logged in (demo: picked from DB)
 
 function applyDocenteView() {
-  const docente = DB.docentes.find(d => d.id === currentDocenteId);
-  if (!docente || currentRole !== 'docente') {
-    document.getElementById('docenteBanner').style.display = 'none';
-    // Restore full ctx sidebar
+  var banner = document.getElementById('docenteBanner');
+  if (!banner) return;
+
+  if (currentRole !== 'docente') {
+    banner.style.display = 'none';
     return;
   }
 
-  const cursos = docente.cursosAsignados || [];
-  const banner = document.getElementById('docenteBanner');
+  // Siempre mostrar el banner para docentes — aunque no esté en DB.docentes aún
   banner.style.display = 'flex';
-  document.getElementById('docenteBannerText').textContent =
-    docente.nombre.split(' ').slice(0,2).join(' ');
+
+  // Buscar datos del docente — primero DB local, luego _supaPerfil como fallback
+  var docente = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
+  var nombreDocente = (docente && docente.nombre)
+    ? docente.nombre.split(' ').slice(0,2).join(' ')
+    : (_supaPerfil && _supaPerfil.nombre ? _supaPerfil.nombre.split(' ').slice(0,2).join(' ') : '');
+  document.getElementById('docenteBannerText').textContent = nombreDocente;
+
+  var cursos = (docente && docente.cursosAsignados) ? docente.cursosAsignados : [];
 
   const cursosEl = document.getElementById('docenteBannerCursos');
   if (!cursos.length) {
@@ -34114,6 +34249,25 @@ function _getAnthropicHeaders(key) {
     'anthropic-version': '2023-06-01',
     'anthropic-dangerous-direct-browser-access': 'true',
   };
+}
+
+// Cargar flags visual (imágenes IA) para agentes base desde Supabase config
+async function _supaLoadVisualFlags() {
+  if (!_supa) return;
+  try {
+    var { data } = await _supa.from('config')
+      .select('key,value')
+      .like('key', 'visual_flag_%');
+    if (!data || !data.length) return;
+    data.forEach(function(row) {
+      var agentId = row.key.replace('visual_flag_', '');
+      var agent = AGENTS.find(function(a){ return a.id === agentId; });
+      if (agent) {
+        agent.visual = row.value === '1';
+      }
+    });
+    console.log('[LIAX] Visual flags cargados:', data.length);
+  } catch(e) { console.warn('[LIAX] Error cargando visual flags:', e.message); }
 }
 
 // Load platform API keys from Supabase config table (set by SA)
