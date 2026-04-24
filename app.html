@@ -3873,10 +3873,12 @@ async function _supaLoadAgentes() {
     var seen = new Set(allData.map(function(a){ return a.id; }));
 
     // Cargar agentes del colegio (director/sostenedor que crearon para su colegio)
+    // agentes_custom.colegio_id es TEXT, _supaPerfil.colegio_id es UUID → convertir a string
     if (_supaPerfil?.colegio_id) {
+      var _colegioIdStr = String(_supaPerfil.colegio_id);
       var { data: byColegio } = await _supa
         .from('agentes_custom').select('*')
-        .eq('colegio_id', _supaPerfil.colegio_id)
+        .eq('colegio_id', _colegioIdStr)
         .neq('user_id', _supaUser.id);
       (byColegio || []).forEach(function(ag) {
         if (!seen.has(ag.id)) { seen.add(ag.id); allData.push(ag); }
@@ -3939,7 +3941,8 @@ async function _supaSaveAgente(agente) {
   if (!agente.custom) { return; }
 
   // SA no tiene colegio_id propio — usa el colegio activo en el selector del topbar
-  var _saveColegioId = _supaPerfil?.colegio_id || _activeColegioId || null;
+  // agentes_custom.colegio_id es TEXT — convertir uuid a string
+  var _saveColegioId = _supaPerfil?.colegio_id ? String(_supaPerfil.colegio_id) : (_activeColegioId ? String(_activeColegioId) : null);
 
   const payload = {
     id:          agente.id,
@@ -4349,8 +4352,9 @@ Aplicas Diseño Inverso (Wiggins & McTighe), Marco para la Buena Enseñanza y Di
 
 CÓMO TRABAJAS:
 1. Primero pregunta: tipo de material, asignatura/tema, curso y objetivo específico.
-2. Luego genera el material COMPLETO en una sola respuesta usando bloques \`\`\`material.
+2. Luego genera el material COMPLETO en una sola respuesta, bien formateado con ## títulos, listas y secciones claras.
 3. Cada material incluye texto pedagógico claro + imágenes generadas con [GENERA: descripción en inglés].
+4. Al final de cada material incluye siempre: "🖨️ _Para imprimir: selecciona este texto, cópialo y pégalo en Word o Google Docs._"
 
 TIPOS DE MATERIAL QUE DOMINAS:
 • FICHA DE TRABAJO: encabezado con nombre/curso/fecha, objetivo, instrucciones claras, actividades con imágenes de apoyo, espacio para respuestas.
@@ -6173,13 +6177,16 @@ async function _loadFavoritesFromSupabase() {
 
 // Guardar favoritos actuales como default del colegio (solo SA/director)
 async function saveDefaultFavsColegio() {
-  if (!_supaUser || !_supa || !_supaPerfil?.colegio_id) return;
+  if (!_supaUser || !_supa) return;
   if (currentRole !== 'superadmin' && currentRole !== 'director') return;
+  // SA no tiene colegio_id propio — usar el colegio activo del selector
+  var _targetColegio = _supaPerfil?.colegio_id || _activeColegioId || null;
+  if (!_targetColegio) { showSaveToast('⚠️ Selecciona un colegio en el selector del topbar primero', false); return; }
   var favs = [...FAV_STORE.getAll()];
   if (!favs.length) { showSaveToast('⚠️ No tienes favoritos para guardar como default', false); return; }
   try {
     await _supa.from('config').upsert(
-      { key: 'default_favs_' + _supaPerfil.colegio_id, value: JSON.stringify(favs), updated_at: new Date().toISOString() },
+      { key: 'default_favs_' + _targetColegio, value: JSON.stringify(favs), updated_at: new Date().toISOString() },
       { onConflict: 'key' }
     );
     showSaveToast('✅ Favoritos guardados como default para nuevos usuarios del colegio');
@@ -16199,8 +16206,18 @@ async function handleGenerarImagen(containerId, prompt) {
   var wrap = document.getElementById(containerId);
   if (!wrap) return;
 
-  // ── Intentar cargar Together key desde vault si no está en memoria ──
+  // ── Cargar Together key — primero memoria, luego Supabase, luego IndexedDB ──
   var togetherKey = getTogetherKey();
+  if (!togetherKey && _supa && _supaUser) {
+    try {
+      var { data: tkRow } = await _supa.from('config').select('value').eq('key','together_key').maybeSingle();
+      if (tkRow && tkRow.value) {
+        window._togetherKey = tkRow.value;
+        window._cachedTogetherKey = tkRow.value;
+        togetherKey = tkRow.value;
+      }
+    } catch(e) {}
+  }
   if (!togetherKey) {
     try {
       var tk = await AGENT_VAULT.loadSetting('together_key');
@@ -16224,7 +16241,7 @@ async function handleGenerarImagen(containerId, prompt) {
         response_format: 'url'
       };
 
-      var tres = await fetch('https://api.together.xyz/v1/images/generations', {
+      var tres = await fetch('https://api.together.ai/v1/images/generations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + togetherKey },
         body: JSON.stringify(togetherBody)
