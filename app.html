@@ -7073,7 +7073,55 @@ async function sendChat(){
     ajusteCtx +
     datosCtx +
     interAgentCtx +
-    '\n\n=== RECUERDA: eres ' + currentAgent.nombre + '. Tu rol absoluto está definido arriba. No lo abandones. ===';
+    '\n\n=== RECUERDA: eres ' + currentAgent.nombre + '. Tu rol absoluto está definido arriba. No lo abandones. ===' +
+    // ── Instrucción clave: usar contexto activo, no preguntar lo que ya está definido ──
+    (function() {
+      var dd = (typeof _docDropData !== 'undefined') ? _docDropData : {};
+      var hasCtxData = (CTX.asignaturas && CTX.asignaturas.size) ||
+                       (CTX.competencias && CTX.competencias.size) ||
+                       dd.edad ||
+                       Object.values(dd.compet||{}).some(function(v){ return v; }) ||
+                       Object.values(dd.desemp||{}).some(function(v){ return v; });
+      if (!hasCtxData) return '';
+      var instrLines = ['\n\n=== INSTRUCCIÓN CRÍTICA — CONTEXTO YA DEFINIDO ==='];
+      instrLines.push('El usuario ya ha seleccionado el contexto pedagógico. USA estos datos directamente en tu respuesta. NO los vuelvas a preguntar.');
+      if (CTX.asignaturas && CTX.asignaturas.size) instrLines.push('ÁREA CURRICULAR definida: ' + [...CTX.asignaturas].join(', '));
+      if (CTX.competencias && CTX.competencias.size) instrLines.push('COMPETENCIA(S) definida(s): ' + [...CTX.competencias].join(', '));
+      if (dd.edad) instrLines.push('EDAD del alumno definida: ' + dd.edad + ' años');
+      var caps = Object.entries(dd.compet||{}).filter(function(e){ return e[1]; });
+      if (caps.length) {
+        var capLabels = caps.map(function(e){
+          var label = e[0];
+          Object.values(CAPACIDADES_POR_COMPETENCIA||{}).forEach(function(arr){
+            arr.forEach(function(c){ if(c.id===e[0]) label = c.label + ' [' + e[1] + ']'; });
+          });
+          return label;
+        });
+        instrLines.push('CAPACIDADES definidas: ' + capLabels.join(' | '));
+      }
+      var desps = Object.entries(dd.desemp||{}).filter(function(e){ return e[1]; });
+      if (desps.length) {
+        instrLines.push('DESEMPEÑOS con nivel asignado: ' + desps.map(function(e){ return e[1]; }).join(', '));
+      }
+      // Alumnos seleccionados con ficha completa
+      var selAlus = (DB && DB.alumnos) ? DB.alumnos.filter(function(a){ return CTX.alumnos && CTX.alumnos.has(a.id); }) : [];
+      if (selAlus.length) {
+        instrLines.push('ALUMNOS SELECCIONADOS (' + selAlus.length + '):');
+        selAlus.forEach(function(a, i) {
+          var linea = '  ' + (i+1) + '. ' + a.nombre;
+          if (a.curso)  linea += ' | Curso: ' + a.curso;
+          if (a.rut)    linea += ' | RUT: ' + a.rut;
+          if (a.nee)    linea += ' | NEE Permanente: ' + a.nee;
+          if (a.neeT)   linea += ' | NEE Transitoria: ' + a.neeT;
+          if (a.prioridad || a.prioritario) linea += ' | Prioritario: Sí';
+          if (a.pie)    linea += ' | PIE: Sí';
+          instrLines.push(linea);
+        });
+      }
+      instrLines.push('Responde directamente usando este contexto. No pidas que el usuario repita información que ya está aquí.');
+      instrLines.push('=== FIN INSTRUCCIÓN CONTEXTO ===');
+      return instrLines.join('\n');
+    })();
 
   // ── Limitar tamaño del system prompt — máx ~12.000 chars ──
   // Si supera ese límite, recortar interAgentCtx y datosCtx (menos críticos)
