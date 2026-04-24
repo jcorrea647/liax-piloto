@@ -3838,9 +3838,11 @@ async function _supaLoadPerfil() {
     // Cargar cursos del docente DESPUÉS de que CURSOS esté poblado
     if (rol === 'docente') {
       await _supaLoadDocenteCursos();
-      setTimeout(applyDocenteView, 150); // banner docente: INICIO + Ver mis cursos + Ver mis docs
+      applyDocenteView();
+      await _supaLoadAlumnos();  // DESPUÉS de applyDocenteView para no perder los datos
+    } else {
+      await _supaLoadAlumnos();
     }
-    await _supaLoadAlumnos();
     await _supaLoadRags();
     await denLoad();
     await _supaLoadAgentes();
@@ -5637,59 +5639,59 @@ async function nominaGuardar(cursoEncoded) {
 
   if (!alumnos.length) { showSaveToast('⚠️ No hay alumnos para guardar', false); return; }
 
-  // Actualizar DB.alumnos local
+  // 1. Actualizar DB.alumnos en memoria
+  var uid = (_supaUser && _supaUser.id) ? _supaUser.id : 'demo';
   DB.alumnos = DB.alumnos.filter(function(a){ return a.esp !== curso; });
   alumnos.forEach(function(a, i) {
     DB.alumnos.push({
-      id:     'alu_' + curso.replace(/\s/g,'') + '_' + i,
-      nombre: a.nombre,
-      esp:    curso,
-      rut:    a.rut,
-      nee:    a.nee === 'Sí',
-      neeT:   a.nee_tipo,
-      notas:  [],
-      asistencia: []
+      id: 'alu_mem_' + uid + '_' + i + '_' + curso.replace(/\s/g,''),
+      nombre: a.nombre, esp: curso, rut: a.rut || '',
+      nee: a.nee === 'Si' ? 'Si' : '', neeT: a.nee_tipo || '',
+      notas: [], asistencia: [], user_id: uid
     });
   });
 
-  // Persistir en Supabase
-  if (_supa && _supaUser) {
-    try {
-      // Borrar nómina anterior del curso
-      await _supa.from('alumnos')
-        .delete()
-        .eq('curso_nombre', curso)
-        .eq('docente_id', _supaUser.id);
-
-      // Insertar nuevos
-      var colegioId = _supaPerfil?.colegio_id || _activeColegioId || null;
-      var inserts = alumnos.map(function(a) {
-        return {
-          nombre:      a.nombre,
-          curso_nombre: curso,
-          rut:         a.rut || null,
-          nee:         a.nee === 'Sí',
-          nee_tipo:    a.nee_tipo || null,
-          docente_id:  _supaUser.id,
-          colegio_id:  colegioId,
-          app:         'liax'
-        };
-      });
-      var { error } = await _supa.from('alumnos').insert(inserts);
-      if (error) throw error;
-      console.log('[Supabase] Nómina guardada:', inserts.length, 'alumnos en curso', curso);
-      showSaveToast('✅ Nómina de ' + alumnos.length + ' alumnos guardada en Supabase');
-    } catch(e) {
-      showSaveToast('⚠️ Guardado local OK — Error Supabase: ' + e.message, false);
-    }
-  } else {
-    showSaveToast('✅ Nómina guardada localmente (' + alumnos.length + ' alumnos)');
+  // 2. Guardar en Supabase
+  if (!_supa || !_supaUser) {
+    showSaveToast('⚠️ Sin conexión a Supabase — inicia sesión', false);
+    return;
   }
 
-  saveToStorage();
-  document.getElementById('nominaPortal')?.remove();
-  renderCursoResumen();
-  renderCursoChips();
+  try {
+    var colegioId = (_supaPerfil && _supaPerfil.colegio_id) ? String(_supaPerfil.colegio_id) : null;
+
+    // Borrar nómina anterior
+    var delRes = await _supa.from('alumnos')
+      .delete()
+      .eq('curso_nombre', curso)
+      .eq('user_id', _supaUser.id);
+    if (delRes.error) throw new Error('DELETE falló: ' + delRes.error.message);
+
+    // Insertar nuevos
+    var inserts = alumnos.map(function(a) {
+      var row = {
+        nombre:       a.nombre,
+        curso_nombre: curso,
+        rut:          a.rut || null,
+        nee:          a.nee === 'Si' ? 'Si' : null,
+        user_id:      _supaUser.id
+      };
+      if (colegioId) row.colegio_id = colegioId;
+      return row;
+    });
+
+    var insRes = await _supa.from('alumnos').insert(inserts);
+    if (insRes.error) throw new Error('INSERT falló: ' + insRes.error.message);
+
+    showSaveToast('✅ Nómina de ' + alumnos.length + ' alumnos guardada');
+    document.getElementById('nominaPortal')?.remove();
+    renderCursoResumen();
+    renderCursoChips();
+
+  } catch(e) {
+    showSaveToast('❌ Error al guardar nómina: ' + e.message, false);
+    console.error('[Nomina]', e.message);
+  }
 }
 
 function mcAbrirAlumnosCurso(curso) {
@@ -34865,25 +34867,32 @@ async function _supaSaveCurso(nombre) {
 }
 
 async function _supaLoadAlumnos() {
-  if (!_supaUser || !_supaPerfil?.colegio_id) return;
+  if (!_supaUser) return;
   try {
-    var query = _supa.from('alumnos').select('*')
-      .eq('colegio_id', _supaPerfil.colegio_id);
+    var isDocente = _supaPerfil && _supaPerfil.rol === 'docente';
 
-    // Docente solo ve sus propios alumnos
-    if (_supaPerfil.rol === 'docente') {
-      query = query.eq('docente_id', _supaUser.id);
+    var query;
+    if (isDocente) {
+      // Docente: cargar solo sus alumnos por user_id — no necesita colegio_id
+      query = _supa.from('alumnos').select('*').eq('user_id', _supaUser.id);
+    } else {
+      // Otros roles: cargar por colegio_id
+      if (!_supaPerfil?.colegio_id) return;
+      query = _supa.from('alumnos').select('*').eq('colegio_id', _supaPerfil.colegio_id);
     }
 
     var { data, error } = await query;
-    if (error) { console.warn('[Supabase] Error cargando alumnos:', error.message); return; }
+    if (error) {
+      console.error('[Supabase] Error cargando alumnos:', error.message);
+      showSaveToast('❌ Error cargando alumnos: ' + error.message, false);
+      return;
+    }
 
     if (data && data.length) {
       // Para docente: reemplazar completamente sus alumnos (no mezclar con demo)
       if (_supaPerfil.rol === 'docente') {
         DB.alumnos = DB.alumnos.filter(function(a) {
-          // Conservar alumnos que NO son del docente actual (otros roles)
-          return a._fromSupabase !== true && !a.docente_id;
+          return !a._fromSupabase && !a.user_id;
         });
       }
 
@@ -34898,11 +34907,11 @@ async function _supaLoadAlumnos() {
             rol:            'alumno',
             esp:            a.curso_nombre || '',
             nee:            a.nee || '',
-            neeT:           a.nee_tipo || '',
+            neeT:           '',
             exp:            0,
-            avatar:         ((a.nombre||'').split(' ')[0]||'')[0]?.toUpperCase() + ((a.nombre||'').split(' ')[1]||'')[0]?.toUpperCase() || '??',
+            avatar:         (((a.nombre||'').split(' ')[0]||'')[0] || '').toUpperCase() + (((a.nombre||'').split(' ')[1]||'')[0] || '').toUpperCase(),
             establecimiento: '',
-            docente_id:     a.docente_id || '',
+            user_id:        a.user_id || '',
             _fromSupabase:  true,
           });
           existentes.add(a.id);
