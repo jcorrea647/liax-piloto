@@ -1433,7 +1433,7 @@
 
     <!-- Botón Inicio docente — siempre visible junto al colegio -->
     <button id="btnInicioDocente" onclick="showPanel('favoritos')"
-      style="display:none;align-items:center;gap:5px;margin-left:6px;
+      style="display:flex;align-items:center;gap:5px;margin-left:6px;
              background:var(--accent2);color:#000;border:none;border-radius:7px;
              padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;
              font-family:DM Sans,sans-serif;flex-shrink:0;transition:opacity .15s">
@@ -12725,6 +12725,7 @@ function applyDocenteView() {
 
   if (currentRole !== 'docente') {
     banner.style.display = 'none';
+    // Ocultar botón Inicio solo para roles que tienen sidebar completo
     var btnInicio = document.getElementById('btnInicioDocente');
     if (btnInicio) btnInicio.style.display = 'none';
     return;
@@ -12733,9 +12734,9 @@ function applyDocenteView() {
   // Siempre mostrar el banner para docentes — aunque no esté en DB.docentes aún
   banner.style.display = 'flex';
 
-  // Mostrar botón Inicio en topbar
+  // Mostrar botón Inicio en topbar — siempre visible para docentes
   var btnInicio = document.getElementById('btnInicioDocente');
-  if (btnInicio) btnInicio.style.display = 'flex';
+  if (btnInicio) { btnInicio.style.display = 'flex'; btnInicio.style.visibility = 'visible'; }
 
   // Buscar datos del docente — primero DB local, luego _supaPerfil como fallback
   var docente = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
@@ -12815,6 +12816,9 @@ switchRole = function(r) {
       if (avEl) avEl.textContent = doc.avatar || doc.nombre.split(' ').map(w=>w[0]).slice(0,2).join('');
     }
     setTimeout(applyDocenteView, 100);
+    // Mostrar botón Inicio inmediatamente sin esperar applyDocenteView
+    var _btnI = document.getElementById('btnInicioDocente');
+    if (_btnI) _btnI.style.display = 'flex';
   } else {
     currentDocenteId = null;
     const banner = document.getElementById('docenteBanner');
