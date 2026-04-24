@@ -6139,28 +6139,60 @@ function renderFavoritos() {
     return;
   }
 
-  grid.innerHTML = agents.map(a => {
-    const c = COLORS[a.dim];
-    return `<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:11px;padding:15px;cursor:pointer;transition:all .2s;position:relative;overflow:visible"
-      onmouseenter="this.style.borderColor='${c.text}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.2)'"
-      onmouseleave="this.style.borderColor='var(--border)';this.style.transform='';this.style.boxShadow=''">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${c.text};border-radius:11px 11px 0 0"></div>
-      <button onclick="event.stopPropagation();toggleFav('${a.id}')" title="Quitar de favoritos"
-        style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:13px;color:#f59e0b">⭐</button>
-      <div onclick="openAgent('${a.id}')" style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
-        <div style="width:34px;height:34px;border-radius:8px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${a.icon}</div>
-        <div style="min-width:0">
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--text);line-height:1.3">${a.nombre}</div>
-          <div style="font-size:9px;font-weight:700;color:${c.text};margin-top:2px;text-transform:uppercase;letter-spacing:.4px">${dimNames[a.dim]||''}</div>
-        </div>
-      </div>
-      <div onclick="openAgent('${a.id}')" style="font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:9px;white-space:normal;word-break:break-word">${a.desc}</div>
-      <div onclick="openAgent('${a.id}')" style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:10px;color:var(--muted)">${a.preguntas.length} preguntas guía</span>
-        <span style="font-size:10px;font-weight:700;color:${c.text}">Abrir →</span>
-      </div>
+  // Orden de áreas y etiquetas
+  const DIM_ORDER = ['pedagogica','liderazgo','formacion','recursos'];
+  const DIM_LABELS = {
+    pedagogica: 'Gestión Pedagógica',
+    liderazgo:  'Liderazgo',
+    formacion:  'Convivencia',
+    recursos:   'Recursos'
+  };
+
+  // Agrupar por dim y ordenar alfabéticamente dentro de cada grupo
+  const grouped = {};
+  DIM_ORDER.forEach(d => { grouped[d] = []; });
+  agents.forEach(a => {
+    if (grouped[a.dim]) grouped[a.dim].push(a);
+    else { grouped[a.dim] = [a]; }
+  });
+  Object.keys(grouped).forEach(d => {
+    grouped[d].sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'));
+  });
+
+  let html = '';
+  DIM_ORDER.forEach(dim => {
+    const group = grouped[dim] || [];
+    if (!group.length) return;
+    const c = COLORS[dim] || {bg:'var(--surface2)',text:'var(--muted)'};
+    html += `<div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:10px;margin-bottom:4px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${c.text};flex-shrink:0"></div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:11px;color:${c.text};text-transform:uppercase;letter-spacing:.8px">${DIM_LABELS[dim] || dim}</div>
+      <div style="flex:1;height:1px;background:${c.text}22"></div>
+      <div style="font-size:10px;color:var(--muted)">${group.length} agente${group.length!==1?'s':''}</div>
     </div>`;
-  }).join('');
+    group.forEach(a => {
+      html += `<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:11px;padding:15px;cursor:pointer;transition:all .2s;position:relative;overflow:visible"
+        onmouseenter="this.style.borderColor='${c.text}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.2)'"
+        onmouseleave="this.style.borderColor='var(--border)';this.style.transform='';this.style.boxShadow=''">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${c.text};border-radius:11px 11px 0 0"></div>
+        <button onclick="event.stopPropagation();toggleFav('${a.id}')" title="Quitar de favoritos"
+          style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:13px;color:#f59e0b">⭐</button>
+        <div onclick="openAgent('${a.id}')" style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+          <div style="width:34px;height:34px;border-radius:8px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${a.icon}</div>
+          <div style="min-width:0">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--text);line-height:1.3">${a.nombre}</div>
+            <div style="font-size:9px;font-weight:700;color:${c.text};margin-top:2px;text-transform:uppercase;letter-spacing:.4px">${DIM_LABELS[a.dim]||dimNames[a.dim]||''}</div>
+          </div>
+        </div>
+        <div onclick="openAgent('${a.id}')" style="font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:9px;white-space:normal;word-break:break-word">${a.desc}</div>
+        <div onclick="openAgent('${a.id}')" style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:10px;color:var(--muted)">${a.preguntas.length} preguntas guía</span>
+          <span style="font-size:10px;font-weight:700;color:${c.text}">Abrir →</span>
+        </div>
+      </div>`;
+    });
+  });
+  grid.innerHTML = html;
 }
 
 // ── AGENTS ───────────────────────────────────────────────
@@ -12365,7 +12397,7 @@ const THEMES = [
     vars:{ '--bg':'#F0EDEA','--surface':'#FFFFFF','--surface2':'#E8E4DF','--border':'#D4CFC8','--text':'#1A1614','--muted':'#7A7470','--dim1':'#E3EDE7','--dim2':'#E0EDE5','--dim3':'#F5E8E8','--dim4':'#F5F0E0' }},
 ];
 
-let currentTheme = 'dark';
+let currentTheme = 'gestion';
 
 function applyTheme(id) {
   const theme = THEMES.find(t => t.id === id) || THEMES[0];
