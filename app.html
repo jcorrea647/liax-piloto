@@ -1533,7 +1533,7 @@
     <div id="docenteBannerCursos" style="display:none"></div>
     <button onclick="showPanel('mis-cursos')"
       style="background:#ffffff;color:#374151;border:1.5px solid #d1d5db;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:all .15s"
-      onmouseover="this.style.background='#f3f4f6';this.style.borderColor='#9ca3af'" onmouseout="this.style.background='#ffffff';this.style.borderColor='#d1d5db'">📂 Ver mis cursos</button>
+      onmouseover="this.style.background='#f3f4f6';this.style.borderColor='#9ca3af'" onmouseout="this.style.background='#ffffff';this.style.borderColor='#d1d5db'">📂 Ver mi aula</button>
     <button onclick="showPanel('mis-docs')"
       style="background:#ffffff;color:#374151;border:1.5px solid #d1d5db;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:all .15s"
       onmouseover="this.style.background='#f3f4f6';this.style.borderColor='#9ca3af'" onmouseout="this.style.background='#ffffff';this.style.borderColor='#d1d5db'">📄 Ver mis docs</button>
@@ -1594,9 +1594,9 @@
 
     <!-- MIS CURSOS — visible para todos excepto docente que lo ve filtrado -->
     <div class="sb-sec" id="sb-mis-cursos" style="margin-top:8px">
-      <div class="sb-lbl" style="color:var(--accent2)">📂 Mis Cursos</div>
+      <div class="sb-lbl" style="color:var(--accent2)">📂 Mi Aula</div>
       <div class="nav-item" onclick="showPanel('mis-cursos')">
-        <span>📂</span> <span id="sb-miscursos-label">Mis Cursos</span>
+        <span>📂</span> <span id="sb-miscursos-label">Mi Aula</span>
         <span class="nav-count" id="cnt-datos">0</span>
       </div>
     </div>
@@ -2094,7 +2094,7 @@
         <!-- Header sub-vista -->
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
           <button onclick="mcVolverResumen()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 13px;cursor:pointer;font-size:12px;font-family:inherit;display:flex;align-items:center;gap:5px">
-            ← Mis Cursos
+            ← Mi Aula
           </button>
           <div style="flex:1">
             <div style="font-size:16px;font-weight:800;font-family:'Syne',sans-serif" id="mcAluTitle">🎓 Alumnos</div>
@@ -2135,7 +2135,7 @@
 
       <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:0">
         <div>
-          <div class="page-title" id="mis-cursos-title">📂 Mis Cursos</div>
+          <div class="page-title" id="mis-cursos-title">📂 Mi Aula</div>
           <div class="page-sub" id="mis-cursos-sub">Resumen de notas, asistencia, evaluaciones y más</div>
         </div>
         <div class="btn-group" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
@@ -3476,7 +3476,7 @@
         <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;margin-left:auto">
           <button onclick="resizeAgentModal('normal')" id="rsz-normal" title="Con sidebar" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center">◧</button>
           <button onclick="resizeAgentModal('full')"   id="rsz-full"   title="Sin sidebar (máximo espacio)" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center">⬜</button>
-          <button class="modal-close" onclick="closeModal()" style="margin-left:4px">✕</button>
+          <button class="modal-close" onclick="closeModal()" style="margin-left:4px;background:#7a2a2a;color:#ffb3b3;border-color:#9e3a3a;" onmouseover="this.style.background='#9e3a3a';this.style.color='#fff'" onmouseout="this.style.background='#7a2a2a';this.style.color='#ffb3b3'">✕</button>
         </div>
       </div>
       <!-- Fila 2: selector multi contexto — alineado con "Vista de Marcela Pinto" -->
@@ -4975,7 +4975,7 @@ function updateMisCursosLabel(r) {
     superadmin: { title:'📂 Todos los Datos',       sub:'Datos de todos los colegios y cursos',          sb:'Todos los Datos' },
     sostenedor: { title:'📂 Red de Colegios',        sub:'Datos de todos los colegios de tu red',         sb:'Red de Colegios' },
     director:   { title:'📂 Datos de mi Colegio',    sub:'Datos de todos los cursos de tu establecimiento', sb:'Mi Colegio' },
-    docente:    { title:'📂 Mis Cursos',             sub:'Datos de tus cursos y asignaturas asignados',   sb:'Mis Cursos' },
+    docente:    { title:'📂 Mi Aula',             sub:'Datos de tus cursos y asignaturas asignados',   sb:'Mi Aula' },
   };
   const cfg = labels[r] || labels.docente;
   if (titleEl) titleEl.textContent = cfg.title;
