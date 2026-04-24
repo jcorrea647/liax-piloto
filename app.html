@@ -5150,6 +5150,12 @@ function renderCursoResumen() {
         <div class="curso-resumen-header">
           <span class="curso-badge">${curso}</span>
           <span style="font-size:11px;color:var(--muted)">${nAluCurso} alumno(s)</span>
+          <button onclick="abrirNominaModal('${encodeURIComponent(curso)}')"
+            style="margin-left:auto;background:var(--dim2);border:1px solid var(--accent2)44;color:var(--accent2);
+                   border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;
+                   font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:4px">
+            📋 Nómina
+          </button>
         </div>
         <div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:8px;margin-top:8px">
           Sin datos cargados aún —
@@ -5364,6 +5370,7 @@ function renderCursoResumen() {
         <span style="font-size:11px;color:var(--muted);font-weight:400">${nAlumnos} alumnos · ${nDatasets} dataset${nDatasets!==1?'s':''}</span>
         ${alertPills ? `<div style="display:flex;gap:5px;flex-wrap:wrap">${alertPills}</div>` : '<span style="background:rgba(62,207,142,0.12);color:#3ecf8e;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700">✅ Sin alertas críticas</span>'}
         <span style="flex:1"></span>
+        <button onclick="event.stopPropagation();abrirNominaModal('${encodeURIComponent(curso)}')" style="background:var(--dim2);border:1px solid var(--accent2)44;color:var(--accent2);border-radius:7px;padding:4px 10px;cursor:pointer;font-size:10px;font-weight:700;font-family:DM Sans,sans-serif">📋 Nómina</button>
         <button onclick="event.stopPropagation();mcAbrirAlumnosCurso('${curso}')" style="background:var(--accent2);color:#fff;border:none;border-radius:7px;padding:4px 12px;cursor:pointer;font-size:10px;font-weight:700">👤 Ver alumnos</button>
       </div>
       <div class="resumen-tipo-grid">${bloques.join('')}</div>
@@ -5376,6 +5383,325 @@ function renderCursoResumen() {
 
 function openListaAlumnosCurso(curso) {
   mcAbrirAlumnosCurso(curso);
+}
+
+// ══════════════════════════════════════════════════════
+// NÓMINA DE ALUMNOS POR CURSO
+// ══════════════════════════════════════════════════════
+
+function abrirNominaModal(cursoEncoded) {
+  var curso = decodeURIComponent(cursoEncoded);
+  // Obtener alumnos actuales del curso
+  var alumnos = DB.alumnos.filter(function(a){ return a.esp === curso; }).map(function(a){
+    return {
+      nombre: a.nombre || '',
+      rut:    a.rut || a.dni || a.id_doc || '',
+      nee:    a.nee ? 'Sí' : 'No',
+      nee_tipo: a.neeT || ''
+    };
+  });
+
+  // Si no hay alumnos, mostrar 5 filas vacías
+  if (!alumnos.length) {
+    for (var i = 0; i < 5; i++) alumnos.push({ nombre:'', rut:'', nee:'No', nee_tipo:'' });
+  }
+
+  var portal = document.createElement('div');
+  portal.id = 'nominaPortal';
+  portal.style.cssText = 'position:fixed;inset:0;background:#00000099;z-index:9998;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+
+  portal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:720px;margin:auto;box-shadow:0 24px 60px #00000099;overflow:hidden">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:10px;padding:18px 20px;border-bottom:1px solid var(--border);background:var(--surface2)">
+        <span style="font-size:20px">📋</span>
+        <div style="flex:1">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px">Nómina de Alumnos</div>
+          <div style="font-size:11px;color:var(--muted)">Curso: <strong>${curso}</strong></div>
+        </div>
+        <button onclick="document.getElementById('nominaPortal').remove()"
+          style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px">✕</button>
+      </div>
+
+      <!-- Toolbar -->
+      <div style="display:flex;gap:8px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+        <label style="background:var(--dim2);border:1px solid var(--accent2)44;color:var(--accent2);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">
+          📥 Importar Excel / CSV
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="nominaImportarArchivo(this,'${encodeURIComponent(curso)}')" style="display:none">
+        </label>
+        <button onclick="nominaAgregarFila('nomina-tbody')"
+          style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">
+          + Agregar fila
+        </button>
+        <span style="font-size:10px;color:var(--muted);flex:1">
+          Columnas requeridas en Excel: <strong>nombre</strong>, <strong>rut</strong> (o <strong>dni</strong>), <strong>nee</strong> (Sí/No)
+        </span>
+        <button onclick="nominaGuardar('${encodeURIComponent(curso)}')"
+          style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:6px 18px;font-size:12px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif">
+          💾 Guardar Nómina
+        </button>
+      </div>
+
+      <!-- Tabla -->
+      <div style="padding:16px 20px;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border)">
+              <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;width:36px">#</th>
+              <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Nombre completo</th>
+              <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;width:140px">RUT / DNI</th>
+              <th style="text-align:center;padding:8px 10px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;width:70px">NEE</th>
+              <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Tipo NEE</th>
+              <th style="width:36px"></th>
+            </tr>
+          </thead>
+          <tbody id="nomina-tbody">
+            ${alumnos.map(function(a, i){ return nominaFila(a, i+1); }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer info -->
+      <div style="padding:10px 20px 16px;font-size:10px;color:var(--muted);border-top:1px solid var(--border)">
+        💡 Los cambios se guardan en Supabase y quedan disponibles para todos los agentes IA del colegio.
+      </div>
+    </div>`;
+
+  portal.addEventListener('click', function(e){ if(e.target===portal) portal.remove(); });
+  document.body.appendChild(portal);
+}
+
+function nominaFila(a, num) {
+  a = a || { nombre:'', rut:'', nee:'No', nee_tipo:'' };
+  return `<tr style="border-bottom:1px solid var(--border)44" data-nomina-row>
+    <td style="padding:6px 10px;color:var(--muted);font-size:11px">${num}</td>
+    <td style="padding:4px 6px">
+      <input value="${(a.nombre||'').replace(/"/g,'&quot;')}" placeholder="Ej: Juan Pérez González"
+        style="width:100%;background:transparent;border:1px solid transparent;border-radius:5px;padding:4px 7px;font-size:12px;color:var(--text);font-family:DM Sans,sans-serif;outline:none"
+        onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='transparent'"
+        data-field="nombre">
+    </td>
+    <td style="padding:4px 6px">
+      <input value="${(a.rut||'').replace(/"/g,'&quot;')}" placeholder="12.345.678-9"
+        style="width:100%;background:transparent;border:1px solid transparent;border-radius:5px;padding:4px 7px;font-size:12px;color:var(--text);font-family:DM Sans,sans-serif;outline:none"
+        onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='transparent'"
+        data-field="rut">
+    </td>
+    <td style="padding:4px 6px;text-align:center">
+      <select data-field="nee"
+        style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;cursor:pointer;outline:none">
+        <option ${(a.nee||'No')==='No'?'selected':''}>No</option>
+        <option ${(a.nee||'No')==='Sí'?'selected':''}>Sí</option>
+      </select>
+    </td>
+    <td style="padding:4px 6px">
+      <input value="${(a.nee_tipo||'').replace(/"/g,'&quot;')}" placeholder="Ej: TEA, dislexia…"
+        style="width:100%;background:transparent;border:1px solid transparent;border-radius:5px;padding:4px 7px;font-size:12px;color:var(--text);font-family:DM Sans,sans-serif;outline:none"
+        onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='transparent'"
+        data-field="nee_tipo">
+    </td>
+    <td style="padding:4px 6px;text-align:center">
+      <button onclick="this.closest('tr').remove()"
+        style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 5px"
+        title="Eliminar fila">✕</button>
+    </td>
+  </tr>`;
+}
+
+function nominaAgregarFila(tbodyId) {
+  var tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  var num = tbody.querySelectorAll('tr[data-nomina-row]').length + 1;
+  var tr = document.createElement('tr');
+  tr.setAttribute('data-nomina-row','');
+  tr.style.cssText = 'border-bottom:1px solid var(--border)44';
+  tr.innerHTML = nominaFila({nombre:'',rut:'',nee:'No',nee_tipo:''}, num).replace(/^<tr[^>]*>/,'').replace(/<\/tr>$/,'');
+  tbody.appendChild(tr);
+  tr.querySelector('[data-field="nombre"]').focus();
+}
+
+function nominaImportarArchivo(input, cursoEncoded) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+
+  function parsearLinea(linea) {
+    // Maneja CSV con comas, punto y coma, tabs y campos entre comillas
+    var result = [];
+    var cur = '';
+    var inQ = false;
+    for (var i = 0; i < linea.length; i++) {
+      var c = linea[i];
+      if (c === '"' || c === "'") { inQ = !inQ; continue; }
+      if (!inQ && (c === ',' || c === ';' || c === '\t')) { result.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+    result.push(cur.trim());
+    return result;
+  }
+
+  function mapearColumna(headers, patrones) {
+    // Busca coincidencia flexible: exacta, parcial, sin tildes, abreviada
+    var norm = function(s){ return s.toLowerCase()
+      .replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i')
+      .replace(/[óòö]/g,'o').replace(/[úùü]/g,'u').replace(/[^a-z0-9]/g,''); };
+    var hn = headers.map(norm);
+    for (var p = 0; p < patrones.length; p++) {
+      var pat = norm(patrones[p]);
+      // Coincidencia exacta primero
+      var idx = hn.indexOf(pat);
+      if (idx > -1) return idx;
+      // Coincidencia parcial
+      idx = hn.findIndex(function(h){ return h.includes(pat) || pat.includes(h); });
+      if (idx > -1) return idx;
+    }
+    return -1;
+  }
+
+  function procesarCSV(text) {
+    var lines = text.trim().split(/\r?\n/).filter(function(l){ return l.trim(); });
+    if (!lines.length) return;
+
+    var headers = parsearLinea(lines[0]);
+
+    // Mapeo universal — acepta cualquier nombre de columna
+    var iNombre = mapearColumna(headers, [
+      'nombre','name','alumno','estudiante','apellido nombre','nombre completo',
+      'nombres','apellidos y nombres','apellido y nombre','full name'
+    ]);
+    var iRut = mapearColumna(headers, [
+      'rut','dni','documento','cedula','id','run','carnet',
+      'numero documento','identificacion','nro doc','doc'
+    ]);
+    var iNee = mapearColumna(headers, [
+      'nee','necesidad','especial','discapacidad','apoyo',
+      'tiene nee','es nee','necesidades educativas'
+    ]);
+    var iNeeT = mapearColumna(headers, [
+      'tipo nee','nee tipo','diagnostico','diagnóstico','condicion',
+      'tipo de nee','descripcion nee','detalle nee','tipo necesidad'
+    ]);
+
+    // Si no encontró columna nombre, intentar inferirla:
+    // buscar la columna con más texto (probablemente es el nombre)
+    if (iNombre === -1 && lines.length > 1) {
+      var sample = parsearLinea(lines[1]);
+      var maxLen = -1;
+      sample.forEach(function(v, i) {
+        if (v.length > maxLen && /[a-záéíóú]/i.test(v)) { maxLen = v.length; iNombre = i; }
+      });
+    }
+
+    var alumnos = lines.slice(1).map(function(l) {
+      var cols = parsearLinea(l);
+      var nombre = iNombre > -1 ? (cols[iNombre] || '') : '';
+      // Limpiar nombre: quitar números al inicio (a veces viene "1. Juan Pérez")
+      nombre = nombre.replace(/^\d+[.\-)\s]+/, '').trim();
+      var neeVal = iNee > -1 ? (cols[iNee] || '') : '';
+      return {
+        nombre:   nombre,
+        rut:      iRut  > -1 ? (cols[iRut]  || '') : '',
+        nee:      /s[ií1]|yes|true|x|✓|si/i.test(neeVal) ? 'Sí' : 'No',
+        nee_tipo: iNeeT > -1 ? (cols[iNeeT] || '') : ''
+      };
+    }).filter(function(a){ return a.nombre.length > 1; });
+
+    var tbody = document.getElementById('nomina-tbody');
+    if (tbody) {
+      tbody.innerHTML = alumnos.map(function(a, i){ return nominaFila(a, i+1); }).join('');
+      showSaveToast('📥 ' + alumnos.length + ' alumnos importados — revisa y guarda');
+    }
+  }
+
+  if (file.name.endsWith('.csv')) {
+    reader.onload = function(e){ procesarCSV(e.target.result); };
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    // Excel — usar SheetJS si disponible
+    reader.onload = function(e) {
+      try {
+        var data = new Uint8Array(e.target.result);
+        var wb   = XLSX.read(data, { type:'array' });
+        var ws   = wb.Sheets[wb.SheetNames[0]];
+        var csv  = XLSX.utils.sheet_to_csv(ws);
+        procesarCSV(csv);
+      } catch(err) {
+        showSaveToast('⚠️ Error leyendo Excel: ' + err.message, false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+async function nominaGuardar(cursoEncoded) {
+  var curso = decodeURIComponent(cursoEncoded);
+  var tbody = document.getElementById('nomina-tbody');
+  if (!tbody) return;
+
+  var rows = tbody.querySelectorAll('tr[data-nomina-row]');
+  var alumnos = [];
+  rows.forEach(function(tr) {
+    var nombre   = (tr.querySelector('[data-field="nombre"]')?.value   || '').trim();
+    var rut      = (tr.querySelector('[data-field="rut"]')?.value      || '').trim();
+    var nee      = (tr.querySelector('[data-field="nee"]')?.value      || 'No');
+    var nee_tipo = (tr.querySelector('[data-field="nee_tipo"]')?.value || '').trim();
+    if (nombre) alumnos.push({ nombre, rut, nee, nee_tipo });
+  });
+
+  if (!alumnos.length) { showSaveToast('⚠️ No hay alumnos para guardar', false); return; }
+
+  // Actualizar DB.alumnos local
+  DB.alumnos = DB.alumnos.filter(function(a){ return a.esp !== curso; });
+  alumnos.forEach(function(a, i) {
+    DB.alumnos.push({
+      id:     'alu_' + curso.replace(/\s/g,'') + '_' + i,
+      nombre: a.nombre,
+      esp:    curso,
+      rut:    a.rut,
+      nee:    a.nee === 'Sí',
+      neeT:   a.nee_tipo,
+      notas:  [],
+      asistencia: []
+    });
+  });
+
+  // Persistir en Supabase
+  if (_supa && _supaUser) {
+    try {
+      // Borrar nómina anterior del curso
+      await _supa.from('alumnos')
+        .delete()
+        .eq('curso', curso)
+        .eq('docente_id', _supaUser.id);
+
+      // Insertar nuevos
+      var colegioId = _supaPerfil?.colegio_id || _activeColegioId || null;
+      var inserts = alumnos.map(function(a) {
+        return {
+          nombre:     a.nombre,
+          curso:      curso,
+          rut:        a.rut || null,
+          nee:        a.nee === 'Sí',
+          nee_tipo:   a.nee_tipo || null,
+          docente_id: _supaUser.id,
+          colegio_id: colegioId,
+          app:        'liax'
+        };
+      });
+      var { error } = await _supa.from('alumnos').insert(inserts);
+      if (error) throw error;
+      showSaveToast('✅ Nómina de ' + alumnos.length + ' alumnos guardada en Supabase');
+    } catch(e) {
+      showSaveToast('⚠️ Guardado local OK — Error Supabase: ' + e.message, false);
+    }
+  } else {
+    showSaveToast('✅ Nómina guardada localmente (' + alumnos.length + ' alumnos)');
+  }
+
+  saveToStorage();
+  document.getElementById('nominaPortal')?.remove();
+  renderCursoResumen();
+  renderCursoChips();
 }
 
 function mcAbrirAlumnosCurso(curso) {
