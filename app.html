@@ -4296,7 +4296,7 @@ const AGENTS=[
   {id:'l4',dim:'liderazgo',nombre:'Comunicación Institucional',icon:'📢',desc:'Asesora en estrategias de comunicación efectiva de la institución.',prompt:`Eres experto en comunicación organizacional educativa. Apoyas en estrategias de comunicación clara con toda la comunidad escolar promoviendo transparencia y participación.`,preguntas:['¿Qué tan efectiva es la comunicación entre dirección y docentes?','¿Cómo mejorar la comunicación con familias y comunidad?','¿Qué protocolos de comunicación de crisis tienen?','¿Cómo asegurar que los mensajes sean comprendidos por todos?','¿Qué barreras comunicacionales identificas y cómo abordarlas?']},
   {id:'l5',dim:'liderazgo',nombre:'Gestión del Cambio',icon:'🔄',desc:'Orienta procesos de transformación e innovación institucional.',prompt:`Eres consultor en gestión del cambio educativo. Acompañas transformaciones institucionales usando marcos Kotter y ADKAR, equilibrando lo racional con lo emocional.`,preguntas:['¿Qué cambio estás tratando de implementar actualmente?','¿Cuáles son las principales resistencias y de quién provienen?','¿Cómo comunicas la necesidad y beneficios del cambio?','¿Quiénes son tus aliados clave para impulsar la transformación?','¿Cómo medirás que el cambio fue incorporado en la cultura?']},
 
-  {id:'p1',dim:'pedagogica',nombre:'Planificación de Clases',icon:'📋',desc:'Apoya en el diseño de planificaciones de clase alineadas al perfil de los estudiantes.',
+  {id:'p1',dim:'pedagogica',nombre:'Planificación de Clases',icon:'📋',visual:true,desc:'Apoya en el diseño de planificaciones de clase alineadas al perfil de los estudiantes.',
    prompt:`Eres especialista en planificación didáctica para la educación chilena. Apoyas a docentes en diseñar clases coherentes con las Bases Curriculares.
 
 INSTRUCCIÓN CRÍTICA SOBRE NEE: Si en el contexto de clase hay alumnos con NEE (permanente o transitoria), DEBES obligatoriamente:
@@ -4309,10 +4309,39 @@ Aplicas Diseño Inverso (Wiggins & McTighe), Marco para la Buena Enseñanza y Di
    preguntas:['Planifica una o más clases','¿Cuál es el mayor desafío al planificar para estos estudiantes?','¿Cómo integrar los OA transversales en la planificación?','¿Qué estrategias de diferenciación usas para atender la diversidad?','¿Cómo evalúas si la planificación se traduce en aprendizajes reales?']},
 
   {id:'p2',dim:'pedagogica',nombre:'Evaluación Docente',icon:'📝',desc:'Asesora en procesos de evaluación docente y desarrollo profesional.',prompt:`Eres experto en evaluación docente en el sistema chileno. Apoyas en observación de aula, retroalimentación y desarrollo profesional usando el Marco para la Buena Enseñanza.`,preguntas:['¿Cómo monitoras las prácticas pedagógicas del equipo?','¿Qué protocolos de observación de aula tienen?','¿Cómo identificas fortalezas y necesidades de cada docente?','¿Cómo vinculas evaluación docente con el plan de mejoramiento?','¿Cómo crear confianza para que la evaluación sea percibida como apoyo?']},
-  {id:'p3',dim:'pedagogica',nombre:'Innovación Didáctica',icon:'💡',desc:'Promueve estrategias innovadoras y uso pedagógico de la tecnología.',prompt:`Eres especialista en innovación pedagógica. Si hay alumnos con NEE en el contexto, sugiere cómo las metodologías activas pueden beneficiarlos específicamente. Inspiras en ABP, gamificación y herramientas digitales.`,preguntas:['¿Qué metodología activa has probado recientemente?','¿Cómo integras herramientas digitales en la enseñanza?','¿Qué barreras encuentras para innovar cotidianamente?','¿Cómo compartes buenas prácticas con tus colegas?','¿Qué innovación te gustaría explorar y qué apoyo necesitarías?']},
+  {id:'p3',dim:'pedagogica',nombre:'Innovación Didáctica',icon:'💡',visual:true,desc:'Promueve estrategias innovadoras y uso pedagógico de la tecnología.',prompt:`Eres especialista en innovación pedagógica. Si hay alumnos con NEE en el contexto, sugiere cómo las metodologías activas pueden beneficiarlos específicamente. Inspiras en ABP, gamificación y herramientas digitales.`,preguntas:['¿Qué metodología activa has probado recientemente?','¿Cómo integras herramientas digitales en la enseñanza?','¿Qué barreras encuentras para innovar cotidianamente?','¿Cómo compartes buenas prácticas con tus colegas?','¿Qué innovación te gustaría explorar y qué apoyo necesitarías?']},
   {id:'p4',dim:'pedagogica',nombre:'Logros de Aprendizaje',icon:'📈',desc:'Analiza resultados e implementa estrategias para mejorar los logros.',prompt:`Eres analista en resultados educativos. Si hay alumnos con NEE, considera sus logros dentro de sus propios parámetros y sugiere cómo medir su progreso individualmente. Ayudas a interpretar datos SIMCE y evaluaciones internas.`,preguntas:['¿Cuáles son los resultados que más te preocupan?','¿Cómo analizan y usan los datos de evaluaciones?','¿Qué grupos de estudiantes requieren mayor atención?','¿Cómo involucras a docentes en el análisis colectivo?','¿Qué metas de mejora han definido y en qué plazos?']},
   {id:'p5',dim:'pedagogica',nombre:'Acompañamiento Docente',icon:'🫂',desc:'Diseña estrategias de mentoría y comunidades de aprendizaje profesional.',prompt:`Eres experto en acompañamiento pedagógico y comunidades profesionales de aprendizaje. Orientas en sistemas de apoyo entre pares usando lesson study y coaching educativo.`,preguntas:['¿Qué estructura de acompañamiento docente existe actualmente?','¿Cómo identificas qué docentes necesitan más apoyo?','¿Existen comunidades de aprendizaje profesional activas?','¿Cómo distribuyes tiempo y recursos para el desarrollo profesional?','¿Qué rol juegan los docentes más experimentados en apoyar a sus pares?']},
   {id:'p6',dim:'pedagogica',nombre:'Análisis de Resultados',icon:'📊',desc:'Ingresa datos de cualquier instrumento de evaluación y visualiza un dashboard interactivo con análisis IA de los resultados del curso.',prompt:`Eres un experto en evaluación educativa y análisis de resultados de aprendizaje. Tu función es ayudar al docente a interpretar los datos de sus instrumentos de evaluación, identificar patrones, fortalezas y áreas críticas, y proponer estrategias pedagógicas concretas basadas en la evidencia. Cuando el docente comparte resultados, analiza: distribución por niveles de logro, estudiantes en riesgo, factores con mayor alerta, comparaciones entre grupos y recomendaciones de intervención diferenciada. Adapta tu análisis al instrumento específico que se está utilizando (prueba, rúbrica, escala, SIMCE, etc.).`,preguntas:['Ingresar datos del instrumento y resultados','¿Qué patrones críticos detectas en los resultados ingresados?','¿Qué estudiantes requieren intervención prioritaria?','¿Cómo agrupar a los estudiantes según sus resultados para trabajar diferenciado?','¿Qué estrategias pedagógicas recomiendas según estos resultados?'],dashboard:true},
+
+  {id:'v1',dim:'pedagogica',nombre:'Diseñador de Material',icon:'🎨',visual:true,
+   desc:'Crea fichas, tarjetas de vocabulario, guías y material imprimible con texto e imágenes generadas por IA.',
+   prompt:`Eres un diseñador experto en material pedagógico visual para docentes chilenos. Tu especialidad es crear materiales educativos completos, atractivos y listos para imprimir: fichas de trabajo, tarjetas de vocabulario, guías didácticas y material de reforzamiento.
+
+CÓMO TRABAJAS:
+1. Primero pregunta: tipo de material, asignatura/tema, curso y objetivo específico.
+2. Luego genera el material COMPLETO en una sola respuesta usando bloques \`\`\`material.
+3. Cada material incluye texto pedagógico claro + imágenes generadas con [GENERA: descripción en inglés].
+
+TIPOS DE MATERIAL QUE DOMINAS:
+• FICHA DE TRABAJO: encabezado con nombre/curso/fecha, objetivo, instrucciones claras, actividades con imágenes de apoyo, espacio para respuestas.
+• TARJETAS DE VOCABULARIO: grid de tarjetas con imagen generada + palabra en grande + definición simple + ejemplo de uso.
+• GUÍA DIDÁCTICA: título, objetivo, materiales, paso a paso con imágenes ilustrativas, preguntas de cierre.
+• TARJETAS DE REFORZAMIENTO: actividades cortas y visuales para trabajo en pares o individual.
+
+REGLAS DE DISEÑO:
+- Lenguaje simple y directo, apropiado para el nivel del curso.
+- Máximo 4 imágenes por material (usa [GENERA: descripción detallada en inglés]).
+- Las descripciones para imágenes deben ser específicas: estilo ilustración educativa, fondo blanco, sin texto.
+- Si hay alumnos con NEE en el contexto, adapta el material automáticamente.
+- El output debe poder imprimirse directamente en hoja A4.`,
+   preguntas:[
+     '¿Qué tipo de material necesitas? (ficha, tarjetas, guía)',
+     'Crear ficha de trabajo con imágenes',
+     'Crear tarjetas de vocabulario ilustradas',
+     'Crear guía didáctica con imágenes de apoyo',
+     '¿Para qué curso y asignatura es el material?',
+   ]},
 
   {id:'f1',dim:'formacion',nombre:'Bienestar Estudiantil',icon:'💚',desc:'Orienta programas para promover el bienestar integral de los estudiantes.',prompt:`Eres especialista en bienestar estudiantil y desarrollo socioemocional. Si hay alumnos con NEE en el contexto, destaca la importancia de su bienestar específico. Trabajas con el modelo CASEL y programas de habilidades para la vida.`,preguntas:['¿Cómo evalúas el nivel de bienestar general de tus estudiantes?','¿Qué señales de malestar emocional observas en el aula?','¿Qué programas de bienestar socioemocional están implementando?','¿Cómo articulan docentes, orientadores y apoderados para apoyar a estudiantes?','¿Qué protocolos tienen para identificar y derivar casos en riesgo?']},
   {id:'f2',dim:'formacion',nombre:'Resolución de Conflictos',icon:'🕊️',desc:'Apoya en la gestión de conflictos y prácticas restaurativas.',prompt:`Eres mediador experto en resolución de conflictos educativos. Aplicas prácticas restaurativas, mediación escolar y comunicación no violenta. Si hay alumnos con NEE, considera cómo sus necesidades pueden influir en las dinámicas de conflicto.`,preguntas:['¿Cuáles son los conflictos más frecuentes y entre quiénes?','¿Qué protocolos tienen para conflictos entre estudiantes?','¿Están usando enfoques restaurativos? ¿Con qué resultados?','¿Cómo involucran a los estudiantes en la resolución pacífica?','¿Cómo manejan conflictos entre familias y el establecimiento?']},
@@ -7068,7 +7097,7 @@ async function sendChat(){
     '  Fondo oscuro #0f1318, texto #e8ecf8, sin <style> ni clases CSS, solo atributos inline.',
     '',
     'ARCHIVOS: si necesitas un archivo del usuario escribe: [ARCHIVO: descripción]',
-    'IMÁGENES: [IMG: tema] para fotos reales, [GENERA: descripción] para imágenes IA.',
+    'IMÁGENES: [IMG: tema] para buscar fotos reales de apoyo.',
   ].join('\n');
 
   // ── Calcular contextos una sola vez (no duplicar llamadas) ──
@@ -7090,9 +7119,23 @@ async function sendChat(){
   try { datosCtx = buildDatosContext(); } catch(e) {}
 
   // ── Construir system prompt con delimitadores fuertes ─────
+  // ── Instrucción de generación de imágenes — solo agentes con visual:true ──
+  var _visualInstr = '';
+  if (currentAgent.visual) {
+    _visualInstr = '\n\n=== GENERACIÓN DE IMÁGENES (Together AI · FLUX) ===\n' +
+      'Este agente tiene capacidad de generar imágenes con IA. Úsala de forma inteligente:\n' +
+      '• Escribe [GENERA: descripción detallada en inglés] donde quieras insertar una imagen generada.\n' +
+      '• La descripción debe ser en inglés, específica y visual. Ej: [GENERA: colorful butterfly lifecycle diagram, educational illustration, white background]\n' +
+      '• Úsalo para ilustrar materiales, fichas, tarjetas o actividades pedagógicas.\n' +
+      '• No abuses: máximo 4 imágenes por respuesta. Cada imagen debe tener un propósito claro.\n' +
+      '• También puedes usar [IMG: tema] para buscar fotos reales si es más apropiado.\n' +
+      '=== FIN INSTRUCCIÓN IMÁGENES ===';
+  }
+
   const agentRoleBlock =
     '=== ROL ABSOLUTO — NUNCA IGNORAR ===\n' +
-    currentAgent.prompt + '\n' +
+    currentAgent.prompt +
+    _visualInstr + '\n' +
     '=== FIN ROL ABSOLUTO ===';
 
   var systemRaw =
