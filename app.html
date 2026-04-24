@@ -5677,6 +5677,7 @@ async function nominaGuardar(cursoEncoded) {
       });
       var { error } = await _supa.from('alumnos').insert(inserts);
       if (error) throw error;
+      console.log('[Supabase] Nómina guardada:', inserts.length, 'alumnos en curso', curso);
       showSaveToast('✅ Nómina de ' + alumnos.length + ' alumnos guardada en Supabase');
     } catch(e) {
       showSaveToast('⚠️ Guardado local OK — Error Supabase: ' + e.message, false);
@@ -34874,23 +34875,43 @@ async function _supaLoadAlumnos() {
       query = query.eq('docente_id', _supaUser.id);
     }
 
-    var { data } = await query;
+    var { data, error } = await query;
+    if (error) { console.warn('[Supabase] Error cargando alumnos:', error.message); return; }
+
     if (data && data.length) {
+      // Para docente: reemplazar completamente sus alumnos (no mezclar con demo)
+      if (_supaPerfil.rol === 'docente') {
+        DB.alumnos = DB.alumnos.filter(function(a) {
+          // Conservar alumnos que NO son del docente actual (otros roles)
+          return a._fromSupabase !== true && !a.docente_id;
+        });
+      }
+
       var existentes = new Set(DB.alumnos.map(function(a){ return a.id; }));
       data.forEach(function(a) {
         if (!existentes.has(a.id)) {
           DB.alumnos.push({
-            id: a.id, nombre: a.nombre, rut: a.rut||'',
-            email: a.email||'', rol: 'alumno',
-            esp: a.curso_nombre||'', nee: a.nee||'', neeT: '',
-            exp: 0, avatar: ((a.nombre||'').split(' ')[0]||'')[0]?.toUpperCase() + ((a.nombre||'').split(' ')[1]||'')[0]?.toUpperCase() || '??',
+            id:             a.id,
+            nombre:         a.nombre,
+            rut:            a.rut || '',
+            email:          a.email || '',
+            rol:            'alumno',
+            esp:            a.curso_nombre || '',
+            nee:            a.nee || '',
+            neeT:           a.nee_tipo || '',
+            exp:            0,
+            avatar:         ((a.nombre||'').split(' ')[0]||'')[0]?.toUpperCase() + ((a.nombre||'').split(' ')[1]||'')[0]?.toUpperCase() || '??',
             establecimiento: '',
+            docente_id:     a.docente_id || '',
+            _fromSupabase:  true,
           });
           existentes.add(a.id);
         }
       });
       if (typeof renderCtxAlumnos === 'function') renderCtxAlumnos();
       console.log('[Supabase] Alumnos cargados:', data.length);
+    } else {
+      console.log('[Supabase] Sin alumnos en Supabase para este docente/colegio');
     }
   } catch(e) { console.warn('[Supabase] Error alumnos:', e.message); }
 }
