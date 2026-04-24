@@ -1862,10 +1862,16 @@
             <span style="font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)">Agentes favoritos</span>
             <span id="fav-sub" style="font-size:10px;font-weight:400;color:var(--muted)"></span>
           </div>
-          <button onclick="showPanel('agentes')"
-            style="font-size:10px;background:none;border:1px solid var(--border);
-                   color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;
-                   font-family:DM Sans,sans-serif">Ver todos →</button>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button id="btnSaveDefaultFavs" onclick="saveDefaultFavsColegio()"
+              style="display:none;font-size:10px;background:none;border:1px solid var(--accent2)44;
+                     color:var(--accent2);border-radius:6px;padding:2px 8px;cursor:pointer;
+                     font-family:DM Sans,sans-serif" title="Guardar estos favoritos como default para nuevos usuarios del colegio">💾 Guardar como default</button>
+            <button onclick="showPanel('agentes')"
+              style="font-size:10px;background:none;border:1px solid var(--border);
+                     color:var(--muted);border-radius:6px;padding:2px 8px;cursor:pointer;
+                     font-family:DM Sans,sans-serif">Ver todos →</button>
+          </div>
         </div>
         <div id="favGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
         <div id="favEmptyState" style="display:none;text-align:center;padding:16px;color:var(--muted)">
@@ -3864,18 +3870,35 @@ async function _supaLoadAgentes() {
     if (error) throw error;
 
     var allData = byUser || [];
+    var seen = new Set(allData.map(function(a){ return a.id; }));
 
-    // También cargar agentes del colegio creados por otros usuarios (sostenedor/director)
+    // Cargar agentes del colegio (director/sostenedor que crearon para su colegio)
     if (_supaPerfil?.colegio_id) {
       var { data: byColegio } = await _supa
         .from('agentes_custom').select('*')
         .eq('colegio_id', _supaPerfil.colegio_id)
-        .neq('user_id', _supaUser.id); // solo los que no son del usuario actual
-      var seen = new Set(allData.map(function(a){ return a.id; }));
+        .neq('user_id', _supaUser.id);
       (byColegio || []).forEach(function(ag) {
         if (!seen.has(ag.id)) { seen.add(ag.id); allData.push(ag); }
       });
     }
+
+    // Cargar TODOS los agentes creados por SuperAdmins — son globales para toda la plataforma
+    // Se identifican por rol='superadmin' en la tabla usuarios
+    try {
+      var { data: saUsers } = await _supa
+        .from('usuarios').select('id').eq('rol', 'superadmin');
+      var saIds = (saUsers || []).map(function(u){ return u.id; });
+      if (saIds.length) {
+        var { data: bySA } = await _supa
+          .from('agentes_custom').select('*')
+          .in('user_id', saIds)
+          .neq('user_id', _supaUser.id); // no duplicar si el usuario actual es SA
+        (bySA || []).forEach(function(ag) {
+          if (!seen.has(ag.id)) { seen.add(ag.id); allData.push(ag); }
+        });
+      }
+    } catch(e) { console.warn('[LIAX] Error cargando agentes SA:', e.message); }
 
     if (allData.length) {
       allData.forEach(function(ag) {
@@ -3915,10 +3938,13 @@ async function _supaSaveAgente(agente) {
   if (!_supaUser) { console.warn('[LIAX] _supaSaveAgente: sin usuario'); return; }
   if (!agente.custom) { return; }
 
+  // SA no tiene colegio_id propio — usa el colegio activo en el selector del topbar
+  var _saveColegioId = _supaPerfil?.colegio_id || _activeColegioId || null;
+
   const payload = {
     id:          agente.id,
     user_id:     _supaUser.id,
-    colegio_id:  _supaPerfil?.colegio_id || null,
+    colegio_id:  _saveColegioId,
     nombre:      agente.nombre,
     icono:       agente.icon || '🤖',
     dimension:   agente.dim || '',
@@ -3927,6 +3953,9 @@ async function _supaSaveAgente(agente) {
     preguntas:   agente.preguntas || [],
     updated_at:  new Date().toISOString(),
   };
+  if (!_saveColegioId) {
+    console.warn('[LIAX] Agente guardado sin colegio_id — selecciona un colegio en el topbar');
+  }
 
   const { error } = await _supa.from('agentes_custom').upsert(payload, { onConflict: 'id' });
   if (error) {
@@ -6112,13 +6141,49 @@ const FAV_STORE = {
 async function _loadFavoritesFromSupabase() {
   if (!_supaUser || !_supa) return;
   try {
+    // 1. Intentar cargar favoritos propios del usuario
     var { data } = await _supa.from('config')
       .select('value').eq('key', 'favorites_' + _supaUser.id).maybeSingle();
+
     if (data && data.value) {
+      // El usuario ya tiene sus propios favoritos
       FAV_STORE._set = new Set(JSON.parse(data.value));
       renderFavoritos();
+      return;
     }
-  } catch(e) {}
+
+    // 2. Si no tiene favoritos, buscar los favoritos default del colegio (definidos por SA)
+    var colegioId = _supaPerfil?.colegio_id;
+    if (colegioId) {
+      var { data: defData } = await _supa.from('config')
+        .select('value').eq('key', 'default_favs_' + colegioId).maybeSingle();
+      if (defData && defData.value) {
+        FAV_STORE._set = new Set(JSON.parse(defData.value));
+        renderFavoritos();
+        updateFavCount();
+        console.log('[LIAX] Favoritos default del colegio cargados:', FAV_STORE._set.size);
+        return;
+      }
+    }
+
+    // 3. Si tampoco hay default del colegio, dejar vacío (mensaje "Aún no tienes favoritos")
+    renderFavoritos();
+  } catch(e) { console.warn('[LIAX] _loadFavoritesFromSupabase:', e.message); }
+}
+
+// Guardar favoritos actuales como default del colegio (solo SA/director)
+async function saveDefaultFavsColegio() {
+  if (!_supaUser || !_supa || !_supaPerfil?.colegio_id) return;
+  if (currentRole !== 'superadmin' && currentRole !== 'director') return;
+  var favs = [...FAV_STORE.getAll()];
+  if (!favs.length) { showSaveToast('⚠️ No tienes favoritos para guardar como default', false); return; }
+  try {
+    await _supa.from('config').upsert(
+      { key: 'default_favs_' + _supaPerfil.colegio_id, value: JSON.stringify(favs), updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+    showSaveToast('✅ Favoritos guardados como default para nuevos usuarios del colegio');
+  } catch(e) { showSaveToast('Error: ' + e.message, false); }
 }
 
 function toggleFav(agentId) {
@@ -6150,6 +6215,12 @@ function renderFavoritos() {
   const grid = document.getElementById('favGrid');
   const sub = document.getElementById('fav-sub');
   if (!grid) return;
+
+  // Mostrar botón "Guardar como default" solo para SA y director
+  var btnDefault = document.getElementById('btnSaveDefaultFavs');
+  if (btnDefault) {
+    btnDefault.style.display = (currentRole === 'superadmin' || currentRole === 'director') ? 'inline-flex' : 'none';
+  }
 
   if (sub) sub.textContent = agents.length
     ? `${agents.length} agente${agents.length!==1?'s':''} favorito${agents.length!==1?'s':''}`
@@ -36334,12 +36405,25 @@ function _initColegioDefault() {
       _selectedColegios.add(match.id);
       _activeColegioId = match.id;
     } else {
-      // Supabase colegio not in demo list — add it
-      var newC = { id: _supaPerfil.colegio_id, nombre: _supaPerfil.establecimiento || ('Colegio ' + _supaPerfil.colegio_id), rbd: _supaPerfil.colegio_id };
-      var exists = COLEGIOS.find(function(c){ return c.id === _supaPerfil.colegio_id; });
+      // Supabase colegio not in demo list — fetch real name from Supabase
+      var _cid = _supaPerfil.colegio_id;
+      var newC = { id: _cid, nombre: _supaPerfil.establecimiento || ('Colegio ' + _cid), rbd: _cid };
+      var exists = COLEGIOS.find(function(c){ return c.id === _cid; });
       if (!exists) COLEGIOS.push(newC);
-      _selectedColegios.add(_supaPerfil.colegio_id);
-      _activeColegioId = _supaPerfil.colegio_id;
+      _selectedColegios.add(_cid);
+      _activeColegioId = _cid;
+      _updateColegioLabel();
+      // Fetch real name async and update label
+      if (_supa) {
+        _supa.from('colegios').select('id,nombre,rbd').eq('id', _cid).maybeSingle().then(function(r) {
+          if (r.data && r.data.nombre) {
+            var idx = COLEGIOS.findIndex(function(c){ return c.id === _cid; });
+            if (idx > -1) COLEGIOS[idx].nombre = r.data.nombre;
+            if (r.data.rbd) COLEGIOS[idx].rbd = r.data.rbd;
+            _updateColegioLabel();
+          }
+        }).catch(function(){});
+      }
     }
   } else if (COLEGIOS.length) {
     _selectedColegios.add(COLEGIOS[0].id);
