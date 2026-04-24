@@ -3797,21 +3797,26 @@ async function _supaLoadPerfil() {
 
     // Si es docente, crear entrada en DB.docentes (cursos se cargan después)
     if (rol === 'docente') {
+      var _nombreCompleto = ((data.nombre||'') + (data.apellido ? ' ' + data.apellido : '')).trim();
       var docenteExistente = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
       if (!docenteExistente) {
         docenteExistente = {
           id:              _supaUser.id,
-          nombre:          data.nombre || '',
-          apellido:        data.apellido || '',
+          nombre:          _nombreCompleto || data.email || 'Docente',
           email:           data.email || '',
           rol:             'docente',
           establecimiento: '',
-          esp:             data.esp || '',
+          esp:             data.curso || '',
           exp:             0,
-          avatar:          (data.nombre||'?')[0].toUpperCase(),
+          avatar:          (_nombreCompleto||'?')[0].toUpperCase(),
           cursosAsignados: [],
+          _fromSupabase:   true,
         };
         DB.docentes.push(docenteExistente);
+      } else {
+        // Actualizar nombre en caso de que haya datos demo con el mismo ID
+        docenteExistente.nombre = _nombreCompleto || docenteExistente.nombre;
+        docenteExistente._fromSupabase = true;
       }
       currentDocenteId = _supaUser.id;
     }
@@ -34101,17 +34106,27 @@ function gcConfirmarAsignarDocente(curso, docenteId, btn) {
 
   // ── Flujo 1: Guardar en tabla docente_cursos ──
   if (_supaUser && _supa) {
-    // Buscar colegio_id del docente — desde SA_USUARIOS, DB.docentes, o perfil actual
+    // Buscar colegio_id del docente en orden de prioridad
     var colegioId = null;
+
+    // 1. Desde SA_USUARIOS (campo colegio_id)
     var docenteUsuario = SA_USUARIOS.find(function(u){ return u.id === docenteId; });
-    if (docenteUsuario?.colegio) colegioId = docenteUsuario.colegio;
-    else if (_supaPerfil?.colegio_id) colegioId = _supaPerfil.colegio_id;
+    if (docenteUsuario && docenteUsuario.colegio_id) colegioId = docenteUsuario.colegio_id;
+    // 2. Desde DB.docentes si fue cargado desde Supabase
+    if (!colegioId) {
+      var docenteDB = DB.docentes.find(function(d){ return d.id === docenteId; });
+      if (docenteDB && docenteDB.colegio_id) colegioId = docenteDB.colegio_id;
+    }
+    // 3. Desde el perfil del SA activo
+    if (!colegioId && _supaPerfil?.colegio_id) colegioId = _supaPerfil.colegio_id;
+    // 4. Desde el selector activo del topbar (SA sin colegio propio)
+    if (!colegioId && _activeColegioId) colegioId = _activeColegioId;
 
     if (!colegioId) {
-      // Buscar en Supabase el perfil del docente para obtener su colegio_id
+      // Último recurso: buscar en Supabase el perfil del docente
       _supa.from('usuarios').select('colegio_id').eq('id', docenteId).maybeSingle()
         .then(function(r) {
-          var cid = r.data?.colegio_id || null;
+          var cid = (r.data && r.data.colegio_id) ? r.data.colegio_id : (_activeColegioId || null);
           return _guardarDocenteCurso(docenteId, curso, cid);
         });
     } else {
@@ -34293,30 +34308,35 @@ async function _supaLoadDocentes() {
     // Inyectar en DB.docentes — evitar duplicados
     var existingIds = new Set(DB.docentes.map(function(d){ return d.id; }));
     data.forEach(function(u) {
+      var _nc = ((u.nombre||'') + (u.apellido ? ' ' + u.apellido : '')).trim() || u.email || 'Docente';
       if (existingIds.has(u.id)) {
-        // Actualizar datos del docente existente
         var idx = DB.docentes.findIndex(function(d){ return d.id === u.id; });
         if (idx > -1) {
-          DB.docentes[idx].nombre = (u.nombre || '') + (u.apellido ? ' ' + u.apellido : '');
-          DB.docentes[idx].email  = u.email;
+          DB.docentes[idx].nombre          = _nc;
+          DB.docentes[idx].email           = u.email;
           DB.docentes[idx].cursosAsignados = cursosMap[u.id] || DB.docentes[idx].cursosAsignados || [];
+          DB.docentes[idx]._fromSupabase   = true;
         }
       } else {
         DB.docentes.push({
           id:              u.id,
-          nombre:          (u.nombre || '') + (u.apellido ? ' ' + u.apellido : ''),
+          nombre:          _nc,
           email:           u.email,
           rol:             'docente',
           establecimiento: '',
           esp:             u.curso || '',
           exp:             0,
-          avatar:          (u.nombre||'?')[0].toUpperCase(),
+          avatar:          _nc[0].toUpperCase(),
           cursosAsignados: cursosMap[u.id] || [],
           _fromSupabase:   true
         });
       }
     });
-    console.log('[LIAX] Docentes cargados desde Supabase:', data.length);
+    // Limpiar docentes demo (id:'t1','t2'...) una vez que hay datos reales
+    DB.docentes = DB.docentes.filter(function(d){
+      return d._fromSupabase || false;
+    });
+    console.log('[LIAX] Docentes cargados desde Supabase:', data.length, '— demos eliminados');
   } catch(e) { console.warn('[LIAX] Error cargando docentes:', e.message); }
 }
 
