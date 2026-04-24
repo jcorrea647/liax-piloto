@@ -1431,6 +1431,15 @@
       </div>
     </div>
 
+    <!-- Botón Inicio docente — siempre visible junto al colegio -->
+    <button id="btnInicioDocente" onclick="showPanel('favoritos')"
+      style="display:none;align-items:center;gap:5px;margin-left:6px;
+             background:var(--accent2);color:#000;border:none;border-radius:7px;
+             padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;
+             font-family:DM Sans,sans-serif;flex-shrink:0;transition:opacity .15s">
+      🏠 Inicio
+    </button>
+
     <div id="storageBar" style="margin-left:10px"></div>
     <div id="apiKeyStatus" style="margin-left:4px"></div>
     <div class="top-spacer"></div>
@@ -12390,11 +12399,17 @@ function applyDocenteView() {
 
   if (currentRole !== 'docente') {
     banner.style.display = 'none';
+    var btnInicio = document.getElementById('btnInicioDocente');
+    if (btnInicio) btnInicio.style.display = 'none';
     return;
   }
 
   // Siempre mostrar el banner para docentes — aunque no esté en DB.docentes aún
   banner.style.display = 'flex';
+
+  // Mostrar botón Inicio en topbar
+  var btnInicio = document.getElementById('btnInicioDocente');
+  if (btnInicio) btnInicio.style.display = 'flex';
 
   // Buscar datos del docente — primero DB local, luego _supaPerfil como fallback
   var docente = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
