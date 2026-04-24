@@ -5663,9 +5663,11 @@ async function nominaGuardar(cursoEncoded) {
     // Borrar nómina anterior
     await _supa.from('alumnos').delete().eq('curso_nombre', curso).eq('user_id', _supaUser.id);
 
+    var ts = Date.now();
     // Insertar nuevos
-    var inserts = alumnos.map(function(a) {
+    var inserts = alumnos.map(function(a, i) {
       var row = {
+        id:           'alu_' + ts + '_' + i,
         nombre:       a.nombre,
         curso_nombre: curso,
         rut:          a.rut || '',
