@@ -5668,8 +5668,9 @@ async function nominaGuardar(cursoEncoded) {
       var row = {
         nombre:       a.nombre,
         curso_nombre: curso,
-        rut:          a.rut || null,
-        nee:          a.nee === 'Si' ? 'Si' : null,
+        rut:          a.rut || '',
+        email:        '',
+        nee:          a.nee === 'Si' ? 'Si' : '',
         user_id:      _supaUser.id
       };
       if (colegioId) row.colegio_id = colegioId;
