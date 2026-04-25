@@ -1140,6 +1140,7 @@
   .doc-full-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:700px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 32px 80px #00000088;}
   .doc-full-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
   .doc-full-body{padding:20px;overflow-y:auto;flex:1;font-size:13px;line-height:1.9;color:var(--text);word-break:break-word;overflow-x:hidden;}
+  .dv-card{border:2px solid #e8a020;border-radius:14px;padding:16px 20px;margin:14px 0;background:var(--surface2);font-size:14px;line-height:1.9;box-shadow:2px 2px 0 #e8a02055;}
   .doc-full-body svg{max-width:100%;height:auto;display:block;margin:10px 0;}
   .doc-full-body pre,.doc-full-body code{white-space:pre-wrap;word-break:break-all;font-size:11px;background:var(--surface2);padding:8px;border-radius:6px;overflow-x:hidden;max-width:100%;display:block;}
   .doc-full-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
@@ -11619,6 +11620,18 @@ function _renderDocViewer(opts) {
   var continueBtn = document.getElementById('dvContinuarBtn');
   if (continueBtn) continueBtn.style.display = 'none';
 
+  // Convertir bloques ```...``` en tarjetas HTML antes de formatMsg
+  content = content.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_, inner) {
+    var lines = inner.trim().split('\n').map(function(line) {
+      if (/^\|/.test(line.trim())) {
+        return line.split('|').map(function(c){ return c.trim(); })
+          .filter(function(c){ return c && !/^[-:\s]+$/.test(c); }).join('  ');
+      }
+      return line;
+    }).filter(function(l){ return l.trim(); });
+    return '\n<div class="dv-card">' + lines.join('<br>') + '</div>\n';
+  });
+
   // Si el contenido tiene marcadores [GENERA:], generar imágenes automáticamente
   if (/\[(?:GENERA|GENERAR|CREA|CREAR):/i.test(content)) {
     var _dvId = 'renderdoc_' + Date.now();
@@ -11673,141 +11686,7 @@ function openDocViewer(idx) {
 let viewingDocIdx = 0;
 function closeDocViewer() { document.getElementById('docViewer').classList.remove('open'); viewingDoc = null; }
 function copyDoc() { if(viewingDoc) navigator.clipboard.writeText(viewingDoc.content).then(()=>showSaveToast('✅ Copiado al portapapeles')); }
-// ── DESCARGA PDF: captura el DOM renderizado (imágenes incluidas) ──────────────
-async function _convertImgsToBase64(container) {
-  const imgs = Array.from(container.querySelectorAll('img'));
-  await Promise.all(imgs.map(function(img) {
-    return new Promise(function(resolve) {
-      var src = img.getAttribute('src') || '';
-      if (src.startsWith('data:')) { resolve(); return; }
-      var saved = img.getAttribute('data-b64');
-      if (saved) { img.setAttribute('src', saved); img.removeAttribute('data-b64'); resolve(); return; }
-      fetch(src, { mode: 'cors', credentials: 'omit' })
-        .then(function(r) { return r.blob(); })
-        .then(function(blob) {
-          var reader = new FileReader();
-          reader.onload = function(e) { img.setAttribute('src', e.target.result); resolve(); };
-          reader.onerror = function() { resolve(); };
-          reader.readAsDataURL(blob);
-        })
-        .catch(function() { resolve(); });
-    });
-  }));
-}
-
-async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin, docenteInfo) {
-  const dateStr = savedAt
-    ? new Date(savedAt).toLocaleDateString('es-CL', {day:'2-digit', month:'long', year:'numeric'})
-    : new Date().toLocaleDateString('es-CL');
-  var safeTitle     = (title     || 'Documento').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  var safeAgent     = (agentName || 'Agente IA').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  var safeAgentMeta = (agentName || 'Liax IA').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  var printScript = '<scr' + 'ipt>' +
-    'window.onload=function(){' +
-    '  var imgs=Array.from(document.images);' +
-    '  var printed=false;' +
-    '  function doPrint(){if(!printed){printed=true;window.print();}}' +
-    '  if(imgs.length===0){setTimeout(doPrint,400);return;}' +
-    '  var pending=imgs.filter(function(img){return !img.complete||img.naturalWidth===0;});' +
-    '  if(pending.length===0){setTimeout(doPrint,300);return;}' +
-    '  var resolved=0;' +
-    '  pending.forEach(function(img){' +
-    '    function onDone(){resolved++;if(resolved>=pending.length)setTimeout(doPrint,300);}' +
-    '    img.addEventListener("load",onDone);img.addEventListener("error",onDone);' +
-    '  });' +
-    '  setTimeout(doPrint,8000);' +
-    '};' +
-    '</scr' + 'ipt>';
-  var css = [
-    '@page{size:A4;margin:12mm 12mm 12mm 12mm;}',
-    '*{box-sizing:border-box;margin:0;padding:0;}',
-    'body{font-family:Georgia,"Times New Roman",serif;font-size:15px;color:#2c1810;background:#fffdf5;}',
-    '.hdr{background:linear-gradient(135deg,#1a3a5c,#2d6a9f);color:#fff;padding:14px 20px 10px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}',
-    '.hdr-logo{font-size:20px;font-weight:800;letter-spacing:-.5px;}',
-    '.hdr-logo span{color:#00e5c0;}',
-    '.hdr-badge{background:#00e5c0;color:#1a3a5c;font-size:9px;font-weight:800;padding:3px 10px;border-radius:20px;}',
-    '.doc-title{font-size:26px;font-weight:900;color:#1a3a5c;text-align:center;text-transform:uppercase;letter-spacing:1px;border:4px solid #e8a020;border-radius:16px;padding:14px 20px;margin-bottom:6px;background:linear-gradient(135deg,#fff9e6,#fff3cc);box-shadow:0 3px 0 #e8a020;}',
-    '.doc-meta{font-size:11px;color:#888;text-align:center;margin-bottom:18px;font-style:italic;}',
-    '.doc-info{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:18px;padding:10px 16px;background:#f0f4ff;border-radius:10px;border:1.5px solid #b8c8f0;}',
-    '.doc-info-item{font-size:13px;font-weight:700;color:#1a3a5c;padding:3px 10px;background:#fff;border-radius:20px;border:1px solid #b8c8f0;}',
-    '.content{line-height:2.1;font-size:16px;}',
-    '.content h1{font-size:22px;font-weight:900;color:#1a3a5c;text-align:center;text-transform:uppercase;border:3px solid #e8a020;border-radius:12px;padding:10px 16px;margin:18px 0 12px;background:#fff9e6;letter-spacing:.5px;}',
-    '.content h2{font-size:18px;font-weight:800;color:#c0392b;margin:16px 0 8px;border-left:5px solid #e8a020;background:#fff9e6;border-radius:0 8px 8px 0;padding:8px 12px;}',
-    '.content h3{font-size:16px;font-weight:700;color:#1a3a5c;margin:12px 0 6px;}',
-    '.content p{margin-bottom:14px;font-size:16px;line-height:2.1;text-align:justify;}',
-    '.content ul,.content ol{padding-left:24px;margin-bottom:14px;}',
-    '.content li{margin-bottom:8px;font-size:16px;line-height:2;}',
-    '.content strong{font-weight:800;color:#c0392b;}',
-    '.content em{font-style:italic;color:#1a3a5c;}',
-    '.content pre,.content code{background:#f4f6fa;padding:2px 6px;border-radius:4px;font-size:13px;font-family:monospace;white-space:pre-wrap;word-break:break-all;}',
-    '.content pre{display:block;padding:10px 12px;margin:8px 0;}',
-    '.content img{display:block;margin:16px auto;max-width:52%;max-height:200px;border-radius:12px;border:3px solid #e8a020;box-shadow:0 4px 12px rgba(0,0,0,.15);page-break-inside:avoid;}',
-    '.content table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;}',
-    '.content th{background:#1a3a5c;color:#fff;font-weight:700;padding:8px 10px;text-align:left;border:1px solid #1a3a5c;}',
-    '.content td{padding:7px 10px;border:1px solid #d0d5e8;vertical-align:top;}',
-    '.content tr:nth-child(even) td{background:#fff9e6;}',
-    '.ftr{margin-top:20px;padding-top:10px;border-top:2px dashed #e8a020;display:flex;justify-content:space-between;font-size:10px;color:#888;font-style:italic;}',
-    '.pdf-card{border:2px solid #e8a020;border-radius:14px;padding:16px 20px;margin:16px 0;background:#fff9e6;font-size:15px;line-height:1.9;box-shadow:2px 2px 0 #e8a020;page-break-inside:avoid;}',
-    '.loading-dot,[data-generating],[data-genprompt]{display:none!important;}',
-   
-    '.msg-h2{font-size:20px;font-weight:900;color:#1a3a5c;text-transform:uppercase;border:3px solid #e8a020;border-radius:12px;padding:10px 16px;margin:18px 0 12px;background:#fff9e6;letter-spacing:.5px;display:block;}',
-    '.msg-h3{font-size:17px;font-weight:800;color:#c0392b;border-left:5px solid #e8a020;background:#fff9e6;border-radius:0 8px 8px 0;padding:8px 12px;margin:14px 0 8px;display:block;}',
-    '.msg-hr{border:none;border-top:2px dashed #e8a020;margin:14px 0;}',
-    '.msg-bullet{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:16px;line-height:2;}',
-    '.msg-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#e8a020;margin-top:8px;flex-shrink:0;}',
-    '.msg-num{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#1a3a5c;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;margin-top:4px;}',
-    '.msg-table-wrap{margin:14px 0;overflow:hidden;border-radius:10px;border:2px solid #e8a020;}',
-    '.msg-table{width:100%;border-collapse:collapse;font-size:15px;}',
-    '.msg-table th{background:#1a3a5c;color:#fff;font-weight:700;padding:9px 12px;text-align:left;}',
-    '.msg-table td{padding:8px 12px;border-top:1px solid #e8d5a0;vertical-align:top;}',
-    '.msg-table tr:nth-child(even) td{background:#fff9e6;}',
-   
-    '.reply-field-wrap,.svg-diagram-btn,.svg-diagram-toolbar,.img-search-wrap{display:none!important;}',
-   
-    'pre{display:none!important;}',
-    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
-  ].join('');
-  var html = '<!DOCTYPE html>' +
-    '<html lang="es"><head><meta charset="UTF-8">' +
-    '<title>' + safeTitle + '</title>' +
-    '<style>' + css + '</style>' +
-    '</head><body>' +
-    '<div class="hdr"><div style="display:flex;align-items:center;gap:10px">' +
-    '<div class="hdr-logo">Li<span>ax</span></div>' +
-    '<div class="hdr-date">Plataforma Educativa IA &middot; ' + dateStr + '</div>' +
-    '</div><div class="hdr-badge">' + safeAgent + '</div></div>' +
-    '<div class="doc-title">' + safeTitle + '</div>' +
-    '<div class="doc-info">' +
-      (docenteInfo && docenteInfo.docente ? '<span class="doc-info-item">👩‍🏫 ' + docenteInfo.docente + '</span>' : '') +
-      (docenteInfo && docenteInfo.aula    ? '<span class="doc-info-item">🏫 ' + docenteInfo.aula    + '</span>' : '') +
-      '<span class="doc-info-item">📅 ' + dateStr + '</span>' +
-    '</div>' +
-    '<div class="content">' + (bodyHTML || '') + '<div style="clear:both"></div></div>' +
-    '<div class="ftr"><span>Generado por Liax &middot; Plataforma Educativa IA</span><span>' + dateStr + '</span></div>' +
-    printScript +
-    '</body></html>';
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  if (existingWin && !existingWin.closed) {
-    existingWin.location.href = url;
-  } else {
-    var win2 = window.open(url, '_blank', 'width=860,height=1000');
-    if (!win2) {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = (title || 'documento').replace(/[^a-z0-9áéíóúñ\s]/gi,'_').trim() + '.html';
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      showSaveToast('ℹ️ Popup bloqueado — se descargó como HTML. Ábrelo y usa Ctrl+P para PDF.');
-    }
-  }
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 8000);
-}
-
 async function downloadDoc() {
-  // viewingDoc puede estar en la variable local o en window.viewingDoc según el flujo
   if (!viewingDoc && window.viewingDoc) viewingDoc = window.viewingDoc;
   if (!viewingDoc) return;
 
@@ -11815,100 +11694,85 @@ async function downloadDoc() {
   if (!dvBodyEl) return;
 
   if (dvBodyEl.querySelectorAll('[data-generating]').length > 0) {
-    showSaveToast('⏳ Imágenes IA aún cargándose... espera un momento y vuelve a intentar.');
+    showSaveToast('\u23f3 Im\u00e1genes IA a\u00fan carg\u00e1ndose... espera un momento y vuelve a intentar.');
     return;
   }
 
-  // Verificar que html2canvas está disponible
   if (typeof html2canvas === 'undefined') {
-    showSaveToast('⏳ Cargando herramienta de PDF...');
-    await new Promise(function(resolve) { setTimeout(resolve, 1500); });
+    showSaveToast('\u23f3 Cargando herramienta PDF...');
+    await new Promise(function(r){ setTimeout(r, 2000); });
     if (typeof html2canvas === 'undefined') {
-      showSaveToast('❌ Error: html2canvas no disponible. Recarga la página.');
+      showSaveToast('\u274c html2canvas no disponible. Recarga la p\u00e1gina.');
       return;
     }
   }
 
-  showSaveToast('⏳ Generando PDF...');
+  showSaveToast('\u23f3 Generando PDF...');
 
   try {
     const { jsPDF } = window.jspdf || {};
-    if (!jsPDF) { showSaveToast('❌ jsPDF no disponible.'); return; }
+    if (!jsPDF) { showSaveToast('\u274c jsPDF no disponible.'); return; }
 
-    // Capturar el visor exactamente como se ve
     const canvas = await html2canvas(dvBodyEl, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
-      backgroundColor: '#fffdf5',
+      backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: dvBodyEl.scrollWidth,
-      windowHeight: dvBodyEl.scrollHeight,
+      scrollX: 0,
+      scrollY: 0,
+      width: dvBodyEl.scrollWidth,
+      height: dvBodyEl.scrollHeight,
     });
 
-    const imgData   = canvas.toDataURL('image/jpeg', 0.92);
-    const pdfW      = 210;  // A4 mm
-    const pdfH      = 297;
-    const margin    = 12;
-    const contentW  = pdfW - margin * 2;
-    const contentH  = pdfH - margin * 2;
-
-    // Calcular altura total en mm
-    const imgPxW    = canvas.width;
-    const imgPxH    = canvas.height;
-    const mmPerPx   = contentW / imgPxW;
-    const totalMmH  = imgPxH * mmPerPx;
+    const imgData  = canvas.toDataURL('image/jpeg', 0.92);
+    const pdfW     = 210;
+    const pdfH     = 297;
+    const margin   = 10;
+    const hdrH     = 12;
+    const contentW = pdfW - margin * 2;
+    const contentH = pdfH - margin - hdrH - 4;
+    const mmPerPx  = contentW / canvas.width;
+    const totalMmH = canvas.height * mmPerPx;
+    const totalPages = Math.ceil(totalMmH / contentH);
 
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const title  = viewingDoc.title || 'Documento';
-    const safe   = title.replace(/[^a-z0-9áéíóúñ\s]/gi, '_').trim();
+    const safe = (viewingDoc.title || 'documento').replace(/[^a-z0-9 \u00e1\u00e9\u00ed\u00f3\u00fa\u00f1]/gi, '_').trim();
 
-    // Añadir header en cada página
-    function addHeader(doc, pageNum, totalPages) {
-      doc.setFillColor(26, 58, 92);
-      doc.rect(0, 0, pdfW, 14, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.text('LIAX · Plataforma Educativa IA', margin, 9);
-      var _docente = (document.getElementById('topUserName')?.textContent || '').trim();
-      var _aulaEl  = document.getElementById('docenteBannerCursos');
-      var _aula    = _aulaEl ? _aulaEl.textContent.trim() : '';
-      var infoStr  = [_docente, _aula].filter(Boolean).join(' · ');
-      if (infoStr) doc.text(infoStr, pdfW / 2, 9, { align: 'center' });
-      doc.text(pageNum + ' / ' + totalPages, pdfW - margin, 9, { align: 'right' });
-    }
-
-    // Calcular número de páginas
-    var sliceH   = contentH;
-    var totalPages = Math.ceil(totalMmH / sliceH);
+    var _docente = (document.getElementById('topUserName')?.textContent || '').trim();
+    var _aulaEl  = document.getElementById('docenteBannerCursos');
+    var _aula    = _aulaEl ? _aulaEl.textContent.trim() : '';
 
     for (var page = 0; page < totalPages; page++) {
       if (page > 0) doc.addPage();
 
-      // Slice de la imagen para esta página
-      var srcY   = page * (sliceH / mmPerPx);
-      var srcH   = Math.min(sliceH / mmPerPx, imgPxH - srcY);
-      var dstH   = srcH * mmPerPx;
+      // Header
+      doc.setFillColor(26, 58, 92);
+      doc.rect(0, 0, pdfW, hdrH, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('LIAX', margin, 7.5);
+      var info = [_docente, _aula].filter(Boolean).join(' \u00b7 ');
+      if (info) doc.text(info, pdfW / 2, 7.5, { align: 'center' });
+      doc.text((page + 1) + ' / ' + totalPages, pdfW - margin, 7.5, { align: 'right' });
 
-      // Crear canvas de la porción
+      // Slice de imagen
+      var srcY = page * (contentH / mmPerPx);
+      var srcH = Math.min(contentH / mmPerPx, canvas.height - srcY);
       var sliceCanvas = document.createElement('canvas');
-      sliceCanvas.width  = imgPxW;
+      sliceCanvas.width  = canvas.width;
       sliceCanvas.height = Math.round(srcH);
-      var ctx = sliceCanvas.getContext('2d');
-      ctx.drawImage(canvas, 0, srcY, imgPxW, srcH, 0, 0, imgPxW, srcH);
-      var sliceData = sliceCanvas.toDataURL('image/jpeg', 0.92);
-
-      addHeader(doc, page + 1, totalPages);
-      doc.addImage(sliceData, 'JPEG', margin, 16, contentW, dstH);
+      sliceCanvas.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+      doc.addImage(sliceCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, hdrH + 2, contentW, srcH * mmPerPx);
     }
 
     doc.save(safe + '.pdf');
-    showSaveToast('✅ PDF descargado correctamente.');
+    showSaveToast('\u2705 PDF descargado.');
 
   } catch(err) {
-    console.error('[Liax] Error generando PDF:', err);
-    showSaveToast('❌ Error generando PDF: ' + (err.message || err));
+    console.error('[Liax] PDF error:', err);
+    showSaveToast('\u274c Error: ' + (err.message || err));
   }
 }
 function copyDocByIndex(i) {
