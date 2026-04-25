@@ -6065,7 +6065,7 @@ async function exportDato(id, fmt) {
       <thead><tr style="background:#1e2850;color:white">${cols.map(c=>`<th style="padding:6px 8px;text-align:left">${c}</th>`).join('')}</tr></thead>
       <tbody>${sliceRows.map((r,i)=>`<tr style="background:${i%2?'#f5f7fc':'white'}">${cols.map(c=>`<td style="padding:5px 8px;border-bottom:1px solid #eee">${r[c]??''}</td>`).join('')}</tr>`).join('')}</tbody>
     </table>`;
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
     <style>body{font-family:Arial,sans-serif;margin:0;padding:20px;background:#f0f2f8}
     .slide{background:white;border-radius:12px;padding:32px;max-width:960px;margin:0 auto;box-shadow:0 4px 20px #0002}
     h1{font-size:22px;color:#1e2850;margin:0 0 6px}
@@ -8161,7 +8161,7 @@ function liaxGenerateSingleImage(el, prompt) {
     imgEl.style.cssText = 'width:100%;display:block;border-radius:10px 10px 0 0';
     imgEl.alt = caption;
     var finalSrc = b64 || imgUrl;
-    if (b64) imgEl.setAttribute('data-b64', finalSrc);  // guardar base64 para exportar PDF
+    if (b64) imgEl.setAttribute('data-b64', finalSrc);
     if (!b64) imgEl.setAttribute('data-together-url', imgUrl);
     imgEl.onload = function() {
       el.removeAttribute('data-generating');
@@ -11674,19 +11674,13 @@ function closeDocViewer() { document.getElementById('docViewer').classList.remov
 function copyDoc() { if(viewingDoc) navigator.clipboard.writeText(viewingDoc.content).then(()=>showSaveToast('✅ Copiado al portapapeles')); }
 // ── DESCARGA PDF: captura el DOM renderizado (imágenes incluidas) ──────────────
 async function _convertImgsToBase64(container) {
-  // Estrategia 1: usar data-b64 guardado cuando llegó del worker (evita CORS)
-  // Estrategia 2: fetch() con credentials omit como fallback
-  // Estrategia 3: si nada funciona, dejar la img como está (puede no cargar en Blob)
   const imgs = Array.from(container.querySelectorAll('img'));
   await Promise.all(imgs.map(function(img) {
     return new Promise(function(resolve) {
       var src = img.getAttribute('src') || '';
-      // Ya es base64 — no hacer nada
       if (src.startsWith('data:')) { resolve(); return; }
-      // Tenemos el base64 guardado del worker — usarlo directamente
       var saved = img.getAttribute('data-b64');
       if (saved) { img.setAttribute('src', saved); img.removeAttribute('data-b64'); resolve(); return; }
-      // Fallback: intentar fetch con CORS
       fetch(src, { mode: 'cors', credentials: 'omit' })
         .then(function(r) { return r.blob(); })
         .then(function(blob) {
@@ -11695,7 +11689,7 @@ async function _convertImgsToBase64(container) {
           reader.onerror = function() { resolve(); };
           reader.readAsDataURL(blob);
         })
-        .catch(function() { resolve(); }); // CORS bloqueado — img queda con src externo
+        .catch(function() { resolve(); });
     });
   }));
 }
@@ -11704,13 +11698,9 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt) {
   const dateStr = savedAt
     ? new Date(savedAt).toLocaleDateString('es-CL', {day:'2-digit', month:'long', year:'numeric'})
     : new Date().toLocaleDateString('es-CL');
-
-  // Sanitizar title y agentName para HTML (evitar inyección en el Blob)
   var safeTitle     = (title     || 'Documento').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   var safeAgent     = (agentName || 'Agente IA').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   var safeAgentMeta = (agentName || 'Liax IA').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // bodyHTML viene del DOM — puede tener backticks o ${} que romperían un template literal.
-  // Se usa concatenación de strings para evitar cualquier interpolación accidental.
   var printScript = '<scr' + 'ipt>' +
     'window.onload=function(){' +
     '  var imgs=Array.from(document.images);' +
@@ -11727,7 +11717,6 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt) {
     '  setTimeout(doPrint,8000);' +
     '};' +
     '</scr' + 'ipt>';
-
   var css = [
     '@page{size:A4;margin:18mm 16mm 18mm 16mm;}',
     '*{box-sizing:border-box;margin:0;padding:0;}',
@@ -11759,7 +11748,6 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt) {
     '.loading-dot,[data-generating],[data-genprompt]{display:none!important;}',
     '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.content img{page-break-inside:avoid;}}'
   ].join('');
-
   var html = '<!DOCTYPE html>' +
     '<html lang="es"><head><meta charset="UTF-8">' +
     '<title>' + safeTitle + '</title>' +
@@ -11775,19 +11763,18 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt) {
     '<div class="ftr"><span>Generado por Liax &middot; Plataforma Educativa IA</span><span>' + dateStr + '</span></div>' +
     printScript +
     '</body></html>';
-
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
   const win  = window.open(url, '_blank', 'width=860,height=1000');
   if (!win) {
     const a = document.createElement('a');
     a.href = url;
-    a.download = (title || 'documento').replace(/[^a-z0-9\u00e1\u00e9\u00ed\u00f3\u00fa\u00f1\s]/gi,'_').trim() + '.html';
+    a.download = (title || 'documento').replace(/[^a-z0-9áéíóúñ\s]/gi,'_').trim() + '.html';
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    showSaveToast('\u2139\ufe0f Popup bloqueado \u2014 se descarg\u00f3 como HTML. \u00c1brelo y usa Ctrl+P para PDF.');
+    showSaveToast('ℹ️ Popup bloqueado — se descargó como HTML. Ábrelo y usa Ctrl+P para PDF.');
   }
   setTimeout(function(){ URL.revokeObjectURL(url); }, 8000);
 }
@@ -11795,33 +11782,20 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt) {
 async function downloadDoc() {
   if (!viewingDoc) return;
   const dvBodyEl = document.getElementById('dv-body');
-
-  // Esperar si aún hay imágenes generándose
   if (dvBodyEl && dvBodyEl.querySelectorAll('[data-generating]').length > 0) {
-    showSaveToast('\u23f3 Im\u00e1genes IA a\u00fan carg\u00e1ndose... espera un momento y vuelve a intentar.');
+    showSaveToast('⏳ Imágenes IA aún cargándose... espera un momento y vuelve a intentar.');
     return;
   }
-
-  // Clonar el contenido del visor
   const clone = document.createElement('div');
   clone.innerHTML = dvBodyEl ? dvBodyEl.innerHTML : '';
-
-  // Eliminar elementos que no deben ir en el PDF
   clone.querySelectorAll('[data-generating],[data-genprompt],.loading-dot,.svg-diagram-btn').forEach(function(el){ el.remove(); });
-
-  // Limpiar estilos inline que usan variables CSS del dark theme
-  // (las variables --bg, --surface, etc. no existen en el nuevo doc)
   clone.querySelectorAll('[style]').forEach(function(el) {
     var s = el.getAttribute('style') || '';
-    // Quitar propiedades con var(--...) que no funcionarán en el HTML imprimible
     s = s.replace(/[a-z-]+:\s*var\([^)]+\)[;]?\s*/gi, '');
     if (s.trim()) el.setAttribute('style', s);
     else el.removeAttribute('style');
   });
-
-  // Convertir imágenes externas a base64
   await _convertImgsToBase64(clone);
-
   await _printDocAsHTML(
     viewingDoc.title,
     clone.innerHTML,
@@ -11829,12 +11803,10 @@ async function downloadDoc() {
     viewingDoc.savedAt
   );
 }
-
 function copyDocByIndex(i) {
   const d = AGENT_STORE.getDocs(currentAgent.id)[i];
-  if(d) navigator.clipboard.writeText(d.content).then(()=>showSaveToast('\u2705 Copiado al portapapeles'));
+  if(d) navigator.clipboard.writeText(d.content).then(()=>showSaveToast('✅ Copiado al portapapeles'));
 }
-
 async function downloadDocByIndex(i) {
   const d = AGENT_STORE.getDocs(currentAgent.id)[i];
   if (!d) return;
