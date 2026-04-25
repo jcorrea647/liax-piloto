@@ -11673,6 +11673,28 @@ function closeDocViewer() { document.getElementById('docViewer').classList.remov
 function copyDoc() { if(viewingDoc) navigator.clipboard.writeText(viewingDoc.content).then(()=>showSaveToast('✅ Copiado al portapapeles')); }
 async function downloadDoc() {
   if (!viewingDoc) return;
+
+  // ── Esperar a que terminen las imágenes en generación ────────
+  const dvBodyCheck = document.getElementById('dv-body');
+  if (dvBodyCheck) {
+    const generating = dvBodyCheck.querySelectorAll('[data-generating]');
+    if (generating.length > 0) {
+      showSaveToast('⏳ Esperando a que se generen las imágenes (' + generating.length + ' restantes)...');
+      await new Promise(function(resolve) {
+        var maxWait = 60000; // 60s máximo
+        var elapsed = 0;
+        var interval = setInterval(function() {
+          elapsed += 500;
+          var still = dvBodyCheck.querySelectorAll('[data-generating]').length;
+          if (still === 0 || elapsed >= maxWait) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 500);
+      });
+    }
+  }
+
   await exportDocToPDF(
     viewingDoc.title,
     viewingDoc.content,
@@ -11724,8 +11746,13 @@ function svgToPngDataUrl(svgCode, widthPx, heightPx) {
 }
 
 async function exportDocToPDF(title, rawContent, agentName, savedAt) {
-  const { jsPDF } = window.jspdf;
-  if (!jsPDF) { alert('jsPDF no disponible'); return; }
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) {
+    showSaveToast('❌ Error: jsPDF no disponible. Recarga la página.');
+    console.error('[Liax] jsPDF no disponible — window.jspdf:', window.jspdf);
+    return;
+  }
+  try {
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = 210, H = 297, ML = 16, MR = 16, pageW = W - ML - MR;
@@ -11891,13 +11918,32 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
   let svgPdfIdx = 0;
   const rawForSvg = rawContent || '';
 
-  // ── Include any base64 images already in the DOM viewer ─────
+  // ── Include any images already in the DOM viewer (base64 or loaded URL) ─────
   const imgPdfMap = {};
   let imgPdfIdx = 0;
   const dvBodyForImg = document.getElementById('dv-body');
+  // Capture all imgs that have finished loading (base64 or external URL)
   const domImgsB64 = dvBodyForImg
-    ? Array.from(dvBodyForImg.querySelectorAll('img')).filter(img => (img.src||'').startsWith('data:image'))
+    ? Array.from(dvBodyForImg.querySelectorAll('img')).filter(function(img) {
+        var s = img.src || '';
+        return (s.startsWith('data:image') || (s.startsWith('http') && img.complete && img.naturalWidth > 0));
+      })
     : [];
+  // Convert any external-URL images to base64 via canvas so jsPDF can embed them
+  await Promise.all(domImgsB64.map(function(img) {
+    if ((img.src || '').startsWith('data:image')) return Promise.resolve();
+    return new Promise(function(resolve) {
+      try {
+        var canvas = document.createElement('canvas');
+        canvas.width  = img.naturalWidth  || 600;
+        canvas.height = img.naturalHeight || 400;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        img._b64override = canvas.toDataURL('image/jpeg', 0.92);
+        resolve();
+      } catch(e) { resolve(); } // CORS failure — skip
+    });
+  }));
   let domImgCursor = 0;
 
   const rawWithImgKeys = rawForSvg.replace(
@@ -11905,7 +11951,8 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
     function() {
       const key = '__IMGPDF_' + (imgPdfIdx++) + '__';
       if (domImgCursor < domImgsB64.length) {
-        imgPdfMap[key] = domImgsB64[domImgCursor].src;
+        const _img = domImgsB64[domImgCursor];
+        imgPdfMap[key] = _img._b64override || _img.src;
         domImgCursor++;
       }
       return '\n' + key + '\n';
@@ -12226,21 +12273,21 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
     if (t.startsWith('__IMGPDF_')) {
       const imgB64 = imgPdfMap[t];
       if (imgB64) {
-        // Estimate image height: render at full page width, 4:3 aspect ratio max
-        const imgMmW = pageW;
-        const imgMmH = Math.min(Math.round(imgMmW * 0.6), 100);
-        need(imgMmH + 10);
-        // Small label
+        // Print-friendly size: half page width, max 60mm tall
+        const imgMmW = Math.round(pageW * 0.6);
+        const imgMmH = Math.min(Math.round(imgMmW * 0.75), 60);
+        const imgX   = ML + Math.round((pageW - imgMmW) / 2);
+        need(imgMmH + 12);
         font(7.5, 'bold'); ink(C.teal);
         doc.text('Imagen generada · Together AI', ML, y + 3);
         y += 6;
         need(imgMmH + 4);
         try {
-          doc.addImage(imgB64, 'JPEG', ML, y, imgMmW, imgMmH);
+          doc.addImage(imgB64, 'JPEG', imgX, y, imgMmW, imgMmH);
         } catch(e) {
-          try { doc.addImage(imgB64, 'PNG', ML, y, imgMmW, imgMmH); } catch(e2) { /* skip */ }
+          try { doc.addImage(imgB64, 'PNG', imgX, y, imgMmW, imgMmH); } catch(e2) { /* skip */ }
         }
-        y += imgMmH + 6;
+        y += imgMmH + 8;
       }
       i++; continue;
     }
@@ -12312,9 +12359,14 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
     doc.text('Pág. ' + p + ' / ' + total, W - MR, H - 6, { align: 'right' });
   }
 
-  // Save
+  // Save — timeout ensures browser has time to trigger download
   const safe = (title || 'documento').replace(/[^a-z0-9áéíóúñ\s]/gi, '_').trim();
-  doc.save(safe + '.pdf');
+  setTimeout(function() { doc.save(safe + '.pdf'); }, 100);
+
+  } catch(pdfErr) {
+    console.error('[Liax] Error generando PDF:', pdfErr);
+    showSaveToast('❌ Error generando PDF: ' + (pdfErr.message || pdfErr));
+  }
 }
 
 function deleteDoc(i) {
