@@ -11720,7 +11720,7 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin)
   var css = [
     '@page{size:A4;margin:18mm 16mm 18mm 16mm;}',
     '*{box-sizing:border-box;margin:0;padding:0;}',
-    'body{font-family:"Helvetica Neue",Arial,sans-serif;font-size:12px;color:#1c2330;background:#fff;}',
+    'body{font-family:"Helvetica Neue",Arial,sans-serif;font-size:16px;color:#1c2330;background:#fff;}',
     '.hdr{background:#121c34;color:#fff;padding:18px 20px 14px;border-radius:0 0 6px 6px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-end;}',
     '.hdr-logo{font-size:22px;font-weight:800;letter-spacing:-.5px;}',
     '.hdr-logo span{color:#00e5c0;}',
@@ -11732,14 +11732,14 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin)
     '.content h1{font-size:16px;font-weight:800;color:#121c34;margin:18px 0 8px;}',
     '.content h2{font-size:14px;font-weight:700;color:#1e3a6b;margin:15px 0 6px;background:#f0f4ff;padding:6px 10px;border-radius:5px;border-left:3px solid #4f7bff;}',
     '.content h3{font-size:13px;font-weight:700;color:#1e3a6b;margin:12px 0 5px;}',
-    '.content p{margin-bottom:9px;}',
+    '.content p{margin-bottom:12px;font-size:17px;line-height:2;}',
     '.content ul,.content ol{padding-left:20px;margin-bottom:9px;}',
-    '.content li{margin-bottom:4px;}',
+    '.content li{margin-bottom:8px;font-size:17px;line-height:2;}',
     '.content strong{font-weight:700;}',
     '.content em{font-style:italic;}',
     '.content pre,.content code{background:#f4f6fa;padding:2px 6px;border-radius:4px;font-size:11px;font-family:monospace;white-space:pre-wrap;word-break:break-all;}',
     '.content pre{display:block;padding:10px 12px;margin:8px 0;}',
-    '.content img{max-width:100%;border-radius:8px;display:block;margin:12px auto;page-break-inside:avoid;}',
+    '.content img{max-width:38%;max-height:180px;border-radius:8px;float:right;margin:0 0 12px 18px;page-break-inside:avoid;}',
     '.content table{width:100%;border-collapse:collapse;margin:12px 0;font-size:11px;}',
     '.content th{background:#edf0f9;font-weight:700;padding:7px 10px;text-align:left;border:1px solid #d0d5e8;}',
     '.content td{padding:6px 10px;border:1px solid #d0d5e8;vertical-align:top;}',
@@ -11759,7 +11759,7 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin)
     '</div><div class="hdr-badge">' + safeAgent + '</div></div>' +
     '<div class="doc-title">' + safeTitle + '</div>' +
     '<div class="doc-meta">' + safeAgentMeta + ' &middot; ' + dateStr + '</div>' +
-    '<div class="content">' + (bodyHTML || '') + '</div>' +
+    '<div class="content">' + (bodyHTML || '') + '<div style="clear:both"></div></div>' +
     '<div class="ftr"><span>Generado por Liax &middot; Plataforma Educativa IA</span><span>' + dateStr + '</span></div>' +
     printScript +
     '</body></html>';
