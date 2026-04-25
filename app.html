@@ -7087,17 +7087,17 @@ var _RECURSOS = [
   {
     cat: 'Lenguaje y Lectoescritura',
     items: [
-      { id: 'pictogramas',    icon: '📖', label: 'Cuento con\nPictogramas',   prompt: 'Crea un cuento corto con pictogramas donde algunas palabras clave se sustituyen por [GENERA: imagen del objeto/animal]. El cuento debe ser narrativo, con inicio, desarrollo y cierre. Incluye instrucciones para el docente sobre cómo usarlo.' },
-      { id: 'rimas',          icon: '🎵', label: 'Tarjetas de\nRimas',         prompt: 'Crea un set de 6 pares de tarjetas de rimas (palabras que suenan igual). Para cada par: muestra las dos palabras, una descripción breve, y [GENERA: imagen de cada objeto]. Formato claro para recortar.' },
-      { id: 'grafomotricidad',icon: '✏️', label: 'Fichas de\nGrafomotricidad', prompt: 'Crea 3 fichas de grafomotricidad para preparar la mano para la escritura. Cada ficha debe incluir descripción del trazo, instrucciones y [GENERA: imagen del patrón de trazo con flechas de dirección, estilo limpio, fondo blanco]. Indica nivel de dificultad.' },
+      { id: 'pictogramas',    icon: '📖', label: 'Cuento con\nPictogramas',   prompt: 'Crea un cuento educativo con pictogramas sobre el tema indicado. Usa SOLO formato markdown, NUNCA escribas HTML ni etiquetas. Estructura exactamente asi:\n\n# Cuento con Pictogramas: [TITULO CREATIVO RELACIONADO AL TEMA]\n\n## Imagen de portada\n\n[GENERA: ilustracion colorida y expresiva para la portada del cuento sobre el tema, estilo infantil amigable, personajes simpáticos, fondo con escenario relacionado al tema]\n\n## El cuento\n\n**INICIO**\n\nErase una vez [protagonista relacionado al tema]... [2-3 oraciones narrativas. Intercalar pictogramas: escribir la oracion y al llegar a una palabra clave poner [GENERA: pictograma simple de (objeto/animal/accion), fondo blanco, estilo icono educativo claro]].\n\n[GENERA: pictograma simple de (primer elemento clave del cuento), contorno negro, fondo blanco, estilo educativo]\n\n**DESARROLLO**\n\n[3-4 oraciones de desarrollo narrativo con conflicto o aventura. Incluir 2 pictogramas mas en los momentos clave].\n\n[GENERA: pictograma simple de (segundo elemento del desarrollo), contorno negro, fondo blanco]\n\n[GENERA: pictograma simple de (tercer elemento del desarrollo), contorno negro, fondo blanco]\n\n**CIERRE**\n\n[2-3 oraciones de desenlace feliz y moraleja. Incluir 1 pictograma final].\n\n[GENERA: pictograma simple del desenlace o moraleja, contorno negro, fondo blanco]\n\n## Vocabulario del cuento\n\nPalabras clave trabajadas: lista las 5-6 palabras principales con su definicion simple para ninos.\n\n## Instrucciones para el docente\n\n**Objetivo:** que desarrolla este cuento en los alumnos.\n**Nivel:** curso recomendado y adaptaciones por edad.\n**Antes de leer:** actividad de anticipacion (1-2 minutos).\n**Durante la lectura:** como usar los pictogramas, si leer en voz alta o por turnos.\n**Despues de leer:** 3 preguntas de comprension y 1 actividad de extension.\n**Variante con NEE:** como adaptar para alumnos con dificultad lectora o TEA.' },
+      { id: 'rimas',          icon: '🎵', label: 'Tarjetas de\nRimas',         prompt: 'Crea un set de 6 pares de tarjetas de rimas para recortar sobre el tema indicado. Usa SOLO formato markdown, NUNCA escribas HTML ni etiquetas. Estructura exactamente asi:\n\n# Tarjetas de Rimas: [TEMA]\n\n## Instrucciones de uso\n\nIMPORTANTE: Imprime, recorta cada tarjeta y usa el reverso para pegar en carton. Actividad: mezclar todas las tarjetas y pedir a los alumnos que encuentren los pares que riman.\n\n## Par 1\n\n### [PALABRA 1A] — [PALABRA 1B]\n\n[GENERA: ilustracion clara del primer objeto (palabra 1A), fondo blanco, estilo icono infantil colorido, trazo limpio]\n\n[GENERA: ilustracion clara del segundo objeto (palabra 1B) que rima con el anterior, fondo blanco, mismo estilo]\n\n*Ejemplo de uso:* "El [palabra 1A] se parece al [palabra 1B], suenan igual al final"\n\n## Par 2\n\n### [PALABRA 2A] — [PALABRA 2B]\n\n[GENERA: ilustracion del tercer objeto (palabra 2A), fondo blanco, estilo icono infantil]\n\n[GENERA: ilustracion del cuarto objeto (palabra 2B) que rima con 2A, fondo blanco, mismo estilo]\n\n*Ejemplo de uso:* oracion rimada con estas dos palabras.\n\n## Par 3\n\n### [PALABRA 3A] — [PALABRA 3B]\n\n[GENERA: ilustracion del quinto objeto (palabra 3A), fondo blanco, estilo infantil]\n\n[GENERA: ilustracion del sexto objeto (palabra 3B) que rima, fondo blanco]\n\n*Ejemplo de uso:* oracion rimada.\n\n## Par 4\n\n### [PALABRA 4A] — [PALABRA 4B]\n\n[GENERA: ilustracion del septimo objeto (palabra 4A), fondo blanco]\n\n[GENERA: ilustracion del octavo objeto (palabra 4B) que rima, fondo blanco]\n\n## Par 5\n\n### [PALABRA 5A] — [PALABRA 5B]\n\n[GENERA: ilustracion del noveno objeto, fondo blanco]\n\n[GENERA: ilustracion del decimo objeto que rima, fondo blanco]\n\n## Par 6\n\n### [PALABRA 6A] — [PALABRA 6B]\n\n[GENERA: ilustracion del decimoprimer objeto, fondo blanco]\n\n[GENERA: ilustracion del decimosegundo objeto que rima, fondo blanco]\n\n## Instrucciones para el docente\n\n**Objetivo:** desarrollar conciencia fonemica y vocabulario. **Nivel:** educacion inicial y 1 basico. **Actividades:** descripcion de 3 juegos distintos con las tarjetas (memoria, carrera de rimas, completar la rima). **Extension:** pedir a los alumnos que inventen sus propias oraciones rimadas con cada par. **Variante NEE:** usar solo 3 pares para comenzar.' },
+      { id: 'grafomotricidad',icon: '✏️', label: 'Fichas de\nGrafomotricidad', prompt: 'Crea 3 fichas de grafomotricidad para preparar la mano para la escritura sobre el tema indicado. Usa SOLO formato markdown, NUNCA escribas HTML ni etiquetas. Estructura exactamente asi:\n\n# Fichas de Grafomotricidad: [TEMA]\n\n## Introduccion\n\nObjetivo de las fichas, musculatura que se trabaja y como se relacionan con la escritura formal.\n\n---\n\n## Ficha 1 — Nivel Inicial (Trazos Basicos)\n\n**Trazo:** lineas rectas horizontales / verticales (adaptar al tema)\n**Duracion:** 5-8 minutos\n**Materiales:** lapiz grueso o crayola\n\n[GENERA: ficha de grafomotricidad nivel 1, trazos rectos simples decorados con elementos del tema, flechas de direccion azules, lineas punteadas a repasar, fondo blanco, estilo educativo limpio, mucho espacio para trazar]\n\n**Instruccion para el alumno:** "Sigue las flechas y repasa cada linea sin levantar el lapiz"\n**Instruccion para el docente:** postura correcta, presion del lapiz, que observar.\n\n---\n\n## Ficha 2 — Nivel Intermedio (Curvas y Ondas)\n\n**Trazo:** curvas, ondas o espirales (adaptar al tema)\n**Duracion:** 8-10 minutos\n**Materiales:** lapiz o plumón delgado\n\n[GENERA: ficha de grafomotricidad nivel 2, trazos curvos y ondulados con elementos del tema integrados en el diseno, flechas de direccion, lineas punteadas, fondo blanco, estilo educativo]\n\n**Instruccion para el alumno:** descripcion simple del ejercicio.\n**Instruccion para el docente:** errores frecuentes y como corregirlos gentilmente.\n\n---\n\n## Ficha 3 — Nivel Avanzado (Trazos Combinados)\n\n**Trazo:** combinacion de rectas y curvas formando figuras del tema\n**Duracion:** 10-15 minutos\n**Materiales:** lapiz fino\n\n[GENERA: ficha de grafomotricidad nivel 3, trazos complejos combinados que forman siluetas relacionadas al tema, flechas de direccion, lineas punteadas, fondo blanco, mas detalle]\n\n**Instruccion para el alumno:** descripcion del desafio.\n**Instruccion para el docente:** como avanzar al nivel siguiente y cuando el alumno esta listo.\n\n---\n\n## Instrucciones generales para el docente\n\n**Secuencia recomendada:** hacer las 3 fichas en orden de dificultad. **Frecuencia:** 3-4 veces por semana 10-15 minutos. **Senales de alerta:** indicadores de posibles dificultades grafomotrices que requieren derivacion. **Adaptacion NEE:** como modificar cada ficha para alumnos con dificultades motrices finas.' },
     ]
   },
   {
     cat: 'Pensamiento Lógico y Creatividad',
     items: [
-      { id: 'puzzle',   icon: '🧩', label: 'Puzle\nImprimible',          prompt: 'Diseña un puzle educativo imprimible de 6-9 piezas sobre el tema indicado. Incluye [GENERA: imagen principal del puzle completo antes de recortar] e instrucciones de uso. Dibuja líneas de corte claras en descripción.' },
-      { id: 'tangram',  icon: '🔷', label: 'Tangram y\nFiguras Geométricas', prompt: 'Crea una actividad con tangram o figuras geométricas relacionada con el tema. Incluye [GENERA: plantilla de piezas geométricas de colores sobre fondo blanco] y [GENERA: ejemplo de figura armada con las piezas]. Añade instrucciones y nivel de dificultad.' },
-      { id: 'colorear', icon: '🖍️', label: 'Láminas para\nColorear',         prompt: 'Crea 2 láminas para colorear temáticas. Para cada una: título, instrucciones creativas y [GENERA: dibujo de líneas simples para colorear, estilo libro para colorear, trazo grueso, fondo blanco, sin relleno, solo contornos]. Incluye variante libre y dirigida.' },
+      { id: 'puzzle',   icon: '🧩', label: 'Puzle\nImprimible',          prompt: 'Diseña un puzle educativo imprimible de 8 piezas sobre el tema indicado. Usa SOLO formato markdown, NUNCA escribas HTML ni etiquetas. Estructura exactamente asi:\n\n# Puzle Imprimible: [TEMA]\n\n## Imagen principal\n\n[GENERA: ilustracion educativa colorida y detallada del tema, fondo blanco, estilo dibujo animado limpio, alta calidad, vista completa de la escena con todos los elementos del tema visibles]\n\n## Guia de recorte\n\nIMPORTANTE: Imprime esta pagina, recorta por las lineas punteadas indicadas y mezcla las piezas.\n\n### Pieza 1 - [nombre del primer elemento del tema]\nUbicacion: esquina superior izquierda | Lineas de corte: derecha y abajo\n\n### Pieza 2 - [nombre del segundo elemento]\nUbicacion: parte superior centro | Lineas de corte: izquierda, derecha y abajo\n\n### Pieza 3 - [nombre del tercer elemento]\nUbicacion: esquina superior derecha | Lineas de corte: izquierda y abajo\n\n### Pieza 4 - [nombre del cuarto elemento]\nUbicacion: centro izquierda | Lineas de corte: derecha, arriba y abajo\n\n### Pieza 5 - [nombre del quinto elemento]\nUbicacion: centro | Lineas de corte: todos los lados\n\n### Pieza 6 - [nombre del sexto elemento]\nUbicacion: centro derecha | Lineas de corte: izquierda, arriba y abajo\n\n### Pieza 7 - [nombre del septimo elemento]\nUbicacion: esquina inferior izquierda | Lineas de corte: derecha y arriba\n\n### Pieza 8 - [nombre del octavo elemento]\nUbicacion: parte inferior centro | Lineas de corte: izquierda, derecha y arriba\n\n## Instrucciones para el docente\n\nNivel: Basico (adaptar al curso). Tiempo estimado: 15-20 minutos. Materiales: tijeras, opcionalmente carton para pegar las piezas. Modo de uso: imprimir en hoja A4, recortar las 8 piezas, mezclarlas y pedir al alumno que arme la imagen original. Variante avanzada: pedir que nombren en voz alta cada elemento mientras arman el puzle.\n\n## Contenido educativo\n\nExplica que aprenden los alumnos con este puzle: conceptos clave del tema, vocabulario asociado y como integrarlo al curriculo. Incluye una pregunta de cierre para hacer al curso al terminar la actividad.' },
+      { id: 'tangram',  icon: '🔷', label: 'Tangram y\nFiguras Geométricas', prompt: 'Crea una actividad completa de tangram relacionada con el tema indicado. Usa SOLO formato markdown, NUNCA escribas HTML ni etiquetas. Estructura exactamente asi:\n\n# Actividad de Tangram: [TEMA]\n\n## Plantilla de piezas para recortar\n\n[GENERA: 7 piezas clasicas del tangram geometricas, cada una de un color vivo diferente (rojo, naranja, amarillo, verde, azul, morado, rosado), claramente separadas, sobre fondo blanco, con nombre de cada figura geometrica escrito debajo, estilo educativo limpio]\n\n**Instruccion:** Imprime en carton si es posible. Recorta cada pieza siguiendo el contorno de color.\n\n## Figura a armar: relacionada al tema\n\n[GENERA: silueta de figura relacionada al tema armada con las 7 piezas del tangram, cada pieza en su color correspondiente, sobre fondo blanco, con numeros indicando que pieza va donde, estilo educativo claro]\n\n**Nombres de las piezas:**\n- Pieza 1 (triangulo grande): ubicacion en la figura\n- Pieza 2 (triangulo grande): ubicacion\n- Pieza 3 (triangulo mediano): ubicacion\n- Pieza 4 (triangulo pequeño): ubicacion\n- Pieza 5 (triangulo pequeño): ubicacion\n- Pieza 6 (cuadrado): ubicacion\n- Pieza 7 (paralelogramo): ubicacion\n\n## Figuras adicionales de desafio\n\n### Figura facil\n[GENERA: segunda figura mas simple del tema armada con tangram, silueta coloreada, fondo blanco]\n\n### Figura dificil\n[GENERA: tercera figura mas compleja del tema armada con tangram, silueta coloreada, fondo blanco]\n\n## Conexion curricular\n\nNombres de las figuras geometricas presentes: triangulo, cuadrado, paralelogramo. Propiedades de cada figura (lados, angulos). Como conectar con el curriculum de matematica del nivel.\n\n## Instrucciones para el docente\n\n**Objetivo:** reconocimiento de figuras geometricas y razonamiento espacial. **Nivel:** 1 basico a 4 basico (ajustar dificultad). **Tiempo:** 20-30 minutos. **Pasos de la actividad:** descripcion detallada del desarrollo de la clase. **Preguntas guia:** 4 preguntas para hacer durante la actividad. **Variante NEE:** simplificar usando solo 3-4 piezas para alumnos con dificultades.' },
+      { id: 'colorear', icon: '🖍️', label: 'Láminas para\nColorear',         prompt: 'Crea 2 laminas para colorear tematicas con instrucciones creativas. Usa SOLO formato markdown, NUNCA escribas HTML ni etiquetas. Estructura exactamente asi:\n\n# Laminas para Colorear: [TEMA]\n\n---\n\n## Lamina 1 — [Titulo descriptivo relacionado al tema]\n\n**Tipo:** Dirigida (colores indicados)\n**Nivel:** Basico\n\n[GENERA: dibujo de lineas simples para colorear sobre el tema, estilo libro para colorear infantil, trazo grueso negro limpio, fondo blanco, sin relleno, solo contornos claros y bien definidos, escena completa con varios elementos del tema, espacio amplio para colorear]\n\n### Instrucciones para el alumno\n\nColorea siguiendo estas indicaciones:\n- [Elemento 1]: usa el color [color especifico relacionado al tema]\n- [Elemento 2]: usa el color [color]\n- [Elemento 3]: usa el color [color]\n- [Elemento 4]: usa el color que prefieras\n- Fondo: decora como quieras\n\n### Pregunta de reflexion\n\nPregunta simple sobre el tema para responder mientras colorean.\n\n---\n\n## Lamina 2 — [Titulo de la variante creativa]\n\n**Tipo:** Libre y creativa\n**Nivel:** Intermedio — mayor detalle\n\n[GENERA: segundo dibujo diferente al primero sobre el mismo tema, mismo estilo de libro para colorear, trazo grueso negro, fondo blanco, sin relleno, solo contornos, escena con mas detalles y elementos para explorar creativamente]\n\n### Instrucciones para el alumno\n\nEsta lamina es tuya: usa los colores que sientas que van mejor. Agrega detalles que quieras: [sugerencias creativas relacionadas al tema]. Puedes escribir una palabra o titulo en el espacio de abajo.\n\n### Extension creativa\n\nSugerencia de actividad adicional: como convertir la lamina en una historia, mural o tarjeta.\n\n---\n\n## Instrucciones para el docente\n\n**Objetivo:** expresion artistica, psicomotricidad fina y conexion con el tema. **Uso de la Lamina 1:** cuando usar la dirigida (evaluacion, introduccion al tema). **Uso de la Lamina 2:** cuando usar la libre (cierre de unidad, expresion emocional). **Tiempo:** 15-20 min cada una. **Evaluacion:** indicadores observables durante la actividad. **Variante NEE:** como adaptar para alumnos con dificultad motriz (marcadores gruesos, plantillas de apoyo).' },
     ]
   }
 ];
@@ -7173,7 +7173,7 @@ function generarRecurso() {
 
   // Build the full prompt
   var fmtNote = _recState.formato === 'imprimible'
-    ? '\n\nFORMATO: Diseñado para IMPRIMIR en hoja A4. Incluye márgenes, instrucciones para el docente, indicaciones de recorte si aplica, y notas de uso físico.'
+    ? '\n\nFORMATO: Diseñado para IMPRIMIR en hoja A4. IMPORTANTE: usa SOLO formato markdown puro (encabezados #, listas -, negritas **). NUNCA escribas HTML, etiquetas como <div>, <br> ni código de programación. Incluye márgenes, instrucciones para el docente, indicaciones de recorte si aplica, y notas de uso físico.'
     : '\n\nFORMATO: Diseñado para uso DIGITAL (proyectar en pantalla o tablet). Sin márgenes de impresión. Pensado para interacción visual y lectura guiada.';
 
   var ctxCurso = CTX.cursos.size ? ' Curso: ' + [...CTX.cursos].join(', ') + '.' : '';
@@ -11552,10 +11552,10 @@ function renderDocsPanel() {
             <div class="doc-preview">${d.content.slice(0,150)}${d.content.length>150?'…':''}</div>
             <div class="doc-actions">
               <button class="doc-btn" onclick="openDocViewer(${i})">👁️ Ver completo</button>
-              <button class="doc-btn" onclick="copyDocByIndex(${i})">📋 Copiar</button>
               <button class="doc-btn" onclick="downloadDocByIndex(${i})">📄 PDF</button>
               <button class="doc-btn" onclick="openCalEventModal('','',encodeURIComponent(${JSON.stringify(d.title||'')}||'').replace(/%20/g,' '),'documento')">📅 Calendarizar</button>
               <button class="doc-btn" onclick="calShareDocByMail(${i})">📤 Compartir</button>
+              <button class="doc-btn" onclick="editDocNameByIndex(${i})">✏️ Editar</button>
               <button class="doc-btn danger" onclick="deleteDoc(${i})">🗑️ Eliminar</button>
             </div>
           </div>`).join('')
@@ -14234,9 +14234,13 @@ function renderMisDocs() {
           '<span style="font-size:11px;color:var(--text2);white-space:nowrap">' + fecha + '</span>' +
         '</div>' +
         '<div style="font-size:12px;color:var(--text2);line-height:1.5">' + preview + (preview.length >= 120 ? '…' : '') + '</div>' +
-        '<div style="display:flex;gap:8px;margin-top:4px">' +
-          '<button onclick="misDocsOpenDoc(' + JSON.stringify(d.title) + ',' + JSON.stringify(d.agentId) + ')" style="background:var(--accent2);color:#000;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer">Ver</button>' +
-          '<button onclick="misDocsCopyDoc(' + JSON.stringify(d.content||'') + ')" style="background:var(--surface);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer">Copiar</button>' +
+        '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">' +
+          '<button onclick="misDocsOpenDoc(' + JSON.stringify(d.title) + ',' + JSON.stringify(d.agentId) + ')" style="background:var(--accent2);color:#000;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer">👁️ Ver</button>' +
+          '<button class="doc-btn" onclick="misDocsPDF(' + JSON.stringify(d.id) + ',' + JSON.stringify(d.agentId) + ')">📄 PDF</button>' +
+          '<button class="doc-btn" onclick="misDocsCalendarizar(' + JSON.stringify(d.title||'') + ')">📅 Calendarizar</button>' +
+          '<button class="doc-btn" onclick="misDocsCompartir(' + JSON.stringify(d.id) + ',' + JSON.stringify(d.agentId) + ')">📤 Compartir</button>' +
+          '<button class="doc-btn" onclick="misDocsEditar(' + JSON.stringify(d.id) + ',' + JSON.stringify(d.agentId) + ',' + JSON.stringify(d.title||'') + ')">✏️ Editar</button>' +
+          '<button class="doc-btn danger" onclick="misDocsEliminar(' + JSON.stringify(d.id) + ',' + JSON.stringify(d.agentId) + ')">🗑️ Eliminar</button>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -14259,11 +14263,68 @@ function misDocsOpenDoc(title, agentId) {
   }
 }
 
-function misDocsCopyDoc(content) {
-  var text = content.replace(/<[^>]*>/g, '');
-  navigator.clipboard.writeText(text).then(function(){
-    showSaveToast('✅ Documento copiado al portapapeles');
-  });
+// ── EDITAR NOMBRE — panel agente (por índice) ────────────────
+function editDocNameByIndex(i) {
+  var docs = AGENT_STORE.getDocs(currentAgent.id);
+  var d = docs[i];
+  if (!d) return;
+  var nuevoNombre = prompt('Nuevo nombre del documento:', d.title || '');
+  if (nuevoNombre === null) return;
+  nuevoNombre = nuevoNombre.trim();
+  if (!nuevoNombre) { showSaveToast('⚠️ El nombre no puede estar vacío'); return; }
+  docs[i].title = nuevoNombre;
+  AGENT_STORE.saveDocs(currentAgent.id, docs);
+  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(currentAgent.id, nuevoNombre, docs[i].content, docs[i].id).catch(function(){});
+  showSaveToast('✅ Nombre actualizado');
+  renderDocsPanel();
+}
+
+// ── HELPERS Ver Mis Docs — operan por doc.id único ──────────
+function _misDocsFind(docId, agentId) {
+  var docs = AGENT_STORE.getDocs(agentId) || [];
+  return docs.find(function(d){ return d.id === docId; }) || null;
+}
+
+function misDocsPDF(docId, agentId) {
+  var d = _misDocsFind(docId, agentId);
+  if (d) exportDocToPDF(d.title || 'Documento', d.content || '', d.agentName || agentId, d.savedAt);
+}
+
+function misDocsCalendarizar(title) {
+  openCalEventModal('', '', title, 'documento');
+}
+
+function misDocsCompartir(docId, agentId) {
+  var d = _misDocsFind(docId, agentId);
+  if (!d) return;
+  var subj = encodeURIComponent('[LIAX] ' + (d.title || 'Documento'));
+  var body = encodeURIComponent('Hola,\n\nTe comparto este documento generado en LIAX:\n\n' + (d.content || '').replace(/<[^>]*>/g,'').slice(0, 500) + '\n\n— Enviado desde LIAX');
+  window.open('mailto:?subject=' + subj + '&body=' + body);
+}
+
+function misDocsEditar(docId, agentId, tituloActual) {
+  var nuevoNombre = prompt('Nuevo nombre del documento:', tituloActual || '');
+  if (nuevoNombre === null) return;
+  nuevoNombre = nuevoNombre.trim();
+  if (!nuevoNombre) { showSaveToast('⚠️ El nombre no puede estar vacío'); return; }
+  var docs = AGENT_STORE.getDocs(agentId) || [];
+  var idx = docs.findIndex(function(d){ return d.id === docId; });
+  if (idx === -1) return;
+  docs[idx].title = nuevoNombre;
+  AGENT_STORE.saveDocs(agentId, docs);
+  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(agentId, nuevoNombre, docs[idx].content, docId).catch(function(){});
+  showSaveToast('✅ Nombre actualizado');
+  renderMisDocs();
+}
+
+function misDocsEliminar(docId, agentId) {
+  var d = _misDocsFind(docId, agentId);
+  if (!confirm('¿Eliminar "' + (d ? d.title : 'este documento') + '"?')) return;
+  var docs = AGENT_STORE.getDocs(agentId) || [];
+  var restantes = docs.filter(function(x){ return x.id !== docId; });
+  AGENT_STORE.saveDocs(agentId, restantes);
+  showSaveToast('🗑️ Documento eliminado');
+  renderMisDocs();
 }
 
 // ── loadFromStorage: no-op — datos vienen de Supabase en _supaLoadPerfil ──
