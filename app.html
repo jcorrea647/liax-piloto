@@ -8132,35 +8132,41 @@ function liaxGenerateImagesInViewer(dvId, dvBody) {
 }
 
 function liaxGenerateSingleImage(el, prompt) {
-  var encodedPrompt = encodeURIComponent(
-    'Educational illustration, clean flat style, bright colors, white background, no text. Topic: ' + prompt
-  );
-  var imgUrl = 'https://image.pollinations.ai/prompt/' + encodedPrompt +
-    '?width=1024&height=768&model=flux&nologo=true&enhance=true&seed=' + Math.floor(Math.random()*99999);
-
-  var spinId = 'polspin_' + Date.now() + '_' + Math.floor(Math.random()*9999);
-  el.innerHTML =
-    '<div id="' + spinId + '" style="display:flex;align-items:center;gap:6px;padding:12px 14px;background:var(--surface2)">' +
-      '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
-      '<span style="font-size:11px;color:var(--muted);margin-left:4px">Generando imagen...</span>' +
-    '</div>' +
-    '<div style="padding:5px 12px;font-size:10px;color:var(--muted);background:var(--surface2);border-top:1px solid var(--border)">' +
-    prompt.slice(0,60) + ' · Pollinations AI</div>';
+  var caption = prompt.slice(0,60) + (prompt.length > 60 ? '...' : '');
   el.removeAttribute('data-genprompt');
+  el.style.cssText = 'margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)';
 
-  var img = new Image();
-  img.style.cssText = 'width:100%;display:block;border-radius:10px 10px 0 0';
-  img.onload = function() {
-    var spin = document.getElementById(spinId);
-    if (spin) spin.replaceWith(img);
-  };
-  img.onerror = function() {
-    var spin = document.getElementById(spinId);
-    if (spin) { spin.textContent = 'No se pudo generar la imagen'; }
-  };
-  img.src = imgUrl;
+  var spinEl = document.createElement('div');
+  spinEl.style.cssText = 'display:flex;align-items:center;gap:6px;padding:12px 14px;background:var(--surface2);font-size:11px;color:var(--muted)';
+  spinEl.innerHTML = '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span><span style="margin-left:4px">Generando imagen...</span>';
+
+  var captionEl = document.createElement('div');
+  captionEl.style.cssText = 'padding:5px 12px;font-size:10px;color:var(--muted);background:var(--surface2);border-top:1px solid var(--border)';
+  captionEl.textContent = '\uD83C\uDFA8 ' + caption + ' \u00b7 Together AI';
+
+  el.innerHTML = '';
+  el.appendChild(spinEl);
+  el.appendChild(captionEl);
+
+  fetch('https://liax-imagen.jcorrea-d04.workers.dev', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: prompt }),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) throw new Error(data.error);
+    var imgEl = document.createElement('img');
+    imgEl.style.cssText = 'width:100%;display:block;border-radius:10px 10px 0 0';
+    imgEl.alt = caption;
+    imgEl.onload = function() { spinEl.replaceWith(imgEl); };
+    imgEl.onerror = function() { spinEl.textContent = '\u26a0\ufe0f No se pudo cargar la imagen'; };
+    imgEl.src = data.url;
+  })
+  .catch(function(e) {
+    spinEl.textContent = '\u26a0\ufe0f ' + (e.message || 'Error generando imagen');
+  });
 }
-
 function closeModal(){
   var modal3 = document.getElementById('agentModal');
   var app3   = document.querySelector('.app');
@@ -17114,27 +17120,26 @@ async function handleGenerarImagen(containerId, prompt) {
   var wrap = document.getElementById(containerId);
   if (!wrap) return;
 
-  // ── Pollinations AI — sin key, sin CORS, gratis ──
-  var encodedPrompt = encodeURIComponent(
-    'Educational illustration, clean flat style, bright colors, white background, no text. Topic: ' + prompt
-  );
-  var polUrl = 'https://image.pollinations.ai/prompt/' + encodedPrompt +
-    '?width=1024&height=768&model=flux&nologo=true&enhance=true&seed=' + Math.floor(Math.random()*99999);
-  var imgId = 'gen_' + Date.now();
-  _liaxRenderImagenGenerada(wrap, containerId, imgId, polUrl, false, prompt, 'Pollinations AI', 'linear-gradient(135deg,#6366f1,#8b5cf6)');
-  return;
+  wrap.innerHTML =
+    '<div style="display:flex;align-items:center;gap:6px;padding:10px 14px;background:var(--surface2);border-radius:8px">' +
+    '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
+    '<span style="font-size:11px;color:var(--muted);margin-left:4px">\u2728 Generando imagen...</span></div>';
+
+  try {
+    var res = await fetch('https://liax-imagen.jcorrea-d04.workers.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt }),
+    });
+    var data = await res.json();
+    if (data.error) throw new Error(data.error);
+    var imgId = 'gen_' + Date.now();
+    _liaxRenderImagenGenerada(wrap, containerId, imgId, data.url, false, prompt, 'Together AI \u00b7 FLUX', 'linear-gradient(135deg,#f59e0b,#ef4444)');
+  } catch(e) {
+    wrap.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--accent3)">\u26a0\ufe0f ' + (e.message||'Error generando imagen') + '</div>';
+  }
 }
 
-
-function liaxImgOnload(img, spinId) {
-  var spin = document.getElementById(spinId);
-  if (spin) spin.style.display = 'none';
-  img.style.display = 'block';
-}
-function liaxImgOnerror(img, wrapId) {
-  var wrap = document.getElementById(wrapId);
-  if (wrap) wrap.innerHTML = '<div style="padding:12px;font-size:11px;color:var(--muted);text-align:center">No se pudo generar la imagen</div>';
-}
 
 function _liaxRenderImagenGenerada(wrap, containerId, imgId, src, isBase64, prompt, label, badgeGradient) {
   wrap.innerHTML =
