@@ -8828,7 +8828,7 @@ async function callTogether(payload) {
           : String(m.content));
     messages.push({ role: m.role, content: content });
   });
-  var res = await fetch('https://api.together.xyz/v1/chat/completions', {
+  var res = await fetch('https://api.together.ai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + togetherKey },
     body: JSON.stringify({ model: modelId, max_tokens: payload.max_tokens || 4000, temperature: 0.7, messages: messages }),
