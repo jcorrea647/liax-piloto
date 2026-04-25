@@ -11627,23 +11627,70 @@ async function downloadDoc() {
   if (!dvBody) return;
 
   // Check if this is a visual doc with generated images
-  var hasGeneratedImgs = dvBody.querySelector('img[data-together-url]');
+  var generatedImgs = dvBody.querySelectorAll('img[data-together-url]');
 
-  if (hasGeneratedImgs) {
-    // Use print dialog — browser handles images correctly
-    var printDiv = document.createElement('div');
-    printDiv.id = 'docViewerPrintArea';
-    printDiv.innerHTML =
-      '<h2 style="font-family:sans-serif;margin-bottom:16px">' + (viewingDoc.title||'Documento') + '</h2>' +
-      dvBody.innerHTML;
-    // Remove spinners and loading dots
-    printDiv.querySelectorAll('.loading-dot, [style*="loading"]').forEach(function(el){ el.remove(); });
-    document.body.appendChild(printDiv);
-    window.print();
-    setTimeout(function(){ printDiv.remove(); }, 1000);
-  } else {
-    await exportDocToPDF(viewingDoc.title, viewingDoc.content, viewingDoc.agentName || (currentAgent?.nombre||''), viewingDoc.savedAt);
+  if (generatedImgs.length > 0) {
+    showSaveToast('⏳ Preparando PDF con imágenes...');
+
+    // Helper: convert an img element src to base64 using canvas (CORS-safe)
+    function imgToBase64ViaCanvas(imgEl) {
+      return new Promise(function(resolve) {
+        var tempImg = new Image();
+        tempImg.crossOrigin = 'anonymous';
+        tempImg.onload = function() {
+          try {
+            var canvas = document.createElement('canvas');
+            canvas.width  = tempImg.naturalWidth  || 512;
+            canvas.height = tempImg.naturalHeight || 512;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(tempImg, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg', 0.92));
+          } catch(e) { resolve(null); }
+        };
+        tempImg.onerror = function() { resolve(null); };
+        tempImg.src = imgEl.getAttribute('data-together-url') || imgEl.src;
+      });
+    }
+
+    // Helper: fetch → base64 (may fail on CORS)
+    async function imgToBase64ViaFetch(imgEl) {
+      try {
+        var url = imgEl.getAttribute('data-together-url') || imgEl.src;
+        var response = await fetch(url, { mode: 'cors' });
+        var blob = await response.blob();
+        return await new Promise(function(res, rej) {
+          var reader = new FileReader();
+          reader.onload  = function(e) { res(e.target.result); };
+          reader.onerror = rej;
+          reader.readAsDataURL(blob);
+        });
+      } catch(e) { return null; }
+    }
+
+    var conversionPromises = Array.from(generatedImgs).map(async function(img) {
+      // Try canvas first (avoids CORS issues), then fetch as fallback
+      var b64 = await imgToBase64ViaCanvas(img);
+      if (!b64) b64 = await imgToBase64ViaFetch(img);
+      if (b64) {
+        img.src = b64;
+        img.removeAttribute('data-together-url');
+      } else {
+        // Image couldn't be converted — hide it so it doesn't break the PDF
+        img.style.display = 'none';
+        console.warn('[Liax] No se pudo convertir imagen para PDF');
+      }
+    });
+
+    await Promise.all(conversionPromises);
   }
+
+  // Always use the proper PDF export (works with and without images)
+  await exportDocToPDF(
+    viewingDoc.title,
+    viewingDoc.content,
+    viewingDoc.agentName || (currentAgent?.nombre || ''),
+    viewingDoc.savedAt
+  );
 }
 function copyDocByIndex(i) {
   const d = AGENT_STORE.getDocs(currentAgent.id)[i];
@@ -11855,8 +11902,37 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
   const svgPngMap = {};  // key: __SVGPDF_N__ → { dataUrl, mmH }
   let svgPdfIdx = 0;
   const rawForSvg = rawContent || '';
+
+  // ── PRE-EXTRACT Together AI images from the DOM viewer ──────
+  // downloadDoc() already converted DOM images to base64 before calling us.
+  // Build an ordered list of base64 images from the viewer DOM,
+  // then map them positionally to [GENERA:] markers in rawContent.
+  const imgPdfMap = {};  // key: __IMGPDF_N__ → base64 dataUrl
+  let imgPdfIdx = 0;
+  const dvBodyForImg = document.getElementById('dv-body');
+  // Only pick images that are already base64 (successfully converted)
+  const domImgsB64 = dvBodyForImg
+    ? Array.from(dvBodyForImg.querySelectorAll('img')).filter(function(img) {
+        return (img.src || '').startsWith('data:image');
+      })
+    : [];
+  let domImgCursor = 0;
+
+  const rawWithImgKeys = rawForSvg.replace(
+    /\[(?:GENERA|GENERAR|CREA|CREAR):\s*[^\]]+\]/gi,
+    function() {
+      const key = '__IMGPDF_' + (imgPdfIdx++) + '__';
+      if (domImgCursor < domImgsB64.length) {
+        imgPdfMap[key] = domImgsB64[domImgCursor].src;
+        domImgCursor++;
+      }
+      // Always emit the key so layout is preserved even if image failed
+      return '\n' + key + '\n';
+    }
+  );
+
   // Extract ```svg ... ``` blocks from the original (unclean) content
-  const svgPrepped = rawForSvg.replace(/```svg\s*([\s\S]*?)```/gi, function(_, svgCode) {
+  const svgPrepped = rawWithImgKeys.replace(/```svg\s*([\s\S]*?)```/gi, function(_, svgCode) {
     const key = '__SVGPDF_' + (svgPdfIdx++) + '__';
     svgPngMap[key] = { svgCode: svgCode.trim(), dataUrl: null, mmH: 60 };
     return '\n' + key + '\n';
@@ -11871,8 +11947,13 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
     }
   }));
 
-  const cleanedContent = _pdfCleanText(svgPrepped);
-  const rawLines = cleanedContent.split('\n');
+  // Apply _pdfCleanText line-by-line so image/SVG placeholder keys are never lost
+  const rawLines = svgPrepped.split('\n').map(function(line) {
+    const trimmed = line.trim();
+    // Never clean image or SVG placeholder keys — pass them through as-is
+    if (trimmed.startsWith('__IMGPDF_') || trimmed.startsWith('__SVGPDF_')) return trimmed;
+    return _pdfCleanText(line);
+  });
   let i = 0;
 
   // Track section index for alternating styles
@@ -12157,6 +12238,29 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
       const ww = doc.splitTextToSize(txt, pageW);
       ww.forEach(wl => { doc.text(wl, ML, y + 3.5); y += LINEH; });
       y += 2;
+      i++; continue;
+    }
+
+    // ── Together AI generated image (base64) ─────────────────
+    if (t.startsWith('__IMGPDF_')) {
+      const imgB64 = imgPdfMap[t];
+      if (imgB64) {
+        // Estimate image height: render at full page width, 4:3 aspect ratio max
+        const imgMmW = pageW;
+        const imgMmH = Math.min(Math.round(imgMmW * 0.6), 100);
+        need(imgMmH + 10);
+        // Small label
+        font(7.5, 'bold'); ink(C.teal);
+        doc.text('Imagen generada · Together AI', ML, y + 3);
+        y += 6;
+        need(imgMmH + 4);
+        try {
+          doc.addImage(imgB64, 'JPEG', ML, y, imgMmW, imgMmH);
+        } catch(e) {
+          try { doc.addImage(imgB64, 'PNG', ML, y, imgMmW, imgMmH); } catch(e2) { /* skip */ }
+        }
+        y += imgMmH + 6;
+      }
       i++; continue;
     }
 
