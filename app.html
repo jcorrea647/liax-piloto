@@ -3712,6 +3712,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
 
@@ -11809,75 +11810,106 @@ async function downloadDoc() {
   // viewingDoc puede estar en la variable local o en window.viewingDoc según el flujo
   if (!viewingDoc && window.viewingDoc) viewingDoc = window.viewingDoc;
   if (!viewingDoc) return;
+
   const dvBodyEl = document.getElementById('dv-body');
-  if (dvBodyEl && dvBodyEl.querySelectorAll('[data-generating]').length > 0) {
+  if (!dvBodyEl) return;
+
+  if (dvBodyEl.querySelectorAll('[data-generating]').length > 0) {
     showSaveToast('⏳ Imágenes IA aún cargándose... espera un momento y vuelve a intentar.');
     return;
   }
 
-  // CRÍTICO: abrir ventana ANTES de cualquier await para preservar el gesto del usuario.
-  // Chrome bloquea window.open() si se llama después de un await.
-  const win = window.open('', '_blank', 'width=860,height=1000');
-  if (!win) {
-    showSaveToast('ℹ️ Permite los popups para este sitio y vuelve a intentar.');
-    return;
+  // Verificar que html2canvas está disponible
+  if (typeof html2canvas === 'undefined') {
+    showSaveToast('⏳ Cargando herramienta de PDF...');
+    await new Promise(function(resolve) { setTimeout(resolve, 1500); });
+    if (typeof html2canvas === 'undefined') {
+      showSaveToast('❌ Error: html2canvas no disponible. Recarga la página.');
+      return;
+    }
   }
-  win.document.write('<html><body style="font-family:sans-serif;padding:40px;color:#555">⏳ Preparando PDF...</body></html>');
-  win.document.close();
 
-  const clone = document.createElement('div');
-  clone.innerHTML = dvBodyEl ? dvBodyEl.innerHTML : '';
-  clone.querySelectorAll('[data-generating],[data-genprompt],.loading-dot,.svg-diagram-btn,.svg-diagram-toolbar,.reply-field-wrap,.img-search-wrap').forEach(function(el){ el.remove(); });
-  // Remove raw backtick code fences that appear as plain text
-  clone.querySelectorAll('pre').forEach(function(el){
-    if (el.textContent.trim().indexOf('\x60\x60\x60') === 0 || el.textContent.trim() === '') el.remove();
-  });
-  // Eliminar captions de Together AI (el div con el prompt debajo de cada imagen)
-  clone.querySelectorAll('div').forEach(function(el) {
-    if (el.textContent && el.textContent.indexOf('Together AI') !== -1) el.remove();
-  });
-  clone.querySelectorAll('[style]').forEach(function(el) {
-    var s = el.getAttribute('style') || '';
-    s = s.replace(/[a-z-]+:\s*var\([^)]+\)[;]?\s*/gi, '');
-    if (s.trim()) el.setAttribute('style', s);
-    else el.removeAttribute('style');
-  });
-  // Transformar bloques ```...``` en tarjetas estilizadas para el PDF
-  // IMPORTANTE: guardar srcs de imágenes antes de reasignar innerHTML
-  (function transformCodeBlocks(container) {
-    // 1. Guardar data-b64 y src actuales de cada imagen con un índice
-    var imgs = Array.from(container.querySelectorAll('img'));
-    imgs.forEach(function(img, idx) {
-      img.setAttribute('data-imgidx', idx);
-      // Asegurarse que el atributo src refleja el valor actual
-      var currentSrc = img.getAttribute('src') || '';
-      var b64 = img.getAttribute('data-b64') || '';
-      if (b64) img.setAttribute('src', b64);
+  showSaveToast('⏳ Generando PDF...');
+
+  try {
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) { showSaveToast('❌ jsPDF no disponible.'); return; }
+
+    // Capturar el visor exactamente como se ve
+    const canvas = await html2canvas(dvBodyEl, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#fffdf5',
+      logging: false,
+      windowWidth: dvBodyEl.scrollWidth,
+      windowHeight: dvBodyEl.scrollHeight,
     });
 
-    // 2. Transformar el HTML (innerHTML serializa los atributos actualizados)
-    var html = container.innerHTML;
-    html = html.replace(/```([\s\S]*?)```/g, function(_, inner) {
-      var text = inner.trim();
-      if (!text) return '';
-      return '<div class="pdf-card">' + text.replace(/\n/g, '<br>') + '</div>';
-    });
-    html = html.replace(/```/g, '');
-    container.innerHTML = html;
-  })(clone);
+    const imgData   = canvas.toDataURL('image/jpeg', 0.92);
+    const pdfW      = 210;  // A4 mm
+    const pdfH      = 297;
+    const margin    = 12;
+    const contentW  = pdfW - margin * 2;
+    const contentH  = pdfH - margin * 2;
 
-  await _convertImgsToBase64(clone);
-  var _docente = (document.getElementById('topUserName')?.textContent || '').trim();
-  var _aulaEl  = document.getElementById('docenteBannerCursos');
-  var _aula    = _aulaEl ? _aulaEl.textContent.trim() : '';
-  await _printDocAsHTML(
-    viewingDoc.title,
-    clone.innerHTML,
-    viewingDoc.agentName || (currentAgent?.nombre || ''),
-    viewingDoc.savedAt,
-    win,
-    { docente: _docente, aula: _aula }
-  );
+    // Calcular altura total en mm
+    const imgPxW    = canvas.width;
+    const imgPxH    = canvas.height;
+    const mmPerPx   = contentW / imgPxW;
+    const totalMmH  = imgPxH * mmPerPx;
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const title  = viewingDoc.title || 'Documento';
+    const safe   = title.replace(/[^a-z0-9áéíóúñ\s]/gi, '_').trim();
+
+    // Añadir header en cada página
+    function addHeader(doc, pageNum, totalPages) {
+      doc.setFillColor(26, 58, 92);
+      doc.rect(0, 0, pdfW, 14, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('LIAX · Plataforma Educativa IA', margin, 9);
+      var _docente = (document.getElementById('topUserName')?.textContent || '').trim();
+      var _aulaEl  = document.getElementById('docenteBannerCursos');
+      var _aula    = _aulaEl ? _aulaEl.textContent.trim() : '';
+      var infoStr  = [_docente, _aula].filter(Boolean).join(' · ');
+      if (infoStr) doc.text(infoStr, pdfW / 2, 9, { align: 'center' });
+      doc.text(pageNum + ' / ' + totalPages, pdfW - margin, 9, { align: 'right' });
+    }
+
+    // Calcular número de páginas
+    var sliceH   = contentH;
+    var totalPages = Math.ceil(totalMmH / sliceH);
+
+    for (var page = 0; page < totalPages; page++) {
+      if (page > 0) doc.addPage();
+
+      // Slice de la imagen para esta página
+      var srcY   = page * (sliceH / mmPerPx);
+      var srcH   = Math.min(sliceH / mmPerPx, imgPxH - srcY);
+      var dstH   = srcH * mmPerPx;
+
+      // Crear canvas de la porción
+      var sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width  = imgPxW;
+      sliceCanvas.height = Math.round(srcH);
+      var ctx = sliceCanvas.getContext('2d');
+      ctx.drawImage(canvas, 0, srcY, imgPxW, srcH, 0, 0, imgPxW, srcH);
+      var sliceData = sliceCanvas.toDataURL('image/jpeg', 0.92);
+
+      addHeader(doc, page + 1, totalPages);
+      doc.addImage(sliceData, 'JPEG', margin, 16, contentW, dstH);
+    }
+
+    doc.save(safe + '.pdf');
+    showSaveToast('✅ PDF descargado correctamente.');
+
+  } catch(err) {
+    console.error('[Liax] Error generando PDF:', err);
+    showSaveToast('❌ Error generando PDF: ' + (err.message || err));
+  }
 }
 function copyDocByIndex(i) {
   const d = AGENT_STORE.getDocs(currentAgent.id)[i];
