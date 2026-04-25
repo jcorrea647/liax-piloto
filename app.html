@@ -11891,12 +11891,6 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
   let svgPdfIdx = 0;
   const rawForSvg = rawContent || '';
 
-  // ── PRE-EXTRACT Together AI images from the DOM viewer ──────
-  // downloadDoc() already converted DOM images to base64 before calling us.
-  // Build an ordered list of base64 images from the viewer DOM,
-  // then map them positionally to [GENERA:] markers in rawContent.
-  const imgPdfMap = {};  // key: __IMGPDF_N__ → base64 dataUrl
-  let imgPdfIdx = 0;
   // ── Include any base64 images already in the DOM viewer ─────
   const imgPdfMap = {};
   let imgPdfIdx = 0;
