@@ -6079,7 +6079,8 @@ async function exportDato(id, fmt) {
       <p>${meta}</p>
       ${tableHtml}
       ${rows.length > 20 ? `<p style="margin-top:10px;color:#999">... y ${rows.length-20} filas más</p>` : ''}
-    </div></body></html>`;
+    </div>
+</body></html>`;
     const blob = new Blob([html], { type: 'text/html' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
