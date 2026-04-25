@@ -8092,21 +8092,37 @@ function liaxOpenVisualDoc(dvId) {
   if (dvIcon)  dvIcon.textContent  = doc.icon || '\uD83D\uDCC4';
   if (dvTitle) dvTitle.textContent = doc.agent || 'Documento';
   if (dvMeta)  dvMeta.textContent  = 'Generado con Gemini \u00b7 Im\u00e1genes: Together AI FLUX';
+  // Step 1: extract GENERA prompts and replace with unique tokens BEFORE formatMsg
   var imgIdx = 0;
-  var textWithPlaceholders = doc.text.replace(
+  var _genPrompts = {};
+  var textTokenized = doc.text.replace(
     /\[(?:GENERA|GENERAR|CREA|CREAR):\s*([^\]]+)\]/gi,
     function(_, prompt) {
-      var pid = 'vdimg_' + dvId + '_' + (imgIdx++);
-      return '\n<div id="' + pid + '" data-genprompt="' + prompt.replace(/"/g, '&quot;') + '" ' +
-        'style="margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)">' +
-        '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2)">' +
-        '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
-        '<span style="font-size:11px;color:var(--muted);margin-left:4px">\u2728 Generando: <em>' + prompt.trim() + '</em></span>' +
-        '</div></div>\n';
+      var token = 'LIAX_IMG_TOKEN_' + dvId + '_' + (imgIdx++);
+      _genPrompts[token] = prompt.trim();
+      return token;
     }
   );
+
+  // Step 2: run formatMsg on the tokenized text (safe — tokens are plain text)
+  var rendered = formatMsg(textTokenized);
+
+  // Step 3: replace tokens in the rendered HTML with spinner divs
+  Object.keys(_genPrompts).forEach(function(token) {
+    var prompt = _genPrompts[token];
+    var pid = token; // use token as element id
+    var spinnerDiv =
+      '<div id="' + pid + '" data-genprompt="' + prompt.replace(/"/g, '&quot;') + '" ' +
+      'style="margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)">' +
+      '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2)">' +
+      '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
+      '<span style="font-size:11px;color:var(--muted);margin-left:4px">\u2728 Generando imagen...</span>' +
+      '</div></div>';
+    rendered = rendered.split(token).join(spinnerDiv);
+  });
+
   var dvBody = document.getElementById('dv-body');
-  dvBody.innerHTML = formatMsg(textWithPlaceholders);
+  dvBody.innerHTML = rendered;
   document.getElementById('docViewer').classList.add('open');
   liaxGenerateImagesInViewer(dvId, dvBody);
 }
