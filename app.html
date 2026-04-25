@@ -7728,7 +7728,11 @@ async function sendChat(){
              n.endsWith('.xlsx') || n.endsWith('.xls') ||
              n.endsWith('.csv') || n.endsWith('.pdf');
     });
-  if (_hasNumericFile) {
+  // Agente visual: forzar Gemini Pro para máxima calidad del documento
+  if (currentAgent && currentAgent.visual && !_hasNumericFile) {
+    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
+    _selectedTokens = 16000;
+  } else if (_hasNumericFile) {
     // Excel o PDF con datos — Claude Haiku temperatura 0 para máxima consistencia
     _selectedModel  = LIAX_MODELS['claude-haiku'].id;
     _selectedTokens = 8000;
@@ -7799,12 +7803,31 @@ async function sendChat(){
     const _fb    = data._fallback ? ' ↩' : '';
     const _pm    = { claude:{c:'#00b496',bg:'rgba(0,180,150,.1)',b:'rgba(0,180,150,.25)',l:'Claude Haiku'},
                      gemini:{c:'#4285f4',bg:'rgba(66,133,244,.15)',b:'rgba(66,133,244,.3)',l:'Gemini Flash'},
-                     openai:{c:'#10a37f',bg:'rgba(16,163,127,.12)',b:'rgba(16,163,127,.25)',l:'GPT-4o-mini'} };
+                     openai:{c:'#10a37f',bg:'rgba(16,163,127,.12)',b:'rgba(16,163,127,.25)',l:'GPT-4o-mini'},
+                     together:{c:'#f59e0b',bg:'rgba(245,158,11,.12)',b:'rgba(245,158,11,.3)',l:'Llama 3.3 70B'} };
     const _pi    = _pm[_prov] || _pm.claude;
     const _tl    = {simple:'💬',conversacion:'🗣',analisis:'🔍',creacion:'✏️',nee:'♿',socioemocional:'🤝',liderazgo:'🏛',recursos:'📊'};
     const _ti    = _task && _tl[_task] ? _tl[_task] + ' ' : '';
     const _provBadge = '<span style="font-size:8px;background:' + _pi.bg + ';color:' + _pi.c + ';border:1px solid ' + _pi.b + ';border-radius:10px;padding:1px 7px;margin-left:6px;font-weight:700;vertical-align:middle;white-space:nowrap">' + _ti + _pi.l + _fb + '</span>';
-    document.getElementById(lid).outerHTML = makeBubbleAI(formatMsg(reply), undefined, _provBadge);
+
+    // ── Agente visual: abrir visor de documento con imágenes progresivas ──
+    if (currentAgent && currentAgent.visual && /\[(?:GENERA|GENERAR|CREA|CREAR):/i.test(reply)) {
+      // Mostrar en chat burbuja con botón para abrir el visor
+      var _dvId = 'visdoc_' + Date.now();
+      document.getElementById(lid).outerHTML = makeBubbleAI(
+        '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;cursor:pointer" onclick="liaxOpenVisualDoc(\'' + _dvId + '\')">' +
+        '<span style="font-size:18px">📄</span>' +
+        '<div><div style="font-size:12px;font-weight:700">Documento generado con imágenes IA</div>' +
+        '<div style="font-size:10px;color:var(--muted)">Haz clic para abrir — las imágenes se generan con Together AI</div></div>' +
+        '<span style="margin-left:auto;font-size:16px">→</span></div>',
+        undefined, _provBadge
+      );
+      // Guardar contenido para el visor
+      window._liaxVisualDocs = window._liaxVisualDocs || {};
+      window._liaxVisualDocs[_dvId] = { text: reply, agent: currentAgent.nombre, icon: currentAgent.icon };
+    } else {
+      document.getElementById(lid).outerHTML = makeBubbleAI(formatMsg(reply), undefined, _provBadge);
+    }
   setTimeout(checkNiveles, 500);
   } catch(e){
     var _isLocalErr = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -7813,6 +7836,108 @@ async function sendChat(){
   area.scrollTop=area.scrollHeight;
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// LIAX VISUAL DOC — Visor de documento con imágenes progresivas
+// Flujo: Gemini genera texto → visor abre → Together genera imgs
+// ══════════════════════════════════════════════════════════════
+function liaxOpenVisualDoc(dvId) {
+  var doc = (window._liaxVisualDocs || {})[dvId];
+  if (!doc) return;
+
+  // Configurar header del visor
+  var dvIcon  = document.getElementById('dv-icon');
+  var dvTitle = document.getElementById('dv-title');
+  var dvMeta  = document.getElementById('dv-meta');
+  if (dvIcon)  dvIcon.textContent  = doc.icon || '📄';
+  if (dvTitle) dvTitle.textContent = doc.agent || 'Documento';
+  if (dvMeta)  dvMeta.textContent  = 'Generado con Gemini · Imágenes: Together AI FLUX';
+
+  // Convertir [GENERA: ...] en placeholders HTML antes de renderizar
+  var imgIdx = 0;
+  var textWithPlaceholders = doc.text.replace(
+    /\[(?:GENERA|GENERAR|CREA|CREAR):\s*([^\]]+)\]/gi,
+    function(_, prompt) {
+      var pid = 'vdimg_' + dvId + '_' + (imgIdx++);
+      // Guardamos el prompt en un atributo para recuperarlo después
+      return '\n<div id="' + pid + '" data-genprompt="' + prompt.replace(/"/g, '&quot;') + '" ' +
+        'style="margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)">' +
+        '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2)">' +
+        '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
+        '<span style="font-size:11px;color:var(--muted);margin-left:4px">✨ Generando imagen: <em>' + prompt.trim() + '</em></span>' +
+        '</div></div>\n';
+    }
+  );
+
+  // Renderizar texto en el visor
+  var dvBody = document.getElementById('dv-body');
+  dvBody.innerHTML = formatMsg(textWithPlaceholders);
+
+  // Abrir visor
+  document.getElementById('docViewer').classList.add('open');
+
+  // Lanzar generación de imágenes en paralelo (progresiva)
+  liaxGenerateImagesInViewer(dvId, dvBody);
+}
+
+async function liaxGenerateImagesInViewer(dvId, dvBody) {
+  var togetherKey = getTogetherKey();
+  if (!togetherKey) {
+    // Sin key: dejar spinners como están (ya se ven)
+    console.warn('[VisualDoc] Sin Together key — imágenes no generadas');
+    return;
+  }
+
+  // Recoger todos los placeholders
+  var placeholders = dvBody.querySelectorAll('[data-genprompt]');
+  if (!placeholders.length) return;
+
+  // Lanzar todas en paralelo — cada una actualiza su propio placeholder al resolver
+  Array.from(placeholders).forEach(function(el) {
+    var prompt = el.getAttribute('data-genprompt');
+    liaxGenerateSingleImage(el, prompt, togetherKey);
+  });
+}
+
+async function liaxGenerateSingleImage(el, prompt, togetherKey) {
+  try {
+    var res = await fetch('https://api.together.ai/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + togetherKey,
+      },
+      body: JSON.stringify({
+        model:           'black-forest-labs/FLUX.1-schnell-Free',
+        prompt:          'Educational illustration, clean style, bright colors, white background, no text. Topic: ' + prompt,
+        width:           1024,
+        height:          768,
+        steps:           4,
+        n:               1,
+        response_format: 'url',
+      }),
+    });
+
+    if (!res.ok) throw new Error('Together error ' + res.status);
+    var data = await res.json();
+    var imgUrl = data.data && data.data[0] && data.data[0].url;
+    if (!imgUrl) throw new Error('Sin URL');
+
+    // Reemplazar spinner con imagen real
+    el.innerHTML =
+      '<img src="' + imgUrl + '" alt="' + prompt + '" ' +
+      'style="width:100%;display:block;border-radius:10px" ' +
+      'onerror="this.parentElement.innerHTML=\'<div style=&quot;padding:10px;font-size:11px;color:var(--muted);text-align:center&quot;>⚠️ No se pudo cargar la imagen</div>\'">' +
+      '<div style="padding:6px 12px;font-size:10px;color:var(--muted);background:var(--surface2);border-top:1px solid var(--border)">' +
+      '🎨 ' + prompt + ' · Together AI FLUX</div>';
+    el.removeAttribute('data-genprompt');
+
+  } catch(e) {
+    el.innerHTML =
+      '<div style="padding:10px 14px;font-size:11px;color:var(--accent3);background:rgba(255,107,107,.06)">' +
+      '⚠️ No se pudo generar imagen: ' + e.message + '</div>';
+  }
+}
 
 function closeModal(){
   var modal3 = document.getElementById('agentModal');
@@ -7970,6 +8095,8 @@ const LIAX_MODELS = {
   // OpenAI
   'gpt4o-mini':    { id:'gpt-4o-mini',                  provider:'openai', label:'GPT-4o mini',        cost:1,  icon:'🟢', color:'#10a37f', desc:'Económico, rápido para texto y resúmenes' },
   'gpt4o':         { id:'gpt-4o',                       provider:'openai', label:'GPT-4o',             cost:3,  icon:'🟢', color:'#0ea47a', desc:'Poderoso para análisis, código y razonamiento' },
+  // Together AI
+  'together-llama': { id:'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', provider:'together', label:'Llama 3.3 70B (Free)', cost:0, icon:'🟡', color:'#f59e0b', desc:'Llama 3.3 70B gratuito vía Together AI' },
 };
 
 // ── Defaults por tipo de tarea (optimizado costo/calidad) ─────
@@ -8464,15 +8591,71 @@ async function callClaudeDirect(payload) {
 }
 
 // ── LLAMADA IA — simple y estable ────────────────────────────
+async function callTogether(payload) {
+  var togetherKey = getTogetherKey();
+  if (!togetherKey) throw new Error('Configura tu API Key de Together AI en Ajustes');
+
+  var modelId = LIAX_MODELS['together-llama'].id;
+  var messages = [];
+
+  // System prompt como primer mensaje de sistema
+  if (payload.system) {
+    messages.push({ role: 'system', content: payload.system });
+  }
+  // Historial de mensajes — Together usa formato OpenAI
+  (payload.messages || []).forEach(function(m) {
+    var content = typeof m.content === 'string' ? m.content
+      : (Array.isArray(m.content)
+          ? m.content.filter(function(b){ return b.type === 'text'; }).map(function(b){ return b.text; }).join('\n')
+          : String(m.content));
+    messages.push({ role: m.role, content: content });
+  });
+
+  var res = await fetch('https://api.together.xyz/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + togetherKey,
+    },
+    body: JSON.stringify({
+      model:       modelId,
+      max_tokens:  payload.max_tokens || 4000,
+      temperature: 0.7,
+      messages:    messages,
+    }),
+  });
+
+  if (!res.ok) {
+    var errText = await res.text().catch(function(){ return res.status; });
+    throw new Error('Together AI error ' + res.status + ': ' + errText);
+  }
+
+  var data = await res.json();
+  var text = data.choices?.[0]?.message?.content || 'Sin respuesta de Together AI';
+  return {
+    content: [{ type: 'text', text: text }],
+    _provider: 'together',
+    _task: 'conversacion',
+  };
+}
+
 async function callClaude(payload) {
   var modelId = payload.model || LIAX_MODELS['claude-haiku'].id;
-  var isGemini = modelId.includes('gemini');
-  var isClaude = modelId.includes('claude');
+  var isGemini  = modelId.includes('gemini');
+  var isClaude  = modelId.includes('claude');
+  var isTogether = modelId.includes('meta-llama') || modelId.includes('together') ||
+                   (currentAgent && currentAgent.togetherLLM);
+
+  // Si el agente tiene togetherLLM activado, forzar modelo Together
+  if (currentAgent && currentAgent.togetherLLM) {
+    modelId = LIAX_MODELS['together-llama'].id;
+    isTogether = true; isGemini = false; isClaude = false;
+  }
 
   // Derive modelKey for display
   var modelKey = Object.keys(LIAX_MODELS).find(function(k){
     return LIAX_MODELS[k].id === modelId;
-  }) || (isGemini ? 'gemini-pro' : 'claude-haiku');
+  }) || (isGemini ? 'gemini-pro' : isTogether ? 'together-llama' : 'claude-haiku');
 
   // Show model badge
   var meta = LIAX_MODELS[modelKey] || {};
@@ -8482,7 +8665,9 @@ async function callClaude(payload) {
   var result;
 
   try {
-    if (isGemini) {
+    if (isTogether) {
+      result = await callTogether(payload);
+    } else if (isGemini) {
       result = await callGemini(payload);
     } else {
       result = await callClaudeDirect(payload);
@@ -9407,6 +9592,16 @@ function renderSAAgentGrid(){
           ${a.visual?'✅ Activado':'○ Desactivado'}
         </button>
       </div>
+      <!-- Flag: LLM Together AI -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:6px 10px;background:var(--surface2);border-radius:7px;border:1px solid var(--border)">
+        <span style="font-size:11px;flex:1;color:var(--text)">🤖 LLM Together AI (Llama 3.3)</span>
+        <button onclick="saToggleTogetherAgent('${a.id}',this)"
+          style="font-size:10px;padding:2px 10px;border-radius:10px;border:none;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:700;transition:all .15s;
+                 background:${a.togetherLLM?'#f59e0b':'var(--border)'};color:${a.togetherLLM?'#fff':'var(--muted)'}"
+          data-together="${a.togetherLLM?'1':'0'}">
+          ${a.togetherLLM?'✅ Activado':'○ Desactivado'}
+        </button>
+      </div>
       <div style="display:flex;gap:5px">
         <button class="btn btn-outline" style="font-size:10px;flex:1" onclick="openNewAgent('${a.id}')">✏️ Editar</button>
         ${a.custom?`<button class="btn btn-outline" style="font-size:10px;color:var(--accent3);border-color:var(--accent3)33" onclick="deleteAgent('${a.id}')">✕</button>`:''}
@@ -9438,6 +9633,31 @@ function saToggleVisualAgent(agentId, btn) {
   showSaveToast(agent.visual
     ? '🎨 Imágenes IA activadas para "' + agent.nombre + '"'
     : '○ Imágenes IA desactivadas para "' + agent.nombre + '"'
+  );
+}
+
+function saToggleTogetherAgent(agentId, btn) {
+  var agent = AGENTS.find(function(a){ return a.id === agentId; });
+  if (!agent) return;
+  agent.togetherLLM = !agent.togetherLLM;
+  btn.setAttribute('data-together', agent.togetherLLM ? '1' : '0');
+  btn.style.background = agent.togetherLLM ? '#f59e0b' : 'var(--border)';
+  btn.style.color      = agent.togetherLLM ? '#fff'    : 'var(--muted)';
+  btn.textContent      = agent.togetherLLM ? '✅ Activado' : '○ Desactivado';
+  // Persistir en Supabase
+  if (agent.custom && typeof _supaSaveAgente === 'function') {
+    _supaSaveAgente(agent).catch(function(){});
+  }
+  if (_supa && _supaUser) {
+    var key = 'together_flag_' + agentId;
+    _supa.from('config').upsert(
+      { key: key, value: agent.togetherLLM ? '1' : '0', updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    ).catch(function(){});
+  }
+  showSaveToast(agent.togetherLLM
+    ? '🤖 Together AI LLM activado para "' + agent.nombre + '"'
+    : '○ Together AI LLM desactivado para "' + agent.nombre + '"'
   );
 }
 
@@ -34687,16 +34907,20 @@ async function _supaLoadVisualFlags() {
   try {
     var { data } = await _supa.from('config')
       .select('key,value')
-      .like('key', 'visual_flag_%');
+      .or('key.like.visual_flag_%,key.like.together_flag_%');
     if (!data || !data.length) return;
     data.forEach(function(row) {
-      var agentId = row.key.replace('visual_flag_', '');
-      var agent = AGENTS.find(function(a){ return a.id === agentId; });
-      if (agent) {
-        agent.visual = row.value === '1';
+      if (row.key.startsWith('visual_flag_')) {
+        var agentId = row.key.replace('visual_flag_', '');
+        var agent = AGENTS.find(function(a){ return a.id === agentId; });
+        if (agent) agent.visual = row.value === '1';
+      } else if (row.key.startsWith('together_flag_')) {
+        var agentId = row.key.replace('together_flag_', '');
+        var agent = AGENTS.find(function(a){ return a.id === agentId; });
+        if (agent) agent.togetherLLM = row.value === '1';
       }
     });
-    console.log('[LIAX] Visual flags cargados:', data.length);
+    console.log('[LIAX] Visual/Together flags cargados:', data.length);
   } catch(e) { console.warn('[LIAX] Error cargando visual flags:', e.message); }
 }
 
