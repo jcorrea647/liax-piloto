@@ -8118,6 +8118,19 @@ function liaxOpenVisualDoc(dvId) {
 
   var dvBody = document.getElementById('dv-body');
   dvBody.innerHTML = rendered;
+
+  // Set viewingDoc so PDF download works
+  window.viewingDoc = {
+    title:     doc.agent || 'Documento',
+    content:   doc.text,
+    agentName: doc.agent || '',
+    savedAt:   new Date().toISOString(),
+  };
+
+  // Show continue button
+  var continueBtn = document.getElementById('dvContinuarBtn');
+  if (continueBtn) continueBtn.style.display = 'none';
+
   document.getElementById('docViewer').classList.add('open');
   // Small delay to ensure DOM is painted before querying
   setTimeout(function() { liaxGenerateImagesInViewer(dvId, dvBody); }, 50);
@@ -8159,6 +8172,7 @@ function liaxGenerateSingleImage(el, prompt) {
     var imgEl = document.createElement('img');
     imgEl.style.cssText = 'width:100%;display:block;border-radius:10px 10px 0 0';
     imgEl.alt = caption;
+    imgEl.setAttribute('data-together-url', data.url);
     imgEl.onload = function() { spinEl.replaceWith(imgEl); };
     imgEl.onerror = function() { spinEl.textContent = '\u26a0\ufe0f No se pudo cargar la imagen'; };
     imgEl.src = data.url;
@@ -11597,6 +11611,29 @@ function closeDocViewer() { document.getElementById('docViewer').classList.remov
 function copyDoc() { if(viewingDoc) navigator.clipboard.writeText(viewingDoc.content).then(()=>showSaveToast('✅ Copiado al portapapeles')); }
 async function downloadDoc() {
   if (!viewingDoc) return;
+  showSaveToast('\u23F3 Preparando PDF...');
+
+  // Convert any Together AI images in the viewer to base64 first
+  var dvBody = document.getElementById('dv-body');
+  if (dvBody) {
+    var imgEls = dvBody.querySelectorAll('img[data-together-url]');
+    await Promise.all(Array.from(imgEls).map(function(img) {
+      return fetch('https://liax-imagen.jcorrea-d04.workers.dev/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: img.getAttribute('data-together-url') }),
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.base64) {
+          img.src = 'data:image/jpeg;base64,' + d.base64;
+          img.setAttribute('data-b64', '1');
+        }
+      })
+      .catch(function(){});
+    }));
+  }
+
   await exportDocToPDF(viewingDoc.title, viewingDoc.content, viewingDoc.agentName || (currentAgent?.nombre||''), viewingDoc.savedAt);
 }
 function copyDocByIndex(i) {
