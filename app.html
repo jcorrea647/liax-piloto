@@ -11694,7 +11694,7 @@ async function _convertImgsToBase64(container) {
   }));
 }
 
-async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin) {
+async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin, docenteInfo) {
   const dateStr = savedAt
     ? new Date(savedAt).toLocaleDateString('es-CL', {day:'2-digit', month:'long', year:'numeric'})
     : new Date().toLocaleDateString('es-CL');
@@ -11727,6 +11727,8 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin)
     '.hdr-badge{background:#00e5c0;color:#1a3a5c;font-size:9px;font-weight:800;padding:3px 10px;border-radius:20px;}',
     '.doc-title{font-size:26px;font-weight:900;color:#1a3a5c;text-align:center;text-transform:uppercase;letter-spacing:1px;border:4px solid #e8a020;border-radius:16px;padding:14px 20px;margin-bottom:6px;background:linear-gradient(135deg,#fff9e6,#fff3cc);box-shadow:0 3px 0 #e8a020;}',
     '.doc-meta{font-size:11px;color:#888;text-align:center;margin-bottom:18px;font-style:italic;}',
+    '.doc-info{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:18px;padding:10px 16px;background:#f0f4ff;border-radius:10px;border:1.5px solid #b8c8f0;}',
+    '.doc-info-item{font-size:13px;font-weight:700;color:#1a3a5c;padding:3px 10px;background:#fff;border-radius:20px;border:1px solid #b8c8f0;}',
     '.content{line-height:2.1;font-size:16px;}',
     '.content h1{font-size:22px;font-weight:900;color:#1a3a5c;text-align:center;text-transform:uppercase;border:3px solid #e8a020;border-radius:12px;padding:10px 16px;margin:18px 0 12px;background:#fff9e6;letter-spacing:.5px;}',
     '.content h2{font-size:18px;font-weight:800;color:#c0392b;margin:16px 0 8px;border-left:5px solid #e8a020;background:#fff9e6;border-radius:0 8px 8px 0;padding:8px 12px;}',
@@ -11745,6 +11747,22 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin)
     '.content tr:nth-child(even) td{background:#fff9e6;}',
     '.ftr{margin-top:20px;padding-top:10px;border-top:2px dashed #e8a020;display:flex;justify-content:space-between;font-size:10px;color:#888;font-style:italic;}',
     '.loading-dot,[data-generating],[data-genprompt]{display:none!important;}',
+   
+    '.msg-h2{font-size:20px;font-weight:900;color:#1a3a5c;text-transform:uppercase;border:3px solid #e8a020;border-radius:12px;padding:10px 16px;margin:18px 0 12px;background:#fff9e6;letter-spacing:.5px;display:block;}',
+    '.msg-h3{font-size:17px;font-weight:800;color:#c0392b;border-left:5px solid #e8a020;background:#fff9e6;border-radius:0 8px 8px 0;padding:8px 12px;margin:14px 0 8px;display:block;}',
+    '.msg-hr{border:none;border-top:2px dashed #e8a020;margin:14px 0;}',
+    '.msg-bullet{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:16px;line-height:2;}',
+    '.msg-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#e8a020;margin-top:8px;flex-shrink:0;}',
+    '.msg-num{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#1a3a5c;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;margin-top:4px;}',
+    '.msg-table-wrap{margin:14px 0;overflow:hidden;border-radius:10px;border:2px solid #e8a020;}',
+    '.msg-table{width:100%;border-collapse:collapse;font-size:15px;}',
+    '.msg-table th{background:#1a3a5c;color:#fff;font-weight:700;padding:9px 12px;text-align:left;}',
+    '.msg-table td{padding:8px 12px;border-top:1px solid #e8d5a0;vertical-align:top;}',
+    '.msg-table tr:nth-child(even) td{background:#fff9e6;}',
+   
+    '.reply-field-wrap,.svg-diagram-btn,.svg-diagram-toolbar,.img-search-wrap{display:none!important;}',
+   
+    'pre{display:none!important;}',
     '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
   ].join('');
   var html = '<!DOCTYPE html>' +
@@ -11752,12 +11770,16 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin)
     '<title>' + safeTitle + '</title>' +
     '<style>' + css + '</style>' +
     '</head><body>' +
-    '<div class="hdr"><div>' +
+    '<div class="hdr"><div style="display:flex;align-items:center;gap:10px">' +
     '<div class="hdr-logo">Li<span>ax</span></div>' +
     '<div class="hdr-date">Plataforma Educativa IA &middot; ' + dateStr + '</div>' +
     '</div><div class="hdr-badge">' + safeAgent + '</div></div>' +
     '<div class="doc-title">' + safeTitle + '</div>' +
-    '<div class="doc-meta">' + safeAgentMeta + ' &middot; ' + dateStr + '</div>' +
+    '<div class="doc-info">' +
+      (docenteInfo && docenteInfo.docente ? '<span class="doc-info-item">👩‍🏫 ' + docenteInfo.docente + '</span>' : '') +
+      (docenteInfo && docenteInfo.aula    ? '<span class="doc-info-item">🏫 ' + docenteInfo.aula    + '</span>' : '') +
+      '<span class="doc-info-item">📅 ' + dateStr + '</span>' +
+    '</div>' +
     '<div class="content">' + (bodyHTML || '') + '<div style="clear:both"></div></div>' +
     '<div class="ftr"><span>Generado por Liax &middot; Plataforma Educativa IA</span><span>' + dateStr + '</span></div>' +
     printScript +
@@ -11804,7 +11826,15 @@ async function downloadDoc() {
 
   const clone = document.createElement('div');
   clone.innerHTML = dvBodyEl ? dvBodyEl.innerHTML : '';
-  clone.querySelectorAll('[data-generating],[data-genprompt],.loading-dot,.svg-diagram-btn').forEach(function(el){ el.remove(); });
+  clone.querySelectorAll('[data-generating],[data-genprompt],.loading-dot,.svg-diagram-btn,.svg-diagram-toolbar,.reply-field-wrap,.img-search-wrap').forEach(function(el){ el.remove(); });
+  // Remove raw backtick code fences that appear as plain text
+  clone.querySelectorAll('pre').forEach(function(el){
+    if (el.textContent.trim().indexOf('\x60\x60\x60') === 0 || el.textContent.trim() === '') el.remove();
+  });
+  // Eliminar captions de Together AI (el div con el prompt debajo de cada imagen)
+  clone.querySelectorAll('div').forEach(function(el) {
+    if (el.textContent && el.textContent.indexOf('Together AI') !== -1) el.remove();
+  });
   clone.querySelectorAll('[style]').forEach(function(el) {
     var s = el.getAttribute('style') || '';
     s = s.replace(/[a-z-]+:\s*var\([^)]+\)[;]?\s*/gi, '');
@@ -11812,12 +11842,16 @@ async function downloadDoc() {
     else el.removeAttribute('style');
   });
   await _convertImgsToBase64(clone);
+  var _docente = (document.getElementById('topUserName')?.textContent || '').trim();
+  var _aulaEl  = document.getElementById('docenteBannerCursos');
+  var _aula    = _aulaEl ? _aulaEl.textContent.trim() : '';
   await _printDocAsHTML(
     viewingDoc.title,
     clone.innerHTML,
     viewingDoc.agentName || (currentAgent?.nombre || ''),
     viewingDoc.savedAt,
-    win
+    win,
+    { docente: _docente, aula: _aula }
   );
 }
 function copyDocByIndex(i) {
