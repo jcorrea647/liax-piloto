@@ -6955,13 +6955,18 @@ function _buildChatView() {
       '+ Agregar mi propia pregunta' +
     '</button>';
 
+  var isV1 = currentAgent.id === 'v1';
+
   var welcomeScreen =
-    '<div id="agentWelcomeScreen" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:28px 16px 12px">' +
+    '<div id="agentWelcomeScreen" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:20px 16px 12px">' +
       '<div class="agent-welcome-icon">' + currentAgent.icon + '</div>' +
       '<div class="agent-welcome-title">' + currentAgent.nombre + '</div>' +
-      '<div class="agent-welcome-sub">¿Qué quieres hacer hoy?</div>' +
-      '<div class="agent-q-grid">' + gridCards + '</div>' +
-      (currentAgent.id === 'v1' ? buildRecursoSelector() : '') +
+      (isV1
+        ? '<div class="agent-welcome-sub">Elige el tipo de recurso, formato y tema</div>' +
+          buildRecursoSelector()
+        : '<div class="agent-welcome-sub">¿Qué quieres hacer hoy?</div>' +
+          '<div class="agent-q-grid">' + gridCards + '</div>'
+      ) +
       (customQs.length
         ? '<div id="aqCustomGrid" style="width:100%;max-width:680px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:7px">' + customCards + '</div>'
         : '') +
