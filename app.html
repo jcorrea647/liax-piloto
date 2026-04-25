@@ -7575,27 +7575,17 @@ async function sendChat(){
   var _visualInstr = '';
   if (currentAgent.visual) {
     _visualInstr = '\n\n=== GENERACIÓN DE IMÁGENES (Together AI · FLUX) ===\n' +
-      'Tienes capacidad de generar hasta 10 imágenes por documento. Todas se generan EN PARALELO, así que puedes usarlas libremente sin penalizar el tiempo.\n\n' +
-      'CÓMO ESCRIBIR EL MARCADOR:\n' +
-      '  [GENERA: <descripción detallada en inglés>]\n\n' +
-      'REGLAS PARA LA DESCRIPCIÓN (crítico para calidad):\n' +
+      'Tienes capacidad de generar hasta 10 imágenes por documento. Todas se generan EN PARALELO, así que úsalas libremente.\n\n' +
+      'CÓMO ESCRIBIR EL MARCADOR: [GENERA: descripción detallada en inglés]\n\n' +
+      'REGLAS PARA LA DESCRIPCIÓN:\n' +
       '• Siempre en inglés\n' +
-      '• Incluir: qué se ve, colores, estilo, fondo, composición\n' +
+      '• Incluir: qué se ve, colores, estilo, composición\n' +
       '• Terminar siempre con: educational illustration, flat style, white background, no text\n' +
       '• Ser MUY específico con objetos, cantidades y características visuales\n\n' +
-      'EJEMPLOS DE BUENAS DESCRIPCIONES:\n' +
-      '  Usuario dice "pelotas de distintos tamaños" →\n' +
-      '  [GENERA: three rubber balls side by side, small red ball on left, medium blue ball in center, large yellow ball on right, size comparison clearly visible, educational illustration, flat style, white background, no text]\n\n' +
-      '  Usuario dice "ciclo del agua" →\n' +
-      '  [GENERA: water cycle diagram showing evaporation from ocean, clouds forming, rain falling on mountains, river flowing back to sea, arrows indicating direction, blue and green color palette, educational illustration, flat style, white background, no text]\n\n' +
-      '  Usuario dice "las vocales" →\n' +
-      '  [GENERA: five colorful letters A E I O U arranged in a row, each letter in a different bright color, large bold friendly font, one simple object per vowel beneath each letter, educational illustration, flat style, white background, no text]\n\n' +
-      'CUÁNDO USAR IMÁGENES:\n' +
-      '• Una imagen por sección temática del documento\n' +
-      '• Siempre que el concepto sea visual o manipulativo\n' +
-      '• Para ilustrar pasos de una actividad\n' +
-      '• Para mostrar comparaciones, tamaños, formas, cantidades\n' +
-      '• Máximo 10 imágenes por documento\n' +
+      'EJEMPLOS:\n' +
+      '  "pelotas de distintos tamaños" \u2192 [GENERA: three rubber balls side by side, small red ball left, medium blue ball center, large yellow ball right, size comparison visible, educational illustration, flat style, white background, no text]\n' +
+      '  "ciclo del agua" \u2192 [GENERA: water cycle diagram showing evaporation from ocean, clouds forming, rain falling on mountains, river flowing to sea, arrows showing direction, blue green palette, educational illustration, flat style, white background, no text]\n\n' +
+      'CUÁNDO USAR: una imagen por sección temática, para conceptos visuales, comparaciones, pasos de actividad. Máximo 10 por documento.\n' +
       '=== FIN INSTRUCCIÓN IMÁGENES ===';
   }
 
@@ -7743,11 +7733,7 @@ async function sendChat(){
              n.endsWith('.xlsx') || n.endsWith('.xls') ||
              n.endsWith('.csv') || n.endsWith('.pdf');
     });
-  // Agente visual: forzar Gemini Pro para máxima calidad del documento
-  if (currentAgent && currentAgent.visual && !_hasNumericFile) {
-    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
-    _selectedTokens = 16000;
-  } else if (_hasNumericFile) {
+  if (_hasNumericFile) {
     // Excel o PDF con datos — Claude Haiku temperatura 0 para máxima consistencia
     _selectedModel  = LIAX_MODELS['claude-haiku'].id;
     _selectedTokens = 8000;
@@ -7824,20 +7810,17 @@ async function sendChat(){
     const _tl    = {simple:'💬',conversacion:'🗣',analisis:'🔍',creacion:'✏️',nee:'♿',socioemocional:'🤝',liderazgo:'🏛',recursos:'📊'};
     const _ti    = _task && _tl[_task] ? _tl[_task] + ' ' : '';
     const _provBadge = '<span style="font-size:8px;background:' + _pi.bg + ';color:' + _pi.c + ';border:1px solid ' + _pi.b + ';border-radius:10px;padding:1px 7px;margin-left:6px;font-weight:700;vertical-align:middle;white-space:nowrap">' + _ti + _pi.l + _fb + '</span>';
-
-    // ── Agente visual: abrir visor de documento con imágenes progresivas ──
+    // Agente visual con imágenes: abrir visor de documento
     if (currentAgent && currentAgent.visual && /\[(?:GENERA|GENERAR|CREA|CREAR):/i.test(reply)) {
-      // Mostrar en chat burbuja con botón para abrir el visor
       var _dvId = 'visdoc_' + Date.now();
       document.getElementById(lid).outerHTML = makeBubbleAI(
         '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;cursor:pointer" onclick="liaxOpenVisualDoc(\'' + _dvId + '\')">' +
-        '<span style="font-size:18px">📄</span>' +
-        '<div><div style="font-size:12px;font-weight:700">Documento generado con imágenes IA</div>' +
-        '<div style="font-size:10px;color:var(--muted)">Haz clic para abrir — las imágenes se generan con Together AI</div></div>' +
-        '<span style="margin-left:auto;font-size:16px">→</span></div>',
+        '<span style="font-size:18px">\uD83D\uDCC4</span>' +
+        '<div><div style="font-size:12px;font-weight:700">Documento generado con im\u00e1genes IA</div>' +
+        '<div style="font-size:10px;color:var(--muted)">Clic para abrir — im\u00e1genes generadas con Together AI FLUX</div></div>' +
+        '<span style="margin-left:auto;font-size:16px">\u2192</span></div>',
         undefined, _provBadge
       );
-      // Guardar contenido para el visor
       window._liaxVisualDocs = window._liaxVisualDocs || {};
       window._liaxVisualDocs[_dvId] = { text: reply, agent: currentAgent.nombre, icon: currentAgent.icon };
     } else {
@@ -7852,65 +7835,43 @@ async function sendChat(){
 }
 
 
-// ══════════════════════════════════════════════════════════════
-// LIAX VISUAL DOC — Visor de documento con imágenes progresivas
-// Flujo: Gemini genera texto → visor abre → Together genera imgs
-// ══════════════════════════════════════════════════════════════
+// ── LIAX VISUAL DOC — visor con imágenes progresivas ─────────
 function liaxOpenVisualDoc(dvId) {
   var doc = (window._liaxVisualDocs || {})[dvId];
   if (!doc) return;
-
-  // Configurar header del visor
   var dvIcon  = document.getElementById('dv-icon');
   var dvTitle = document.getElementById('dv-title');
   var dvMeta  = document.getElementById('dv-meta');
-  if (dvIcon)  dvIcon.textContent  = doc.icon || '📄';
+  if (dvIcon)  dvIcon.textContent  = doc.icon || '\uD83D\uDCC4';
   if (dvTitle) dvTitle.textContent = doc.agent || 'Documento';
-  if (dvMeta)  dvMeta.textContent  = 'Generado con Gemini · Imágenes: Together AI FLUX';
-
-  // Convertir [GENERA: ...] en placeholders HTML antes de renderizar
+  if (dvMeta)  dvMeta.textContent  = 'Generado con Gemini \u00b7 Im\u00e1genes: Together AI FLUX';
   var imgIdx = 0;
   var textWithPlaceholders = doc.text.replace(
     /\[(?:GENERA|GENERAR|CREA|CREAR):\s*([^\]]+)\]/gi,
     function(_, prompt) {
       var pid = 'vdimg_' + dvId + '_' + (imgIdx++);
-      // Guardamos el prompt en un atributo para recuperarlo después
       return '\n<div id="' + pid + '" data-genprompt="' + prompt.replace(/"/g, '&quot;') + '" ' +
         'style="margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)">' +
         '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2)">' +
         '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
-        '<span style="font-size:11px;color:var(--muted);margin-left:4px">✨ Generando imagen: <em>' + prompt.trim() + '</em></span>' +
+        '<span style="font-size:11px;color:var(--muted);margin-left:4px">\u2728 Generando: <em>' + prompt.trim() + '</em></span>' +
         '</div></div>\n';
     }
   );
-
-  // Renderizar texto en el visor
   var dvBody = document.getElementById('dv-body');
   dvBody.innerHTML = formatMsg(textWithPlaceholders);
-
-  // Abrir visor
   document.getElementById('docViewer').classList.add('open');
-
-  // Lanzar generación de imágenes en paralelo (progresiva)
   liaxGenerateImagesInViewer(dvId, dvBody);
 }
 
 async function liaxGenerateImagesInViewer(dvId, dvBody) {
   var togetherKey = getTogetherKey();
-  if (!togetherKey) {
-    // Sin key: dejar spinners como están (ya se ven)
-    console.warn('[VisualDoc] Sin Together key — imágenes no generadas');
-    return;
-  }
-
-  // Recoger todos los placeholders
+  if (!togetherKey) { console.warn('[VisualDoc] Sin Together key'); return; }
   var placeholders = dvBody.querySelectorAll('[data-genprompt]');
   if (!placeholders.length) return;
-
-  // Lanzar todas en paralelo — cada una actualiza su propio placeholder al resolver
+  // Lanzar todas en paralelo
   Array.from(placeholders).forEach(function(el) {
-    var prompt = el.getAttribute('data-genprompt');
-    liaxGenerateSingleImage(el, prompt, togetherKey);
+    liaxGenerateSingleImage(el, el.getAttribute('data-genprompt'), togetherKey);
   });
 }
 
@@ -7918,39 +7879,24 @@ async function liaxGenerateSingleImage(el, prompt, togetherKey) {
   try {
     var res = await fetch('https://api.together.ai/v1/images/generations', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + togetherKey,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + togetherKey },
       body: JSON.stringify({
-        model:           'black-forest-labs/FLUX.1-schnell-Free',
-        prompt:          'Educational illustration, clean style, bright colors, white background, no text. Topic: ' + prompt,
-        width:           1024,
-        height:          768,
-        steps:           4,
-        n:               1,
-        response_format: 'url',
+        model: 'black-forest-labs/FLUX.1-schnell-Free',
+        prompt: 'Educational illustration, clean style, bright colors, white background, no text. Topic: ' + prompt,
+        width: 1024, height: 768, steps: 4, n: 1, response_format: 'url'
       }),
     });
-
     if (!res.ok) throw new Error('Together error ' + res.status);
     var data = await res.json();
     var imgUrl = data.data && data.data[0] && data.data[0].url;
     if (!imgUrl) throw new Error('Sin URL');
-
-    // Reemplazar spinner con imagen real
     el.innerHTML =
-      '<img src="' + imgUrl + '" alt="' + prompt + '" ' +
-      'style="width:100%;display:block;border-radius:10px" ' +
-      'onerror="this.parentElement.innerHTML=\'<div style=&quot;padding:10px;font-size:11px;color:var(--muted);text-align:center&quot;>⚠️ No se pudo cargar la imagen</div>\'">' +
-      '<div style="padding:6px 12px;font-size:10px;color:var(--muted);background:var(--surface2);border-top:1px solid var(--border)">' +
-      '🎨 ' + prompt + ' · Together AI FLUX</div>';
+      '<img src="' + imgUrl + '" alt="" style="width:100%;display:block;border-radius:10px 10px 0 0">' +
+      '<div style="padding:5px 12px;font-size:10px;color:var(--muted);background:var(--surface2);border-top:1px solid var(--border)">' +
+      '\uD83C\uDFA8 ' + prompt + ' \u00b7 Together AI FLUX</div>';
     el.removeAttribute('data-genprompt');
-
   } catch(e) {
-    el.innerHTML =
-      '<div style="padding:10px 14px;font-size:11px;color:var(--accent3);background:rgba(255,107,107,.06)">' +
-      '⚠️ No se pudo generar imagen: ' + e.message + '</div>';
+    el.innerHTML = '<div style="padding:10px 14px;font-size:11px;color:var(--accent3)">\u26a0\ufe0f ' + e.message + '</div>';
   }
 }
 
@@ -8609,15 +8555,9 @@ async function callClaudeDirect(payload) {
 async function callTogether(payload) {
   var togetherKey = getTogetherKey();
   if (!togetherKey) throw new Error('Configura tu API Key de Together AI en Ajustes');
-
   var modelId = LIAX_MODELS['together-llama'].id;
   var messages = [];
-
-  // System prompt como primer mensaje de sistema
-  if (payload.system) {
-    messages.push({ role: 'system', content: payload.system });
-  }
-  // Historial de mensajes — Together usa formato OpenAI
+  if (payload.system) messages.push({ role: 'system', content: payload.system });
   (payload.messages || []).forEach(function(m) {
     var content = typeof m.content === 'string' ? m.content
       : (Array.isArray(m.content)
@@ -8625,47 +8565,26 @@ async function callTogether(payload) {
           : String(m.content));
     messages.push({ role: m.role, content: content });
   });
-
   var res = await fetch('https://api.together.xyz/v1/chat/completions', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + togetherKey,
-    },
-    body: JSON.stringify({
-      model:       modelId,
-      max_tokens:  payload.max_tokens || 4000,
-      temperature: 0.7,
-      messages:    messages,
-    }),
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + togetherKey },
+    body: JSON.stringify({ model: modelId, max_tokens: payload.max_tokens || 4000, temperature: 0.7, messages: messages }),
   });
-
   if (!res.ok) {
     var errText = await res.text().catch(function(){ return res.status; });
     throw new Error('Together AI error ' + res.status + ': ' + errText);
   }
-
   var data = await res.json();
-  var text = data.choices?.[0]?.message?.content || 'Sin respuesta de Together AI';
-  return {
-    content: [{ type: 'text', text: text }],
-    _provider: 'together',
-    _task: 'conversacion',
-  };
+  var text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || 'Sin respuesta de Together AI';
+  return { content: [{ type: 'text', text: text }], _provider: 'together', _task: 'conversacion' };
 }
 
 async function callClaude(payload) {
   var modelId = payload.model || LIAX_MODELS['claude-haiku'].id;
   var isGemini  = modelId.includes('gemini');
   var isClaude  = modelId.includes('claude');
-  var isTogether = modelId.includes('meta-llama') || modelId.includes('together') ||
-                   (currentAgent && currentAgent.togetherLLM);
-
-  // Si el agente tiene togetherLLM activado, forzar modelo Together
-  if (currentAgent && currentAgent.togetherLLM) {
-    modelId = LIAX_MODELS['together-llama'].id;
-    isTogether = true; isGemini = false; isClaude = false;
-  }
+  var isTogether = (currentAgent && currentAgent.togetherLLM);
+  if (isTogether) { modelId = LIAX_MODELS['together-llama'].id; isGemini = false; isClaude = false; }
 
   // Derive modelKey for display
   var modelKey = Object.keys(LIAX_MODELS).find(function(k){
@@ -9658,8 +9577,7 @@ function saToggleTogetherAgent(agentId, btn) {
   btn.setAttribute('data-together', agent.togetherLLM ? '1' : '0');
   btn.style.background = agent.togetherLLM ? '#f59e0b' : 'var(--border)';
   btn.style.color      = agent.togetherLLM ? '#fff'    : 'var(--muted)';
-  btn.textContent      = agent.togetherLLM ? '✅ Activado' : '○ Desactivado';
-  // Persistir en Supabase
+  btn.textContent      = agent.togetherLLM ? '\u2705 Activado' : '\u25cb Desactivado';
   if (agent.custom && typeof _supaSaveAgente === 'function') {
     _supaSaveAgente(agent).catch(function(){});
   }
@@ -9671,8 +9589,8 @@ function saToggleTogetherAgent(agentId, btn) {
     ).catch(function(){});
   }
   showSaveToast(agent.togetherLLM
-    ? '🤖 Together AI LLM activado para "' + agent.nombre + '"'
-    : '○ Together AI LLM desactivado para "' + agent.nombre + '"'
+    ? '\uD83E\uDD16 Together AI LLM activado para "' + agent.nombre + '"'
+    : '\u25cb Together AI LLM desactivado para "' + agent.nombre + '"'
   );
 }
 
