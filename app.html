@@ -11784,6 +11784,8 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin)
 }
 
 async function downloadDoc() {
+  // viewingDoc puede estar en la variable local o en window.viewingDoc según el flujo
+  if (!viewingDoc && window.viewingDoc) viewingDoc = window.viewingDoc;
   if (!viewingDoc) return;
   const dvBodyEl = document.getElementById('dv-body');
   if (dvBodyEl && dvBodyEl.querySelectorAll('[data-generating]').length > 0) {
