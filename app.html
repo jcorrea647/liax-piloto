@@ -8104,8 +8104,12 @@ function liaxOpenVisualDoc(dvId) {
 function liaxGenerateImagesInViewer(dvId, dvBody) {
   var placeholders = dvBody.querySelectorAll('[data-genprompt]');
   if (!placeholders.length) return;
-  Array.from(placeholders).forEach(function(el) {
-    liaxGenerateSingleImage(el, el.getAttribute('data-genprompt'));
+  // Stagger requests: max 3 per second to stay within Together AI rate limits (4 QPS)
+  Array.from(placeholders).forEach(function(el, idx) {
+    var delay = Math.floor(idx / 3) * 1100; // batch of 3 every 1.1s
+    setTimeout(function() {
+      liaxGenerateSingleImage(el, el.getAttribute('data-genprompt'));
+    }, delay);
   });
 }
 
@@ -8127,61 +8131,46 @@ function liaxGenerateSingleImage(el, prompt) {
   el.appendChild(spinEl);
   el.appendChild(captionEl);
 
-  fetch('https://liax-imagen.jcorrea-d04.workers.dev', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: prompt }),
-  })
-  .then(function(r) { return r.json(); })
+  // Retry logic: up to 3 attempts with exponential backoff for rate limit errors
+  function _fetchWithRetry(attempt) {
+    return fetch('https://liax-imagen.jcorrea-d04.workers.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      // Detect rate limit error and retry after delay
+      if (data.error && /rate.limit|rate limit|429|QPS|RPM/i.test(data.error) && attempt < 3) {
+        var wait = attempt * 3000; // 3s, 6s
+        spinEl.querySelector('span:last-child') && (spinEl.querySelector('span:last-child').textContent = 'Reintentando en ' + (wait/1000) + 's...');
+        return new Promise(function(res) { setTimeout(res, wait); }).then(function() { return _fetchWithRetry(attempt + 1); });
+      }
+      return data;
+    });
+  }
+
+  _fetchWithRetry(1)
   .then(function(data) {
     if (data.error) throw new Error(data.error);
     var imgUrl = data.url;
+    // El worker ahora devuelve base64 directamente — sin segundo request
+    var b64 = data.base64 ? ('data:image/jpeg;base64,' + data.base64) : null;
 
-    // Fetch and convert to base64 immediately so it can be embedded in PDF exports
-    return fetch(imgUrl)
-      .then(function(r2) { return r2.blob(); })
-      .then(function(blob) {
-        return new Promise(function(res) {
-          var fr = new FileReader();
-          fr.onload = function(e) { res(e.target.result); };
-          fr.onerror = function() { res(null); };
-          fr.readAsDataURL(blob);
-        });
-      })
-      .then(function(b64) {
-        var imgEl = document.createElement('img');
-        imgEl.style.cssText = 'width:100%;display:block;border-radius:10px 10px 0 0';
-        imgEl.alt = caption;
-        var finalSrc = (b64 && b64.startsWith('data:')) ? b64 : imgUrl;
-        if (!b64 || !b64.startsWith('data:')) {
-          imgEl.setAttribute('data-together-url', imgUrl);
-        }
-        imgEl.onload = function() {
-          el.removeAttribute('data-generating'); // done — downloadDoc can proceed
-          spinEl.replaceWith(imgEl);
-        };
-        imgEl.onerror = function() {
-          el.removeAttribute('data-generating');
-          spinEl.textContent = '\u26a0\ufe0f No se pudo cargar la imagen';
-        };
-        imgEl.src = finalSrc;
-      })
-      .catch(function() {
-        // fetch of image URL failed — show remote URL, mark done
-        var imgEl = document.createElement('img');
-        imgEl.style.cssText = 'width:100%;display:block;border-radius:10px 10px 0 0';
-        imgEl.alt = caption;
-        imgEl.setAttribute('data-together-url', imgUrl);
-        imgEl.onload = function() {
-          el.removeAttribute('data-generating');
-          spinEl.replaceWith(imgEl);
-        };
-        imgEl.onerror = function() {
-          el.removeAttribute('data-generating');
-          spinEl.textContent = '\u26a0\ufe0f No se pudo cargar la imagen';
-        };
-        imgEl.src = imgUrl;
-      });
+    var imgEl = document.createElement('img');
+    imgEl.style.cssText = 'width:100%;display:block;border-radius:10px 10px 0 0';
+    imgEl.alt = caption;
+    var finalSrc = b64 || imgUrl;
+    if (!b64) imgEl.setAttribute('data-together-url', imgUrl);
+    imgEl.onload = function() {
+      el.removeAttribute('data-generating');
+      spinEl.replaceWith(imgEl);
+    };
+    imgEl.onerror = function() {
+      el.removeAttribute('data-generating');
+      spinEl.textContent = '\u26a0\ufe0f No se pudo cargar la imagen';
+    };
+    imgEl.src = finalSrc;
   })
   .catch(function(e) {
     el.removeAttribute('data-generating');
