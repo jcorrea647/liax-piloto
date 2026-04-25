@@ -855,6 +855,42 @@
   /* ───────────────────────────────────────────────── */
 
   /* ── Agent welcome screen ────────────────────────── */
+  /* ── Selector de recursos (agente v1) ─────────────── */
+  .rec-selector { width:100%;max-width:680px;margin:0 auto 12px; }
+  .rec-cat-label { font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:14px 0 7px;padding-left:2px; }
+  .rec-grid { display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:4px; }
+  .rec-btn {
+    background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;
+    padding:10px 8px 9px;cursor:pointer;text-align:center;transition:all .15s;
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+  }
+  .rec-btn:hover { border-color:var(--accent2);background:var(--dim2); }
+  .rec-btn.selected { border-color:var(--accent2);background:var(--dim2);box-shadow:0 0 0 2px var(--accent2)44; }
+  .rec-btn-icon { font-size:22px;line-height:1; }
+  .rec-btn-label { font-size:10px;font-weight:700;color:var(--text);line-height:1.3; }
+  .rec-fmt-row { display:flex;gap:7px;margin:10px 0 4px;width:100%;max-width:680px; }
+  .rec-fmt-btn {
+    flex:1;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);
+    background:var(--surface2);cursor:pointer;font-size:11px;font-weight:700;
+    color:var(--muted);transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .rec-fmt-btn:hover { border-color:var(--accent1);color:var(--text); }
+  .rec-fmt-btn.selected { border-color:var(--accent1);background:var(--dim1);color:var(--accent1); }
+  .rec-tema-row { display:flex;gap:7px;width:100%;max-width:680px;margin-top:8px; }
+  .rec-tema-input {
+    flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:9px;
+    padding:9px 13px;font-size:12px;color:var(--text);font-family:DM Sans,sans-serif;outline:none;
+    transition:border-color .15s;
+  }
+  .rec-tema-input:focus { border-color:var(--accent2); }
+  .rec-tema-input::placeholder { color:var(--muted); }
+  .rec-generar-btn {
+    background:var(--accent2);color:#000;border:none;border-radius:9px;
+    padding:9px 18px;font-size:12px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif;
+    white-space:nowrap;transition:all .15s;opacity:.4;pointer-events:none;
+  }
+  .rec-generar-btn.ready { opacity:1;pointer-events:auto; }
+  .rec-generar-btn.ready:hover { background:#00c4a7; }
   /* ── SVG Diagrams ───────────────────────────────── */
   .svg-diagram-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:10px 0;background:var(--bg);}
   .svg-diagram-toolbar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface2);border-bottom:1px solid var(--border);}
@@ -6925,6 +6961,7 @@ function _buildChatView() {
       '<div class="agent-welcome-title">' + currentAgent.nombre + '</div>' +
       '<div class="agent-welcome-sub">¿Qué quieres hacer hoy?</div>' +
       '<div class="agent-q-grid">' + gridCards + '</div>' +
+      (currentAgent.id === 'v1' ? buildRecursoSelector() : '') +
       (customQs.length
         ? '<div id="aqCustomGrid" style="width:100%;max-width:680px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:7px">' + customCards + '</div>'
         : '') +
@@ -7027,6 +7064,211 @@ function startChat(){
         ${currentAgent.preguntas.map(q=>`<span onclick="useQuestion('${q.replace(/'/g,"\\'")}',true)" style="font-size:10px;padding:3px 8px;border-radius:18px;background:${c.bg};color:${c.text};cursor:pointer;border:1px solid ${c.border}">${q.length>46?q.slice(0,46)+'…':q}</span>`).join('')}
       </div>
     </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// RECURSO SELECTOR — Agente Diseñador de Material (v1)
+// ══════════════════════════════════════════════════════════════
+var _recState = { tipo: null, formato: null };
+
+var _RECURSOS = [
+  {
+    cat: 'Lenguaje y Lectoescritura',
+    items: [
+      { id: 'pictogramas',    icon: '📖', label: 'Cuento con\nPictogramas',   prompt: 'Crea un cuento corto con pictogramas donde algunas palabras clave se sustituyen por [GENERA: imagen del objeto/animal]. El cuento debe ser narrativo, con inicio, desarrollo y cierre. Incluye instrucciones para el docente sobre cómo usarlo.' },
+      { id: 'rimas',          icon: '🎵', label: 'Tarjetas de\nRimas',         prompt: 'Crea un set de 6 pares de tarjetas de rimas (palabras que suenan igual). Para cada par: muestra las dos palabras, una descripción breve, y [GENERA: imagen de cada objeto]. Formato claro para recortar.' },
+      { id: 'grafomotricidad',icon: '✏️', label: 'Fichas de\nGrafomotricidad', prompt: 'Crea 3 fichas de grafomotricidad para preparar la mano para la escritura. Cada ficha debe incluir descripción del trazo, instrucciones y [GENERA: imagen del patrón de trazo con flechas de dirección, estilo limpio, fondo blanco]. Indica nivel de dificultad.' },
+    ]
+  },
+  {
+    cat: 'Pensamiento Lógico y Creatividad',
+    items: [
+      { id: 'puzzle',   icon: '🧩', label: 'Puzle\nImprimible',          prompt: 'Diseña un puzle educativo imprimible de 6-9 piezas sobre el tema indicado. Incluye [GENERA: imagen principal del puzle completo antes de recortar] e instrucciones de uso. Dibuja líneas de corte claras en descripción.' },
+      { id: 'tangram',  icon: '🔷', label: 'Tangram y\nFiguras Geométricas', prompt: 'Crea una actividad con tangram o figuras geométricas relacionada con el tema. Incluye [GENERA: plantilla de piezas geométricas de colores sobre fondo blanco] y [GENERA: ejemplo de figura armada con las piezas]. Añade instrucciones y nivel de dificultad.' },
+      { id: 'colorear', icon: '🖍️', label: 'Láminas para\nColorear',         prompt: 'Crea 2 láminas para colorear temáticas. Para cada una: título, instrucciones creativas y [GENERA: dibujo de líneas simples para colorear, estilo libro para colorear, trazo grueso, fondo blanco, sin relleno, solo contornos]. Incluye variante libre y dirigida.' },
+    ]
+  }
+];
+
+function buildRecursoSelector() {
+  var html = '<div class="rec-selector" id="recSelector">';
+
+  _RECURSOS.forEach(function(cat) {
+    html += '<div class="rec-cat-label">' + cat.cat + '</div>';
+    html += '<div class="rec-grid">';
+    cat.items.forEach(function(item) {
+      html += '<div class="rec-btn" id="recbtn_' + item.id + '" onclick="selectRecurso(\'' + item.id + '\')">' +
+        '<div class="rec-btn-icon">' + item.icon + '</div>' +
+        '<div class="rec-btn-label">' + item.label.replace('\n','<br>') + '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+  });
+
+  // Formato
+  html += '<div class="rec-fmt-row">' +
+    '<button class="rec-fmt-btn" id="recfmt_digital"  onclick="selectFormato(\'digital\')" >🖥️ Digital (proyectar)</button>' +
+    '<button class="rec-fmt-btn" id="recfmt_imprimible" onclick="selectFormato(\'imprimible\')">🖨️ Imprimible (A4)</button>' +
+    '</div>';
+
+  // Tema + generar
+  html += '<div class="rec-tema-row">' +
+    '<input class="rec-tema-input" id="recTemaInput" placeholder="¿Sobre qué tema? Ej: los animales de la granja, las vocales, las formas..." oninput="checkRecReady()">' +
+    '<button class="rec-generar-btn" id="recGenerarBtn" onclick="generarRecurso()">✨ Generar</button>' +
+    '</div>';
+
+  html += '</div>';
+  return html;
+}
+
+function selectRecurso(id) {
+  _recState.tipo = id;
+  document.querySelectorAll('.rec-btn').forEach(function(b) { b.classList.remove('selected'); });
+  var el = document.getElementById('recbtn_' + id);
+  if (el) el.classList.add('selected');
+  checkRecReady();
+}
+
+function selectFormato(fmt) {
+  _recState.formato = fmt;
+  document.querySelectorAll('.rec-fmt-btn').forEach(function(b) { b.classList.remove('selected'); });
+  var el = document.getElementById('recfmt_' + fmt);
+  if (el) el.classList.add('selected');
+  checkRecReady();
+}
+
+function checkRecReady() {
+  var tema = (document.getElementById('recTemaInput') || {}).value || '';
+  var btn  = document.getElementById('recGenerarBtn');
+  if (!btn) return;
+  if (_recState.tipo && _recState.formato && tema.trim()) {
+    btn.classList.add('ready');
+  } else {
+    btn.classList.remove('ready');
+  }
+}
+
+function generarRecurso() {
+  var tema = ((document.getElementById('recTemaInput') || {}).value || '').trim();
+  if (!_recState.tipo || !_recState.formato || !tema) return;
+
+  // Find the item config
+  var item = null;
+  _RECURSOS.forEach(function(cat) {
+    cat.items.forEach(function(i) { if (i.id === _recState.tipo) item = i; });
+  });
+  if (!item) return;
+
+  // Build the full prompt
+  var fmtNote = _recState.formato === 'imprimible'
+    ? '\n\nFORMATO: Diseñado para IMPRIMIR en hoja A4. Incluye márgenes, instrucciones para el docente, indicaciones de recorte si aplica, y notas de uso físico.'
+    : '\n\nFORMATO: Diseñado para uso DIGITAL (proyectar en pantalla o tablet). Sin márgenes de impresión. Pensado para interacción visual y lectura guiada.';
+
+  var ctxCurso = CTX.cursos.size ? ' Curso: ' + [...CTX.cursos].join(', ') + '.' : '';
+  var ctxNEE = '';
+  var neeAlus = DB.alumnos.filter(function(a){ return CTX.alumnos.has(a.id) && (a.nee || a.neeT); });
+  if (neeAlus.length) {
+    ctxNEE = ' Hay ' + neeAlus.length + ' alumno(s) con NEE (' +
+      neeAlus.map(function(a){ return (a.nee||a.neeT); }).join(', ') +
+      ') — incluye adaptaciones específicas para ellos.';
+  }
+
+  var fullPrompt = item.prompt +
+    '\n\nTEMA: ' + tema + '.' + ctxCurso + ctxNEE + fmtNote;
+
+  // Hide welcome screen, show chat
+  var ws = document.getElementById('agentWelcomeScreen');
+  if (ws) ws.style.display = 'none';
+  var area = document.getElementById('chatArea');
+  if (area) { area.style.display = 'flex'; area.style.flexDirection = 'column'; }
+
+  // Show user bubble with summary
+  var label = item.icon + ' ' + item.label.replace('\n',' ') +
+    ' · ' + (_recState.formato === 'imprimible' ? '🖨️ Imprimible' : '🖥️ Digital') +
+    ' · Tema: ' + tema;
+  area.insertAdjacentHTML('beforeend', makeBubbleUser(label));
+
+  // Loading bubble
+  var lid = 'load' + Date.now();
+  area.insertAdjacentHTML('beforeend', makeBubbleLoading(lid));
+  area.scrollTop = area.scrollHeight;
+
+  // Add to history and send
+  chatHistory.push({ role: 'user', content: fullPrompt });
+
+  // Reset state for next time
+  _recState = { tipo: null, formato: null };
+
+  // Trigger the AI call (reuse sendChat logic via the input trick)
+  _sendRecursoPrompt(fullPrompt, lid, area);
+}
+
+async function _sendRecursoPrompt(prompt, lid, area) {
+  try {
+    var system = '=== ROL ABSOLUTO — NUNCA IGNORAR ===\n' + currentAgent.prompt + '\n=== FIN ROL ABSOLUTO ===';
+
+    // Add visual instruction
+    system += '\n\n=== GENERACI\u00d3N DE IM\u00c1GENES (Together AI \u00b7 FLUX) ===\n' +
+      'Todas las im\u00e1genes se generan EN PARALELO. Usa hasta 10 por documento.\n' +
+      'Formato: [GENERA: descripci\u00f3n detallada en ingl\u00e9s, educational illustration, flat style, white background, no text]\n' +
+      'S\u00e9 MUY espec\u00edfico: objetos, colores, composici\u00f3n, cantidades.\n' +
+      '=== FIN INSTRUCCI\u00d3N IM\u00c1GENES ===';
+
+    // Add context
+    var userCtx = '';
+    var _ctxAlumnos = [...CTX.alumnos];
+    var _ctxCursos  = [...CTX.cursos];
+    var _rel = DB.alumnos.filter(function(a){
+      return _ctxAlumnos.includes(a.id) || (_ctxCursos.length && _ctxCursos.some(function(c){ return a.esp === c; }));
+    }).slice(0,30);
+    if (_rel.length) {
+      userCtx = '\n\nALUMNOS EN CONTEXTO:\n' + _rel.map(function(u){
+        return '- ' + u.nombre + ' (' + (u.esp||'') + (u.nee ? ', NEE: '+u.nee : '') + (u.neeT ? ', NEE-T: '+u.neeT : '') + ')';
+      }).join('\n');
+      system += userCtx;
+    }
+
+    var data = await callClaude({
+      model:      LIAX_MODELS['gemini-pro'].id,
+      max_tokens: 16000,
+      system:     system,
+      messages:   [{ role: 'user', content: prompt }],
+    });
+
+    var reply = data.content && data.content.find(function(c){ return c.type==='text'; });
+    reply = reply ? reply.text : 'No pude generar el recurso. Intenta nuevamente.';
+
+    chatHistory.push({ role: 'assistant', content: reply });
+
+    var _prov = data._provider || 'gemini';
+    var _pm = {
+      gemini:   { c:'#4285f4', bg:'rgba(66,133,244,.15)', b:'rgba(66,133,244,.3)',  l:'Gemini Pro' },
+      together: { c:'#f59e0b', bg:'rgba(245,158,11,.12)', b:'rgba(245,158,11,.3)',  l:'Llama 3.3' },
+      claude:   { c:'#00b496', bg:'rgba(0,180,150,.1)',   b:'rgba(0,180,150,.25)', l:'Claude' },
+    };
+    var _pi = _pm[_prov] || _pm.gemini;
+    var badge = '<span style="font-size:8px;background:'+_pi.bg+';color:'+_pi.c+';border:1px solid '+_pi.b+';border-radius:10px;padding:1px 7px;margin-left:6px;font-weight:700">'+_pi.l+'</span>';
+
+    // Open doc viewer if has [GENERA:] markers
+    if (/\[(?:GENERA|GENERAR|CREA|CREAR):/i.test(reply)) {
+      var _dvId = 'visdoc_' + Date.now();
+      document.getElementById(lid).outerHTML = makeBubbleAI(
+        '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;cursor:pointer" onclick="liaxOpenVisualDoc(\'' + _dvId + '\')">' +
+        '<span style="font-size:18px">\uD83D\uDCC4</span>' +
+        '<div><div style="font-size:12px;font-weight:700">Recurso generado con im\u00e1genes IA</div>' +
+        '<div style="font-size:10px;color:var(--muted)">Clic para abrir el documento completo</div></div>' +
+        '<span style="margin-left:auto;font-size:16px">\u2192</span></div>',
+        undefined, badge
+      );
+      window._liaxVisualDocs = window._liaxVisualDocs || {};
+      window._liaxVisualDocs[_dvId] = { text: reply, agent: currentAgent.nombre, icon: currentAgent.icon };
+    } else {
+      document.getElementById(lid).outerHTML = makeBubbleAI(formatMsg(reply), undefined, badge);
+    }
+    area.scrollTop = area.scrollHeight;
+  } catch(e) {
+    document.getElementById(lid).outerHTML = makeBubbleAI('<span style="color:var(--accent3)">' + (e.message||'Error al generar el recurso.') + '</span>');
+  }
 }
 
 // ── FILE ATTACHMENTS ─────────────────────────────────────
