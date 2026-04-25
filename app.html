@@ -1069,8 +1069,19 @@
   .inf-card-foot{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;}
   .inf-section-pill{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;display:inline-block;}
   @media print {
-    body > *:not(#infPrintArea) { display: none !important; }
+    body > *:not(#infPrintArea):not(#docViewerPrintArea) { display: none !important; }
     #infPrintArea { display: block !important; }
+    #docViewerPrintArea {
+      display: block !important;
+      position: fixed;
+      inset: 0;
+      background: white;
+      z-index: 99999;
+      padding: 20px;
+      overflow: visible;
+    }
+    #docViewerPrintArea img { max-width: 100%; page-break-inside: avoid; }
+    #docViewerPrintArea .loading-dot { display: none; }
   }
   .dato-actions{display:flex;gap:5px;margin-top:10px;flex-wrap:wrap;}
 
@@ -11611,30 +11622,28 @@ function closeDocViewer() { document.getElementById('docViewer').classList.remov
 function copyDoc() { if(viewingDoc) navigator.clipboard.writeText(viewingDoc.content).then(()=>showSaveToast('✅ Copiado al portapapeles')); }
 async function downloadDoc() {
   if (!viewingDoc) return;
-  showSaveToast('\u23F3 Preparando PDF...');
 
-  // Convert any Together AI images in the viewer to base64 first
   var dvBody = document.getElementById('dv-body');
-  if (dvBody) {
-    var imgEls = dvBody.querySelectorAll('img[data-together-url]');
-    await Promise.all(Array.from(imgEls).map(function(img) {
-      return fetch('https://liax-imagen.jcorrea-d04.workers.dev/proxy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: img.getAttribute('data-together-url') }),
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (d.base64) {
-          img.src = 'data:image/jpeg;base64,' + d.base64;
-          img.setAttribute('data-b64', '1');
-        }
-      })
-      .catch(function(){});
-    }));
-  }
+  if (!dvBody) return;
 
-  await exportDocToPDF(viewingDoc.title, viewingDoc.content, viewingDoc.agentName || (currentAgent?.nombre||''), viewingDoc.savedAt);
+  // Check if this is a visual doc with generated images
+  var hasGeneratedImgs = dvBody.querySelector('img[data-together-url]');
+
+  if (hasGeneratedImgs) {
+    // Use print dialog — browser handles images correctly
+    var printDiv = document.createElement('div');
+    printDiv.id = 'docViewerPrintArea';
+    printDiv.innerHTML =
+      '<h2 style="font-family:sans-serif;margin-bottom:16px">' + (viewingDoc.title||'Documento') + '</h2>' +
+      dvBody.innerHTML;
+    // Remove spinners and loading dots
+    printDiv.querySelectorAll('.loading-dot, [style*="loading"]').forEach(function(el){ el.remove(); });
+    document.body.appendChild(printDiv);
+    window.print();
+    setTimeout(function(){ printDiv.remove(); }, 1000);
+  } else {
+    await exportDocToPDF(viewingDoc.title, viewingDoc.content, viewingDoc.agentName || (currentAgent?.nombre||''), viewingDoc.savedAt);
+  }
 }
 function copyDocByIndex(i) {
   const d = AGENT_STORE.getDocs(currentAgent.id)[i];
