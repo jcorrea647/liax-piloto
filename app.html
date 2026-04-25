@@ -11843,7 +11843,19 @@ async function downloadDoc() {
     else el.removeAttribute('style');
   });
   // Transformar bloques ```...``` en tarjetas estilizadas para el PDF
+  // IMPORTANTE: guardar srcs de imágenes antes de reasignar innerHTML
   (function transformCodeBlocks(container) {
+    // 1. Guardar data-b64 y src actuales de cada imagen con un índice
+    var imgs = Array.from(container.querySelectorAll('img'));
+    imgs.forEach(function(img, idx) {
+      img.setAttribute('data-imgidx', idx);
+      // Asegurarse que el atributo src refleja el valor actual
+      var currentSrc = img.getAttribute('src') || '';
+      var b64 = img.getAttribute('data-b64') || '';
+      if (b64) img.setAttribute('src', b64);
+    });
+
+    // 2. Transformar el HTML (innerHTML serializa los atributos actualizados)
     var html = container.innerHTML;
     html = html.replace(/```([\s\S]*?)```/g, function(_, inner) {
       var text = inner.trim();
