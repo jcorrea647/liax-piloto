@@ -11673,52 +11673,6 @@ function closeDocViewer() { document.getElementById('docViewer').classList.remov
 function copyDoc() { if(viewingDoc) navigator.clipboard.writeText(viewingDoc.content).then(()=>showSaveToast('✅ Copiado al portapapeles')); }
 async function downloadDoc() {
   if (!viewingDoc) return;
-
-  var dvBody = document.getElementById('dv-body');
-  if (!dvBody) return;
-
-  // Wait for all images still being fetched/converted
-  // data-genprompt = not started yet, data-generating = fetch in progress
-  var pending = dvBody.querySelectorAll('[data-genprompt],[data-generating]');
-  if (pending.length > 0) {
-    showSaveToast('⏳ Esperando que terminen de generarse las imágenes...');
-    await new Promise(function(resolve) {
-      var checks = 0;
-      var interval = setInterval(function() {
-        checks++;
-        var stillPending = dvBody.querySelectorAll('[data-genprompt],[data-generating]');
-        if (stillPending.length === 0 || checks > 60) { // max 30s wait
-          clearInterval(interval);
-          resolve();
-        }
-      }, 500);
-    });
-  }
-
-  // Any images still as remote URLs (fetch failed during generation) — try once more
-  var remoteImgs = Array.from(dvBody.querySelectorAll('img[data-together-url]'));
-  if (remoteImgs.length > 0) {
-    showSaveToast('⏳ Preparando PDF con imágenes...');
-    await Promise.all(remoteImgs.map(async function(img) {
-      var url = img.getAttribute('data-together-url') || img.src;
-      try {
-        var r = await fetch(url);
-        var blob = await r.blob();
-        var b64 = await new Promise(function(res, rej) {
-          var fr = new FileReader();
-          fr.onload = function(e) { res(e.target.result); };
-          fr.onerror = rej;
-          fr.readAsDataURL(blob);
-        });
-        img.src = b64;
-        img.removeAttribute('data-together-url');
-      } catch(e) {
-        img.style.display = 'none';
-        console.warn('[Liax] No se pudo convertir imagen para PDF:', url);
-      }
-    }));
-  }
-
   await exportDocToPDF(
     viewingDoc.title,
     viewingDoc.content,
@@ -11943,12 +11897,12 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
   // then map them positionally to [GENERA:] markers in rawContent.
   const imgPdfMap = {};  // key: __IMGPDF_N__ → base64 dataUrl
   let imgPdfIdx = 0;
+  // ── Include any base64 images already in the DOM viewer ─────
+  const imgPdfMap = {};
+  let imgPdfIdx = 0;
   const dvBodyForImg = document.getElementById('dv-body');
-  // Only pick images that are already base64 (successfully converted)
   const domImgsB64 = dvBodyForImg
-    ? Array.from(dvBodyForImg.querySelectorAll('img')).filter(function(img) {
-        return (img.src || '').startsWith('data:image');
-      })
+    ? Array.from(dvBodyForImg.querySelectorAll('img')).filter(img => (img.src||'').startsWith('data:image'))
     : [];
   let domImgCursor = 0;
 
@@ -11960,7 +11914,6 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
         imgPdfMap[key] = domImgsB64[domImgCursor].src;
         domImgCursor++;
       }
-      // Always emit the key so layout is preserved even if image failed
       return '\n' + key + '\n';
     }
   );
