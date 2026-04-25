@@ -7575,12 +7575,27 @@ async function sendChat(){
   var _visualInstr = '';
   if (currentAgent.visual) {
     _visualInstr = '\n\n=== GENERACIÓN DE IMÁGENES (Together AI · FLUX) ===\n' +
-      'Este agente tiene capacidad de generar imágenes con IA. Úsala de forma inteligente:\n' +
-      '• Escribe [GENERA: descripción detallada en inglés] donde quieras insertar una imagen generada.\n' +
-      '• La descripción debe ser en inglés, específica y visual. Ej: [GENERA: colorful butterfly lifecycle diagram, educational illustration, white background]\n' +
-      '• Úsalo para ilustrar materiales, fichas, tarjetas o actividades pedagógicas.\n' +
-      '• No abuses: máximo 4 imágenes por respuesta. Cada imagen debe tener un propósito claro.\n' +
-      '• También puedes usar [IMG: tema] para buscar fotos reales si es más apropiado.\n' +
+      'Tienes capacidad de generar hasta 10 imágenes por documento. Todas se generan EN PARALELO, así que puedes usarlas libremente sin penalizar el tiempo.\n\n' +
+      'CÓMO ESCRIBIR EL MARCADOR:\n' +
+      '  [GENERA: <descripción detallada en inglés>]\n\n' +
+      'REGLAS PARA LA DESCRIPCIÓN (crítico para calidad):\n' +
+      '• Siempre en inglés\n' +
+      '• Incluir: qué se ve, colores, estilo, fondo, composición\n' +
+      '• Terminar siempre con: educational illustration, flat style, white background, no text\n' +
+      '• Ser MUY específico con objetos, cantidades y características visuales\n\n' +
+      'EJEMPLOS DE BUENAS DESCRIPCIONES:\n' +
+      '  Usuario dice "pelotas de distintos tamaños" →\n' +
+      '  [GENERA: three rubber balls side by side, small red ball on left, medium blue ball in center, large yellow ball on right, size comparison clearly visible, educational illustration, flat style, white background, no text]\n\n' +
+      '  Usuario dice "ciclo del agua" →\n' +
+      '  [GENERA: water cycle diagram showing evaporation from ocean, clouds forming, rain falling on mountains, river flowing back to sea, arrows indicating direction, blue and green color palette, educational illustration, flat style, white background, no text]\n\n' +
+      '  Usuario dice "las vocales" →\n' +
+      '  [GENERA: five colorful letters A E I O U arranged in a row, each letter in a different bright color, large bold friendly font, one simple object per vowel beneath each letter, educational illustration, flat style, white background, no text]\n\n' +
+      'CUÁNDO USAR IMÁGENES:\n' +
+      '• Una imagen por sección temática del documento\n' +
+      '• Siempre que el concepto sea visual o manipulativo\n' +
+      '• Para ilustrar pasos de una actividad\n' +
+      '• Para mostrar comparaciones, tamaños, formas, cantidades\n' +
+      '• Máximo 10 imágenes por documento\n' +
       '=== FIN INSTRUCCIÓN IMÁGENES ===';
   }
 
