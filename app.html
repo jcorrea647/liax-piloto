@@ -11694,7 +11694,7 @@ async function _convertImgsToBase64(container) {
   }));
 }
 
-async function _printDocAsHTML(title, bodyHTML, agentName, savedAt) {
+async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin) {
   const dateStr = savedAt
     ? new Date(savedAt).toLocaleDateString('es-CL', {day:'2-digit', month:'long', year:'numeric'})
     : new Date().toLocaleDateString('es-CL');
@@ -11765,16 +11765,20 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt) {
     '</body></html>';
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
-  const win  = window.open(url, '_blank', 'width=860,height=1000');
-  if (!win) {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = (title || 'documento').replace(/[^a-z0-9áéíóúñ\s]/gi,'_').trim() + '.html';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showSaveToast('ℹ️ Popup bloqueado — se descargó como HTML. Ábrelo y usa Ctrl+P para PDF.');
+  if (existingWin && !existingWin.closed) {
+    existingWin.location.href = url;
+  } else {
+    var win2 = window.open(url, '_blank', 'width=860,height=1000');
+    if (!win2) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (title || 'documento').replace(/[^a-z0-9áéíóúñ\s]/gi,'_').trim() + '.html';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showSaveToast('ℹ️ Popup bloqueado — se descargó como HTML. Ábrelo y usa Ctrl+P para PDF.');
+    }
   }
   setTimeout(function(){ URL.revokeObjectURL(url); }, 8000);
 }
@@ -11786,6 +11790,17 @@ async function downloadDoc() {
     showSaveToast('⏳ Imágenes IA aún cargándose... espera un momento y vuelve a intentar.');
     return;
   }
+
+  // CRÍTICO: abrir ventana ANTES de cualquier await para preservar el gesto del usuario.
+  // Chrome bloquea window.open() si se llama después de un await.
+  const win = window.open('', '_blank', 'width=860,height=1000');
+  if (!win) {
+    showSaveToast('ℹ️ Permite los popups para este sitio y vuelve a intentar.');
+    return;
+  }
+  win.document.write('<html><body style="font-family:sans-serif;padding:40px;color:#555">⏳ Preparando PDF...</body></html>');
+  win.document.close();
+
   const clone = document.createElement('div');
   clone.innerHTML = dvBodyEl ? dvBodyEl.innerHTML : '';
   clone.querySelectorAll('[data-generating],[data-genprompt],.loading-dot,.svg-diagram-btn').forEach(function(el){ el.remove(); });
@@ -11800,7 +11815,8 @@ async function downloadDoc() {
     viewingDoc.title,
     clone.innerHTML,
     viewingDoc.agentName || (currentAgent?.nombre || ''),
-    viewingDoc.savedAt
+    viewingDoc.savedAt,
+    win
   );
 }
 function copyDocByIndex(i) {
