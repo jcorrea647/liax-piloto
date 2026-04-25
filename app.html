@@ -11746,6 +11746,7 @@ async function _printDocAsHTML(title, bodyHTML, agentName, savedAt, existingWin,
     '.content td{padding:7px 10px;border:1px solid #d0d5e8;vertical-align:top;}',
     '.content tr:nth-child(even) td{background:#fff9e6;}',
     '.ftr{margin-top:20px;padding-top:10px;border-top:2px dashed #e8a020;display:flex;justify-content:space-between;font-size:10px;color:#888;font-style:italic;}',
+    '.pdf-card{border:2px solid #e8a020;border-radius:14px;padding:16px 20px;margin:16px 0;background:#fff9e6;font-size:15px;line-height:1.9;box-shadow:2px 2px 0 #e8a020;page-break-inside:avoid;}',
     '.loading-dot,[data-generating],[data-genprompt]{display:none!important;}',
    
     '.msg-h2{font-size:20px;font-weight:900;color:#1a3a5c;text-transform:uppercase;border:3px solid #e8a020;border-radius:12px;padding:10px 16px;margin:18px 0 12px;background:#fff9e6;letter-spacing:.5px;display:block;}',
@@ -11841,6 +11842,18 @@ async function downloadDoc() {
     if (s.trim()) el.setAttribute('style', s);
     else el.removeAttribute('style');
   });
+  // Transformar bloques ```...``` en tarjetas estilizadas para el PDF
+  (function transformCodeBlocks(container) {
+    var html = container.innerHTML;
+    html = html.replace(/```([\s\S]*?)```/g, function(_, inner) {
+      var text = inner.trim();
+      if (!text) return '';
+      return '<div class="pdf-card">' + text.replace(/\n/g, '<br>') + '</div>';
+    });
+    html = html.replace(/```/g, '');
+    container.innerHTML = html;
+  })(clone);
+
   await _convertImgsToBase64(clone);
   var _docente = (document.getElementById('topUserName')?.textContent || '').trim();
   var _aulaEl  = document.getElementById('docenteBannerCursos');
