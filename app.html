@@ -6955,18 +6955,13 @@ function _buildChatView() {
       '+ Agregar mi propia pregunta' +
     '</button>';
 
-  var isV1 = currentAgent.id === 'v1';
-
   var welcomeScreen =
-    '<div id="agentWelcomeScreen" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:20px 16px 12px">' +
+    '<div id="agentWelcomeScreen" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:28px 16px 12px">' +
       '<div class="agent-welcome-icon">' + currentAgent.icon + '</div>' +
       '<div class="agent-welcome-title">' + currentAgent.nombre + '</div>' +
-      (isV1
-        ? '<div class="agent-welcome-sub">Elige el tipo de recurso, formato y tema</div>' +
-          buildRecursoSelector()
-        : '<div class="agent-welcome-sub">¿Qué quieres hacer hoy?</div>' +
-          '<div class="agent-q-grid">' + gridCards + '</div>'
-      ) +
+      '<div class="agent-welcome-sub">¿Qué quieres hacer hoy?</div>' +
+      '<div class="agent-q-grid">' + gridCards + '</div>' +
+      (currentAgent.id === 'v1' ? buildRecursoSelector() : '') +
       (customQs.length
         ? '<div id="aqCustomGrid" style="width:100%;max-width:680px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:7px">' + customCards + '</div>'
         : '') +
@@ -8092,75 +8087,61 @@ function liaxOpenVisualDoc(dvId) {
   if (dvIcon)  dvIcon.textContent  = doc.icon || '\uD83D\uDCC4';
   if (dvTitle) dvTitle.textContent = doc.agent || 'Documento';
   if (dvMeta)  dvMeta.textContent  = 'Generado con Gemini \u00b7 Im\u00e1genes: Together AI FLUX';
-  // Step 1: extract GENERA prompts and replace with unique tokens BEFORE formatMsg
   var imgIdx = 0;
-  var _genPrompts = {};
-  var textTokenized = doc.text.replace(
+  var textWithPlaceholders = doc.text.replace(
     /\[(?:GENERA|GENERAR|CREA|CREAR):\s*([^\]]+)\]/gi,
     function(_, prompt) {
-      var token = 'LIAX_IMG_TOKEN_' + dvId + '_' + (imgIdx++);
-      _genPrompts[token] = prompt.trim();
-      return token;
+      var pid = 'vdimg_' + dvId + '_' + (imgIdx++);
+      return '\n<div id="' + pid + '" data-genprompt="' + prompt.replace(/"/g, '&quot;') + '" ' +
+        'style="margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)">' +
+        '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2)">' +
+        '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
+        '<span style="font-size:11px;color:var(--muted);margin-left:4px">\u2728 Generando: <em>' + prompt.trim() + '</em></span>' +
+        '</div></div>\n';
     }
   );
-
-  // Step 2: run formatMsg on the tokenized text (safe — tokens are plain text)
-  var rendered = formatMsg(textTokenized);
-
-  // Step 3: replace tokens in the rendered HTML with spinner divs
-  Object.keys(_genPrompts).forEach(function(token) {
-    var prompt = _genPrompts[token];
-    var pid = token; // use token as element id
-    var spinnerDiv =
-      '<div id="' + pid + '" data-genprompt="' + prompt.replace(/"/g, '&quot;') + '" ' +
-      'style="margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)">' +
-      '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2)">' +
-      '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
-      '<span style="font-size:11px;color:var(--muted);margin-left:4px">\u2728 Generando imagen...</span>' +
-      '</div></div>';
-    rendered = rendered.split(token).join(spinnerDiv);
-  });
-
   var dvBody = document.getElementById('dv-body');
-  dvBody.innerHTML = rendered;
+  dvBody.innerHTML = formatMsg(textWithPlaceholders);
   document.getElementById('docViewer').classList.add('open');
   liaxGenerateImagesInViewer(dvId, dvBody);
 }
 
-async function liaxGenerateImagesInViewer(dvId, dvBody) {
-  var togetherKey = getTogetherKey();
-  if (!togetherKey) { console.warn('[VisualDoc] Sin Together key'); return; }
+function liaxGenerateImagesInViewer(dvId, dvBody) {
   var placeholders = dvBody.querySelectorAll('[data-genprompt]');
   if (!placeholders.length) return;
-  // Lanzar todas en paralelo
   Array.from(placeholders).forEach(function(el) {
-    liaxGenerateSingleImage(el, el.getAttribute('data-genprompt'), togetherKey);
+    liaxGenerateSingleImage(el, el.getAttribute('data-genprompt'));
   });
 }
 
-async function liaxGenerateSingleImage(el, prompt, togetherKey) {
-  try {
-    var res = await fetch('https://api.together.ai/v1/images/generations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + togetherKey },
-      body: JSON.stringify({
-        model: 'black-forest-labs/FLUX.1-schnell-Free',
-        prompt: 'Educational illustration, clean style, bright colors, white background, no text. Topic: ' + prompt,
-        width: 1024, height: 768, steps: 4, n: 1, response_format: 'url'
-      }),
-    });
-    if (!res.ok) throw new Error('Together error ' + res.status);
-    var data = await res.json();
-    var imgUrl = data.data && data.data[0] && data.data[0].url;
-    if (!imgUrl) throw new Error('Sin URL');
-    el.innerHTML =
-      '<img src="' + imgUrl + '" alt="" style="width:100%;display:block;border-radius:10px 10px 0 0">' +
-      '<div style="padding:5px 12px;font-size:10px;color:var(--muted);background:var(--surface2);border-top:1px solid var(--border)">' +
-      '\uD83C\uDFA8 ' + prompt + ' \u00b7 Together AI FLUX</div>';
-    el.removeAttribute('data-genprompt');
-  } catch(e) {
-    el.innerHTML = '<div style="padding:10px 14px;font-size:11px;color:var(--accent3)">\u26a0\ufe0f ' + e.message + '</div>';
-  }
+function liaxGenerateSingleImage(el, prompt) {
+  var encodedPrompt = encodeURIComponent(
+    'Educational illustration, clean flat style, bright colors, white background, no text. Topic: ' + prompt
+  );
+  var imgUrl = 'https://image.pollinations.ai/prompt/' + encodedPrompt +
+    '?width=1024&height=768&model=flux&nologo=true&enhance=true&seed=' + Math.floor(Math.random()*99999);
+
+  var spinId = 'polspin_' + Date.now() + '_' + Math.floor(Math.random()*9999);
+  el.innerHTML =
+    '<div id="' + spinId + '" style="display:flex;align-items:center;gap:6px;padding:12px 14px;background:var(--surface2)">' +
+      '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
+      '<span style="font-size:11px;color:var(--muted);margin-left:4px">Generando imagen...</span>' +
+    '</div>' +
+    '<div style="padding:5px 12px;font-size:10px;color:var(--muted);background:var(--surface2);border-top:1px solid var(--border)">' +
+    prompt.slice(0,60) + ' · Pollinations AI</div>';
+  el.removeAttribute('data-genprompt');
+
+  var img = new Image();
+  img.style.cssText = 'width:100%;display:block;border-radius:10px 10px 0 0';
+  img.onload = function() {
+    var spin = document.getElementById(spinId);
+    if (spin) spin.replaceWith(img);
+  };
+  img.onerror = function() {
+    var spin = document.getElementById(spinId);
+    if (spin) { spin.textContent = 'No se pudo generar la imagen'; }
+  };
+  img.src = imgUrl;
 }
 
 function closeModal(){
@@ -17116,118 +17097,28 @@ async function handleGenerarImagen(containerId, prompt) {
   var wrap = document.getElementById(containerId);
   if (!wrap) return;
 
-  // ── Cargar Together key — primero memoria, luego Supabase, luego IndexedDB ──
-  var togetherKey = getTogetherKey();
-  if (!togetherKey && _supa && _supaUser) {
-    try {
-      var { data: tkRow } = await _supa.from('config').select('value').eq('key','together_key').maybeSingle();
-      if (tkRow && tkRow.value) {
-        window._togetherKey = tkRow.value;
-        window._cachedTogetherKey = tkRow.value;
-        togetherKey = tkRow.value;
-      }
-    } catch(e) {}
-  }
-  if (!togetherKey) {
-    try {
-      var tk = await AGENT_VAULT.loadSetting('together_key');
-      if (tk) { window._togetherKey = tk; window._cachedTogetherKey = tk; togetherKey = tk; }
-    } catch(e) {}
-  }
-
-  // ── 1. Together AI (FLUX.1-schnell) — rápido y barato ──
-  if (togetherKey) {
-    try {
-      wrap.innerHTML =
-        '<div class="img-search-loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
-        '<span style="margin-left:6px">⚡ Together AI · FLUX.1-schnell...</span></div>';
-
-      var togetherBody = {
-        model: 'black-forest-labs/FLUX.1-schnell-Free',
-        prompt: 'Educational illustration, clean style, bright colors, white background, no text. Topic: ' + prompt,
-        width: 1024, height: 768,
-        steps: 4,
-        n: 1,
-        response_format: 'url'
-      };
-
-      var tres = await fetch('https://api.together.ai/v1/images/generations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + togetherKey },
-        body: JSON.stringify(togetherBody)
-      });
-
-      if (!tres.ok) {
-        var tErr = await tres.json().catch(function(){ return {}; });
-        throw new Error(tErr.error && tErr.error.message ? tErr.error.message : 'Together error ' + tres.status);
-      }
-
-      var tData = await tres.json();
-      var imgUrl = tData.data && tData.data[0] && tData.data[0].url;
-      if (!imgUrl) throw new Error('No se obtuvo URL de imagen');
-
-      var imgId = 'gen_' + Date.now();
-      _liaxRenderImagenGenerada(wrap, containerId, imgId, imgUrl, false, prompt, 'Together AI · FLUX Schnell', 'linear-gradient(135deg,#6366f1,#8b5cf6)');
-      return;
-
-    } catch(e) {
-      console.warn('[Together Imagen]', e.message);
-      // Continúa al fallback Gemini
-    }
-  }
-
-  // ── 2. Fallback: Gemini Imagen ──
-  var geminiKey = getGeminiKey();
-  if (!geminiKey) {
-    wrap.innerHTML =
-      '<div style="background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);border-radius:8px;padding:10px 14px;font-size:11px;line-height:1.7">' +
-      '🎨 Para generar imágenes con IA, configura una API Key en <button onclick="openApiKeyModal()" ' +
-      'style="background:none;border:none;color:var(--accent1);cursor:pointer;font-size:11px;padding:0;text-decoration:underline">⚙️ Configurar IAs</button>.' +
-      '<br><span style="color:var(--muted)">• <strong>Together AI</strong> (recomendado): ~$0.003/imagen — together.ai<br>' +
-      '• <strong>Google Gemini</strong>: gratis con límites — aistudio.google.com</span>' +
-      '<br><br>Buscando imágenes similares mientras tanto...</div>';
-    setTimeout(function() { handleImageTag(containerId, prompt, 'both'); }, 1800);
-    return;
-  }
-
-  try {
-    wrap.innerHTML =
-      '<div class="img-search-loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
-      '<span style="margin-left:6px">✨ Gemini Imagen generando...</span></div>';
-
-    var body = {
-      contents: [{ parts: [{ text: 'Genera una imagen educativa, simple y clara, colores brillantes, fondo blanco, sin texto: ' + prompt }] }],
-      generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
-    };
-
-    var res = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=' + geminiKey,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-    );
-
-    if (!res.ok) {
-      var errData = await res.json().catch(function(){ return {}; });
-      throw new Error(errData.error && errData.error.message ? errData.error.message : 'Error ' + res.status);
-    }
-
-    var data = await res.json();
-    var parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
-    var imgPart = parts.find(function(p) { return p.inlineData; });
-    if (!imgPart || !imgPart.inlineData) throw new Error('No se obtuvo imagen en la respuesta');
-
-    var mimeType = imgPart.inlineData.mimeType || 'image/png';
-    var dataUrl  = 'data:' + mimeType + ';base64,' + imgPart.inlineData.data;
-    var imgId    = 'gen_' + Date.now();
-    _liaxRenderImagenGenerada(wrap, containerId, imgId, dataUrl, true, prompt, 'Gemini Imagen', 'linear-gradient(135deg,#4285f4,#34a853)');
-
-  } catch(e) {
-    console.warn('[Gemini Imagen]', e.message);
-    wrap.innerHTML = '<div style="font-size:10px;color:var(--muted);margin-bottom:6px">⚠️ No se pudo generar: ' + e.message + ' — buscando imágenes similares...</div>';
-    setTimeout(function() { handleImageTag(containerId, prompt, 'illustration'); }, 500);
-  }
+  // ── Pollinations AI — sin key, sin CORS, gratis ──
+  var encodedPrompt = encodeURIComponent(
+    'Educational illustration, clean flat style, bright colors, white background, no text. Topic: ' + prompt
+  );
+  var polUrl = 'https://image.pollinations.ai/prompt/' + encodedPrompt +
+    '?width=1024&height=768&model=flux&nologo=true&enhance=true&seed=' + Math.floor(Math.random()*99999);
+  var imgId = 'gen_' + Date.now();
+  _liaxRenderImagenGenerada(wrap, containerId, imgId, polUrl, false, prompt, 'Pollinations AI', 'linear-gradient(135deg,#6366f1,#8b5cf6)');
+  return;
 }
 
-// ── Helper de renderizado compartido para imágenes generadas ──
+
+function liaxImgOnload(img, spinId) {
+  var spin = document.getElementById(spinId);
+  if (spin) spin.style.display = 'none';
+  img.style.display = 'block';
+}
+function liaxImgOnerror(img, wrapId) {
+  var wrap = document.getElementById(wrapId);
+  if (wrap) wrap.innerHTML = '<div style="padding:12px;font-size:11px;color:var(--muted);text-align:center">No se pudo generar la imagen</div>';
+}
+
 function _liaxRenderImagenGenerada(wrap, containerId, imgId, src, isBase64, prompt, label, badgeGradient) {
   wrap.innerHTML =
     '<div style="margin:8px 0">' +
@@ -17235,9 +17126,10 @@ function _liaxRenderImagenGenerada(wrap, containerId, imgId, src, isBase64, prom
         '<span style="background:' + badgeGradient + ';color:#fff;border-radius:10px;padding:2px 8px;font-size:9px;font-weight:700">' + label + '</span>' +
         '<span>' + prompt.slice(0,50) + (prompt.length>50?'…':'') + '</span>' +
       '</div>' +
-      '<img id="' + imgId + '" src="' + src + '" loading="lazy" ' +
-        'style="max-width:100%;max-height:320px;border-radius:10px;border:1px solid var(--border);cursor:zoom-in;display:block" ' +
-        'alt="imagen generada">' +
+      '<div id="spin_' + imgId + '" style="min-height:120px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;color:var(--muted)">' +
+        '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
+        '<span style="margin-left:4px">Generando...</span></div>' +
+      '<img id="' + imgId + '" src="" style="max-width:100%;max-height:320px;border-radius:10px;border:1px solid var(--border);cursor:zoom-in;display:none" alt="imagen generada">' +
       '<div style="display:flex;gap:6px;margin-top:6px">' +
         '<button data-imgid="' + imgId + '" data-action="download" ' +
           'style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;color:var(--muted)">⬇ Descargar</button>' +
@@ -17245,6 +17137,24 @@ function _liaxRenderImagenGenerada(wrap, containerId, imgId, src, isBase64, prom
           'style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;color:var(--muted)">🔄 Regenerar</button>' +
       '</div>' +
     '</div>';
+  // Set image src via JS to avoid inline handler issues
+  (function(iId, imgSrc) {
+    setTimeout(function() {
+      var imgEl = document.getElementById(iId);
+      if (!imgEl) return;
+      imgEl.onload = function() {
+        var spin = document.getElementById('spin_' + iId);
+        if (spin) spin.style.display = 'none';
+        imgEl.style.display = 'block';
+      };
+      imgEl.onerror = function() {
+        var spin = document.getElementById('spin_' + iId);
+        if (spin) spin.textContent = 'No se pudo generar la imagen';
+      };
+      imgEl.src = imgSrc;
+    }, 10);
+  })(imgId, src);
+
   setTimeout(function() {
     var w2 = document.getElementById(containerId);
     if (!w2) return;
