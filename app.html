@@ -4432,7 +4432,7 @@ TIPOS DE MATERIAL QUE DOMINAS:
 
 REGLAS DE DISEÑO:
 - Lenguaje simple y directo, apropiado para el nivel del curso.
-- Máximo 4 imágenes por material (usa [GENERA: descripción detallada en inglés]).
+- Máximo 25 imágenes por material (usa [GENERA: descripción detallada en inglés]).
 - Las descripciones para imágenes deben ser específicas: estilo ilustración educativa, fondo blanco, sin texto.
 - Si hay alumnos con NEE en el contexto, adapta el material automáticamente.
 - El output debe poder imprimirse directamente en hoja A4.`,
@@ -5967,13 +5967,12 @@ function previewDato(id) {
   const d = DATOS_STORE.getById(id);
   if (!d) return;
   const cfg = DATO_TYPE_CFG[d.tipo] || DATO_TYPE_CFG.otro;
-  document.getElementById('dv-title').textContent = d.nombre;
-  document.getElementById('dv-meta').textContent = `${cfg.label} · ${d.curso||'Todos los cursos'} · ${d.periodo||''} · ${d.rows?.length||0} filas`;
-  document.getElementById('dv-icon').textContent = cfg.label.split(' ')[0];
-  document.getElementById('dv-body').innerHTML = typeof formatMsg === 'function' ? formatMsg(d.rawText||'') : (d.rawText||'[Sin contenido de texto]');
-  document.getElementById('docViewer').classList.add('open');
-  // Override download for this dato
-  window.viewingDoc = { title: d.nombre, content: d.rawText || '' };
+  _renderDocViewer({
+    title:   d.nombre,
+    meta:    `${cfg.label} · ${d.curso||'Todos los cursos'} · ${d.periodo||''} · ${d.rows?.length||0} filas`,
+    icon:    cfg.label.split(' ')[0],
+    content: d.rawText || '',
+  });
 }
 
 // ── Open dashboard analysis pre-filled ──
@@ -8092,59 +8091,14 @@ async function sendChat(){
 function liaxOpenVisualDoc(dvId) {
   var doc = (window._liaxVisualDocs || {})[dvId];
   if (!doc) return;
-  var dvIcon  = document.getElementById('dv-icon');
-  var dvTitle = document.getElementById('dv-title');
-  var dvMeta  = document.getElementById('dv-meta');
-  if (dvIcon)  dvIcon.textContent  = doc.icon || '\uD83D\uDCC4';
-  if (dvTitle) dvTitle.textContent = doc.agent || 'Documento';
-  if (dvMeta)  dvMeta.textContent  = 'Generado con Gemini \u00b7 Im\u00e1genes: Together AI FLUX';
-  // Step 1: extract [GENERA:] and replace with plain tokens BEFORE formatMsg
-  var imgIdx = 0;
-  var _genMap = {};
-  var textTokenized = doc.text.replace(
-    /\[(?:GENERA|GENERAR|CREA|CREAR):\s*([^\]]+)\]/gi,
-    function(_, prompt) {
-      var token = 'LIAX_GEN_' + dvId + '_' + (imgIdx++);
-      _genMap[token] = prompt.trim();
-      return token;
-    }
-  );
-
-  // Step 2: run formatMsg safely on tokenized text
-  var rendered = formatMsg(textTokenized);
-
-  // Step 3: replace tokens in rendered HTML with spinner divs
-  Object.keys(_genMap).forEach(function(token) {
-    var prompt = _genMap[token];
-    var spinnerDiv =
-      '<div id="' + token + '" data-genprompt="' + prompt.replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" ' +
-      'style="margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)">' +
-      '<div style="display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--surface2)">' +
-      '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
-      '<span style="font-size:11px;color:var(--muted);margin-left:4px">\u2728 Generando imagen...</span>' +
-      '</div></div>';
-    // The token may have been HTML-escaped by formatMsg — handle both cases
-    rendered = rendered.split(token).join(spinnerDiv);
-  });
-
-  var dvBody = document.getElementById('dv-body');
-  dvBody.innerHTML = rendered;
-
-  // Set viewingDoc so PDF download works
-  window.viewingDoc = {
+  _renderDocViewer({
     title:     doc.agent || 'Documento',
+    meta:      'Generado con Gemini · Imágenes: Together AI FLUX',
+    icon:      doc.icon || '📄',
     content:   doc.text,
     agentName: doc.agent || '',
     savedAt:   new Date().toISOString(),
-  };
-
-  // Show continue button
-  var continueBtn = document.getElementById('dvContinuarBtn');
-  if (continueBtn) continueBtn.style.display = 'none';
-
-  document.getElementById('docViewer').classList.add('open');
-  // Small delay to ensure DOM is painted before querying
-  setTimeout(function() { liaxGenerateImagesInViewer(dvId, dvBody); }, 50);
+  });
 }
 
 function liaxGenerateImagesInViewer(dvId, dvBody) {
@@ -8158,6 +8112,7 @@ function liaxGenerateImagesInViewer(dvId, dvBody) {
 function liaxGenerateSingleImage(el, prompt) {
   var caption = prompt.slice(0,60) + (prompt.length > 60 ? '...' : '');
   el.removeAttribute('data-genprompt');
+  el.setAttribute('data-generating', '1'); // mark as in-progress for downloadDoc to detect
   el.style.cssText = 'margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)';
 
   var spinEl = document.createElement('div');
@@ -8180,15 +8135,56 @@ function liaxGenerateSingleImage(el, prompt) {
   .then(function(r) { return r.json(); })
   .then(function(data) {
     if (data.error) throw new Error(data.error);
-    var imgEl = document.createElement('img');
-    imgEl.style.cssText = 'width:100%;display:block;border-radius:10px 10px 0 0';
-    imgEl.alt = caption;
-    imgEl.setAttribute('data-together-url', data.url);
-    imgEl.onload = function() { spinEl.replaceWith(imgEl); };
-    imgEl.onerror = function() { spinEl.textContent = '\u26a0\ufe0f No se pudo cargar la imagen'; };
-    imgEl.src = data.url;
+    var imgUrl = data.url;
+
+    // Fetch and convert to base64 immediately so it can be embedded in PDF exports
+    return fetch(imgUrl)
+      .then(function(r2) { return r2.blob(); })
+      .then(function(blob) {
+        return new Promise(function(res) {
+          var fr = new FileReader();
+          fr.onload = function(e) { res(e.target.result); };
+          fr.onerror = function() { res(null); };
+          fr.readAsDataURL(blob);
+        });
+      })
+      .then(function(b64) {
+        var imgEl = document.createElement('img');
+        imgEl.style.cssText = 'width:100%;display:block;border-radius:10px 10px 0 0';
+        imgEl.alt = caption;
+        var finalSrc = (b64 && b64.startsWith('data:')) ? b64 : imgUrl;
+        if (!b64 || !b64.startsWith('data:')) {
+          imgEl.setAttribute('data-together-url', imgUrl);
+        }
+        imgEl.onload = function() {
+          el.removeAttribute('data-generating'); // done — downloadDoc can proceed
+          spinEl.replaceWith(imgEl);
+        };
+        imgEl.onerror = function() {
+          el.removeAttribute('data-generating');
+          spinEl.textContent = '\u26a0\ufe0f No se pudo cargar la imagen';
+        };
+        imgEl.src = finalSrc;
+      })
+      .catch(function() {
+        // fetch of image URL failed — show remote URL, mark done
+        var imgEl = document.createElement('img');
+        imgEl.style.cssText = 'width:100%;display:block;border-radius:10px 10px 0 0';
+        imgEl.alt = caption;
+        imgEl.setAttribute('data-together-url', imgUrl);
+        imgEl.onload = function() {
+          el.removeAttribute('data-generating');
+          spinEl.replaceWith(imgEl);
+        };
+        imgEl.onerror = function() {
+          el.removeAttribute('data-generating');
+          spinEl.textContent = '\u26a0\ufe0f No se pudo cargar la imagen';
+        };
+        imgEl.src = imgUrl;
+      });
   })
   .catch(function(e) {
+    el.removeAttribute('data-generating');
     spinEl.textContent = '\u26a0\ufe0f ' + (e.message || 'Error generando imagen');
   });
 }
@@ -11607,15 +11603,81 @@ function calShareDocByMail(idx) {
   window.open('mailto:?subject=' + subj + '&body=' + body);
 }
 
+// ── Función centralizada para renderizar el docViewer ────────────────────────
+// Todos los flujos que abren el docViewer deben usar esta función.
+// Maneja automáticamente texto plano, markdown y contenido con [GENERA:] imágenes.
+function _renderDocViewer(opts) {
+  // opts: { title, meta, icon, content, agentName, savedAt }
+  var dvBody  = document.getElementById('dv-body');
+  var dvTitle = document.getElementById('dv-title');
+  var dvMeta  = document.getElementById('dv-meta');
+  var dvIcon  = document.getElementById('dv-icon');
+  if (!dvBody) return;
+  if (dvTitle) dvTitle.textContent = opts.title  || 'Documento';
+  if (dvMeta)  dvMeta.textContent  = opts.meta   || '';
+  if (dvIcon)  dvIcon.textContent  = opts.icon   || '📄';
+
+  window.viewingDoc = {
+    title:     opts.title     || 'Documento',
+    content:   opts.content   || '',
+    agentName: opts.agentName || '',
+    savedAt:   opts.savedAt   || new Date().toISOString(),
+  };
+
+  var content = opts.content || '';
+  var continueBtn = document.getElementById('dvContinuarBtn');
+  if (continueBtn) continueBtn.style.display = 'none';
+
+  // Si el contenido tiene marcadores [GENERA:], generar imágenes automáticamente
+  if (/\[(?:GENERA|GENERAR|CREA|CREAR):/i.test(content)) {
+    var _dvId = 'renderdoc_' + Date.now();
+    var _idx  = 0;
+    var _map  = {};
+    var tokenized = content.replace(
+      /\[(?:GENERA|GENERAR|CREA|CREAR):\s*([^\]]+)\]/gi,
+      function(_, prompt) {
+        var token = 'LIAX_GEN_' + _dvId + '_' + (_idx++);
+        _map[token] = prompt.trim();
+        return token;
+      }
+    );
+    var rendered = typeof formatMsg === 'function' ? formatMsg(tokenized) : tokenized;
+    Object.keys(_map).forEach(function(token) {
+      var prompt = _map[token];
+      var spinnerDiv =
+        '<div id="' + token + '" data-genprompt="' + prompt.replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" ' +
+        'style="margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)">' +
+        '<div style="display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--surface2)">' +
+        '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
+        '<span style="font-size:11px;color:var(--muted);margin-left:4px">✨ Generando imagen...</span>' +
+        '</div></div>';
+      rendered = rendered.split(token).join(spinnerDiv);
+    });
+    dvBody.innerHTML = rendered;
+    setTimeout(function() { liaxGenerateImagesInViewer(_dvId, dvBody); }, 50);
+  } else {
+    dvBody.innerHTML = typeof formatMsg === 'function'
+      ? formatMsg(content)
+      : content.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  document.getElementById('docViewer').classList.add('open');
+}
+
 function openDocViewer(idx) {
   const docs = AGENT_STORE.getDocs(currentAgent.id);
-  viewingDoc = docs[idx];
+  const doc  = docs[idx];
   viewingDocIdx = idx;
-  if (!viewingDoc) return;
-  document.getElementById('dv-title').textContent = viewingDoc.title;
-  document.getElementById('dv-meta').textContent = `${currentAgent.nombre} · ${new Date(viewingDoc.savedAt).toLocaleString('es-CL')}`;
-  document.getElementById('dv-body').innerHTML = typeof formatMsg === 'function' ? formatMsg(viewingDoc.content||'') : (viewingDoc.content||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  document.getElementById('docViewer').classList.add('open');
+  if (!doc) return;
+  viewingDoc = doc;
+  _renderDocViewer({
+    title:     doc.title,
+    meta:      (currentAgent.nombre || '') + ' · ' + new Date(doc.savedAt).toLocaleString('es-CL'),
+    icon:      currentAgent.icon || '📄',
+    content:   doc.content,
+    agentName: doc.agentName || currentAgent.nombre,
+    savedAt:   doc.savedAt,
+  });
 }
 let viewingDocIdx = 0;
 function closeDocViewer() { document.getElementById('docViewer').classList.remove('open'); viewingDoc = null; }
@@ -11626,65 +11688,48 @@ async function downloadDoc() {
   var dvBody = document.getElementById('dv-body');
   if (!dvBody) return;
 
-  // Check if this is a visual doc with generated images
-  var generatedImgs = dvBody.querySelectorAll('img[data-together-url]');
-
-  if (generatedImgs.length > 0) {
-    showSaveToast('⏳ Preparando PDF con imágenes...');
-
-    // Helper: convert an img element src to base64 using canvas (CORS-safe)
-    function imgToBase64ViaCanvas(imgEl) {
-      return new Promise(function(resolve) {
-        var tempImg = new Image();
-        tempImg.crossOrigin = 'anonymous';
-        tempImg.onload = function() {
-          try {
-            var canvas = document.createElement('canvas');
-            canvas.width  = tempImg.naturalWidth  || 512;
-            canvas.height = tempImg.naturalHeight || 512;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(tempImg, 0, 0);
-            resolve(canvas.toDataURL('image/jpeg', 0.92));
-          } catch(e) { resolve(null); }
-        };
-        tempImg.onerror = function() { resolve(null); };
-        tempImg.src = imgEl.getAttribute('data-together-url') || imgEl.src;
-      });
-    }
-
-    // Helper: fetch → base64 (may fail on CORS)
-    async function imgToBase64ViaFetch(imgEl) {
-      try {
-        var url = imgEl.getAttribute('data-together-url') || imgEl.src;
-        var response = await fetch(url, { mode: 'cors' });
-        var blob = await response.blob();
-        return await new Promise(function(res, rej) {
-          var reader = new FileReader();
-          reader.onload  = function(e) { res(e.target.result); };
-          reader.onerror = rej;
-          reader.readAsDataURL(blob);
-        });
-      } catch(e) { return null; }
-    }
-
-    var conversionPromises = Array.from(generatedImgs).map(async function(img) {
-      // Try canvas first (avoids CORS issues), then fetch as fallback
-      var b64 = await imgToBase64ViaCanvas(img);
-      if (!b64) b64 = await imgToBase64ViaFetch(img);
-      if (b64) {
-        img.src = b64;
-        img.removeAttribute('data-together-url');
-      } else {
-        // Image couldn't be converted — hide it so it doesn't break the PDF
-        img.style.display = 'none';
-        console.warn('[Liax] No se pudo convertir imagen para PDF');
-      }
+  // Wait for all images still being fetched/converted
+  // data-genprompt = not started yet, data-generating = fetch in progress
+  var pending = dvBody.querySelectorAll('[data-genprompt],[data-generating]');
+  if (pending.length > 0) {
+    showSaveToast('⏳ Esperando que terminen de generarse las imágenes...');
+    await new Promise(function(resolve) {
+      var checks = 0;
+      var interval = setInterval(function() {
+        checks++;
+        var stillPending = dvBody.querySelectorAll('[data-genprompt],[data-generating]');
+        if (stillPending.length === 0 || checks > 60) { // max 30s wait
+          clearInterval(interval);
+          resolve();
+        }
+      }, 500);
     });
-
-    await Promise.all(conversionPromises);
   }
 
-  // Always use the proper PDF export (works with and without images)
+  // Any images still as remote URLs (fetch failed during generation) — try once more
+  var remoteImgs = Array.from(dvBody.querySelectorAll('img[data-together-url]'));
+  if (remoteImgs.length > 0) {
+    showSaveToast('⏳ Preparando PDF con imágenes...');
+    await Promise.all(remoteImgs.map(async function(img) {
+      var url = img.getAttribute('data-together-url') || img.src;
+      try {
+        var r = await fetch(url);
+        var blob = await r.blob();
+        var b64 = await new Promise(function(res, rej) {
+          var fr = new FileReader();
+          fr.onload = function(e) { res(e.target.result); };
+          fr.onerror = rej;
+          fr.readAsDataURL(blob);
+        });
+        img.src = b64;
+        img.removeAttribute('data-together-url');
+      } catch(e) {
+        img.style.display = 'none';
+        console.warn('[Liax] No se pudo convertir imagen para PDF:', url);
+      }
+    }));
+  }
+
   await exportDocToPDF(
     viewingDoc.title,
     viewingDoc.content,
@@ -20976,24 +21021,20 @@ function renderRepositorioDocs() {
 
     switch(btn.dataset.action) {
       case 'ver':
-        document.getElementById('dv-title').textContent = doc.title || 'Sin título';
-        document.getElementById('dv-meta').textContent  = agentId;
-        document.getElementById('dv-icon').textContent  = '📄';
-        document.getElementById('dv-body').innerHTML    = typeof formatMsg === 'function' ? formatMsg(doc.content||'') : (doc.content||'');
-        document.getElementById('docViewer').classList.add('open');
-        window.viewingDoc = { title: doc.title, content: doc.content };
+        _renderDocViewer({
+          title:     doc.title || 'Sin título',
+          meta:      agentId,
+          icon:      '📄',
+          content:   doc.content,
+          agentName: doc.agentName || agentId,
+          savedAt:   doc.savedAt,
+        });
         break;
       case 'copiar':
         navigator.clipboard.writeText(doc.content||'').then(function(){ showSaveToast('📋 Copiado al portapapeles'); });
         break;
       case 'pdf':
-        var jsPDF_ = (window.jspdf||{}).jsPDF;
-        if (!jsPDF_) { showSaveToast('jsPDF no disponible'); break; }
-        var pd = new jsPDF_({ orientation:'portrait', unit:'mm', format:'a4' });
-        pd.setFontSize(10);
-        var lines = pd.splitTextToSize((doc.content||'').replace(/<[^>]+>/g,''), 180);
-        pd.text(lines, 15, 20);
-        pd.save((doc.title||'documento').slice(0,40) + '.pdf');
+        exportDocToPDF(doc.title||'Documento', doc.content||'', doc.agentName||agentId, doc.savedAt);
         break;
       case 'calendarizar':
         openCalEventModal('','', doc.title, 'documento');
@@ -21017,16 +21058,15 @@ async function openDocFromRepo(agentId, title) {
   var doc  = docs.find(function(d){ return d.title === title; });
   if (!doc) return;
   var agent = AGENTS.find(function(a){ return a.id === agentId; });
-  document.getElementById('dv-title').textContent = doc.title;
-  document.getElementById('dv-meta').textContent = (agent ? agent.nombre : '') + ' · ' +
-    (doc.savedAt ? new Date(doc.savedAt).toLocaleString('es-CL') : '');
-  document.getElementById('dv-body').innerHTML = typeof formatMsg === 'function' ? formatMsg(doc.content||'') : (doc.content||'');
-  viewingDoc = { title: doc.title, content: doc.content||'', agentName: agent ? agent.nombre : '', savedAt: doc.savedAt };
-  // Hide continuar button (this is a document, not a conversation)
-  var continBtn = document.getElementById('dvContinuarBtn');
-  if (continBtn) continBtn.style.display = 'none';
   _dvHistSession = null; _dvHistAgentId = null;
-  document.getElementById('docViewer').classList.add('open');
+  _renderDocViewer({
+    title:     doc.title,
+    meta:      (agent ? agent.nombre : '') + ' · ' + (doc.savedAt ? new Date(doc.savedAt).toLocaleString('es-CL') : ''),
+    icon:      '📄',
+    content:   doc.content || '',
+    agentName: agent ? agent.nombre : '',
+    savedAt:   doc.savedAt,
+  });
 }
 
 function copyDocFromRepo(agentId, title) {
@@ -33385,12 +33425,12 @@ function bancoUsar(id) {
     }
   } else {
     // Show document
-    window.viewingDoc = { title: r.titulo, content: r.content || r.desc };
-    document.getElementById('dv-title').textContent = r.titulo;
-    document.getElementById('dv-meta').textContent  = 'Compartido por ' + (r.autor||'?');
-    document.getElementById('dv-icon').textContent  = r.icon || '📄';
-    document.getElementById('dv-body').innerHTML    = typeof formatMsg === 'function' ? formatMsg(r.content||r.desc||'') : (r.content||r.desc||'');
-    document.getElementById('docViewer').classList.add('open');
+    _renderDocViewer({
+      title:   r.titulo,
+      meta:    'Compartido por ' + (r.autor || '?'),
+      icon:    r.icon || '📄',
+      content: r.content || r.desc || '',
+    });
   }
 }
 
