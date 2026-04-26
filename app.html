@@ -909,7 +909,7 @@
   .reply-field-wrap::before{content:'✏️ Tu respuesta';display:block;font-size:10px;font-weight:800;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
   .reply-send-btn{position:absolute;right:6px;bottom:6px;background:var(--accent1);color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;opacity:0;transition:opacity .15s;}
   .reply-field-wrap:focus-within .reply-send-btn{opacity:1;}
-  .reply-send-btn{opacity:1 !important;background:var(--accent2);color:#000;font-weight:800;}
+  .reply-send-btn{display:none !important;}
   .msg-h2{font-size:15px;font-weight:800;color:var(--accent2);margin:14px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--accent2)44;}
   .msg-h3{font-size:14px;font-weight:800;color:var(--accent1);margin:10px 0 4px;}
   .msg-hr{border:none;border-top:1px solid var(--border);margin:8px 0;}
@@ -7537,23 +7537,15 @@ function formatMsg(text) {
   });
 
   // ── STEP 2: Escape HTML for normal text ──────────────────
-  // Pre-mark blockquote lines BEFORE escaping so > is not converted to &gt;
-  var rawLines = text.split('\n');
-  var escapedLines = rawLines.map(function(rl) {
-    if (/^> /.test(rl)) {
-      // Store placeholder text raw, escape the rest normally later
-      return '\x00BQ\x00' + rl.slice(2);
-    }
-    return rl.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  });
-  var lines = escapedLines;
+  var lines = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .split('\n');
   var out = [];
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i];
     // Blockquote: > text  →  editable reply textarea
-    if (l.indexOf('\x00BQ\x00') === 0) {
-      l = l.slice(5); // strip marker
-      var ph  = l.replace(/_/g,'').replace(/\*\*?/g,'').trim() || 'Escribe tu respuesta aquí...';
+    if (/^> /.test(l)) {
+      var ph  = l.replace(/^> /, '').replace(/<[^>]+>/g, '') || 'Escribe tu respuesta aquí...';
       var uid = 'rf' + (++window._rfCount || (window._rfCount=1));
       // Check if nearby lines ask for a file
       var context3 = lines.slice(Math.max(0,i-4), i+1).join(' ').toLowerCase();
@@ -7568,8 +7560,8 @@ function formatMsg(text) {
       out.push(
         '<div class="reply-field-wrap">' +
           '<textarea id="' + uid + '" class="reply-field" rows="2" placeholder="' + ph + '" ' +
-            'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendReplyField(this)}"></textarea>' +
-          '<button class="reply-send-btn" onclick="sendReplyField(this.previousElementSibling)">Enviar ↵</button>' +
+            '></textarea>' +
+
           (needsFile ? buildInlineFileUploader(fuId, 'archivo') : '') +
         '</div>'
       );
