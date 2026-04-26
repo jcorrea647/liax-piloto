@@ -11686,45 +11686,194 @@ function saveAsWord(content) {
   var title = (titleInput && titleInput.value.trim()) || ('Documento_' + new Date().toLocaleDateString('es-CL').replace(/\//g,'-'));
   var text = (content || '').replace(/<[^>]*>/g, '');
 
-  // Convertir markdown a HTML completo (Word abre HTML nativamente con formato)
-  var html = _mdToHtml(text);
+  // Convertir markdown a HTML con estilos INLINE (Word los respeta siempre)
+  var html = _mdToHtmlWord(text);
 
-  var wordHtml = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
-    'xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
-    '<head><meta charset="UTF-8">' +
-    '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom>' +
-    '<w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->' +
-    '<style>' +
-    'body{font-family:Arial,sans-serif;font-size:12pt;color:#1a1a1a;margin:2cm;line-height:1.6;}' +
-    'h1{font-size:20pt;font-weight:bold;color:#1a237e;margin:16pt 0 8pt;border-bottom:2px solid #1a237e;padding-bottom:4pt;}' +
-    'h2{font-size:16pt;font-weight:bold;color:#283593;margin:14pt 0 6pt;}' +
-    'h3{font-size:13pt;font-weight:bold;color:#37474f;margin:10pt 0 4pt;}' +
-    'p{margin:4pt 0 6pt;}' +
-    'ul,ol{margin:4pt 0 8pt;padding-left:20pt;}' +
-    'li{margin:2pt 0;}' +
-    'strong,b{font-weight:bold;}' +
-    'em,i{font-style:italic;}' +
-    'table{border-collapse:collapse;width:100%;margin:10pt 0;}' +
-    'th{background:#1a237e;color:#fff;font-weight:bold;padding:6pt 10pt;border:1px solid #999;text-align:left;}' +
-    'td{padding:5pt 10pt;border:1px solid #bbb;vertical-align:top;}' +
-    'tr:nth-child(even) td{background:#f0f4ff;}' +
-    'code{font-family:Courier New,monospace;background:#f5f5f5;padding:1pt 3pt;font-size:10pt;}' +
-    '.doc-title{font-size:22pt;font-weight:bold;color:#1a1a1a;margin-bottom:4pt;}' +
-    '.doc-meta{font-size:9pt;color:#888;border-bottom:1px solid #ccc;padding-bottom:8pt;margin-bottom:16pt;}' +
-    'hr{border:none;border-top:1px solid #ccc;margin:12pt 0;}' +
-    'blockquote{border-left:4px solid #1a237e;margin:8pt 0;padding:4pt 12pt;color:#555;background:#f8f9ff;}' +
-    '</style></head><body>' +
-    '<div class="doc-title">' + _escHtml(title) + '</div>' +
-    '<div class="doc-meta">Generado: ' + new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'}) + ' — LIAX Educativo</div>' +
+  var wordHtml = '<!DOCTYPE html>\n' +
+    '<html xmlns:o="urn:schemas-microsoft-com:office:office"\n' +
+    '      xmlns:w="urn:schemas-microsoft-com:office:word"\n' +
+    '      xmlns="http://www.w3.org/TR/REC-html40">\n' +
+    '<head><meta charset="UTF-8">\n' +
+    '<meta name=ProgId content=Word.Document>\n' +
+    '<meta name=Generator content="LIAX Educativo">\n' +
+    '<!--[if gte mso 9]><xml>\n' +
+    '<w:WordDocument>\n' +
+    '  <w:View>Print</w:View>\n' +
+    '  <w:Zoom>100</w:Zoom>\n' +
+    '  <w:DoNotOptimizeForBrowser/>\n' +
+    '</w:WordDocument>\n' +
+    '</xml><![endif]-->\n' +
+    '<style>\n' +
+    '  @page { margin: 2cm; }\n' +
+    '  body { font-family: Arial, sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.5; }\n' +
+    '  p { margin: 4pt 0; }\n' +
+    '  table { border-collapse: collapse; width: 100%; }\n' +
+    '  td, th { border: 1px solid #999; padding: 5pt 9pt; font-size: 10pt; }\n' +
+    '</style>\n' +
+    '</head><body>\n' +
+
+    // Título del documento
+    '<p style="font-family:Arial,sans-serif;font-size:18pt;font-weight:bold;color:#1a1a1a;' +
+    'border-bottom:2px solid #1a237e;padding-bottom:4pt;margin-bottom:2pt;">' +
+    _escHtml(title) + '</p>\n' +
+
+    // Subtítulo/fecha
+    '<p style="font-family:Arial,sans-serif;font-size:9pt;color:#888888;' +
+    'border-bottom:1px solid #cccccc;padding-bottom:6pt;margin-bottom:14pt;">' +
+    'Generado: ' + new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'}) +
+    ' &mdash; LIAX Educativo</p>\n' +
+
     html +
-    '</body></html>';
+    '\n</body></html>';
 
-  var blob = new Blob(['\ufeff' + wordHtml], {type:'application/msword;charset=utf-8'});
+  var blob = new Blob(['\ufeff' + wordHtml], {type: 'application/msword;charset=utf-8'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url; a.download = title + '.doc'; a.click();
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
   showSaveToast('📄 Descargando Word: "' + title + '"');
+}
+
+// ── Markdown → HTML con estilos INLINE para Word ──────────
+// (Word ignora CSS externo en muchos casos; inline siempre funciona)
+function _mdToHtmlWord(text) {
+  var lines = text.split('\n');
+  var out = '';
+  var i = 0;
+  var inUl = false, inOl = false, inTable = false, inBlockquote = false;
+  var rowCount = 0; // para filas alternas
+
+  var S = {
+    body:   'font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;',
+    h1:     'font-family:Arial,sans-serif;font-size:16pt;font-weight:bold;color:#1a237e;' +
+            'border-bottom:2px solid #1a237e;padding-bottom:3pt;margin:14pt 0 6pt;',
+    h2:     'font-family:Arial,sans-serif;font-size:13pt;font-weight:bold;color:#283593;margin:12pt 0 5pt;',
+    h3:     'font-family:Arial,sans-serif;font-size:11pt;font-weight:bold;color:#37474f;margin:9pt 0 3pt;',
+    p:      'font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;margin:3pt 0 5pt;line-height:1.5;',
+    li:     'font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;margin:2pt 0;',
+    th:     'font-family:Arial,sans-serif;font-size:10pt;font-weight:bold;color:#ffffff;' +
+            'background-color:#1a237e;border:1px solid #666666;padding:5pt 9pt;text-align:left;',
+    tdEven: 'font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;' +
+            'background-color:#eef1fb;border:1px solid #aaaaaa;padding:5pt 9pt;vertical-align:top;',
+    tdOdd:  'font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;' +
+            'background-color:#ffffff;border:1px solid #aaaaaa;padding:5pt 9pt;vertical-align:top;',
+    bq:     'font-family:Arial,sans-serif;font-size:11pt;color:#555555;font-style:italic;' +
+            'border-left:4px solid #1a237e;margin:8pt 0;padding:4pt 12pt;background-color:#f8f9ff;',
+    hr:     'border:none;border-top:1px solid #cccccc;margin:10pt 0;',
+    code:   'font-family:"Courier New",monospace;font-size:9pt;background-color:#f4f4f4;padding:1pt 3pt;'
+  };
+
+  function closeLists() {
+    if (inUl) { out += '</ul>\n'; inUl = false; }
+    if (inOl) { out += '</ol>\n'; inOl = false; }
+  }
+  function closeTable() {
+    if (inTable) { out += '</tbody></table>\n'; inTable = false; rowCount = 0; }
+  }
+  function closeBlockquote() {
+    if (inBlockquote) { out += '</blockquote>\n'; inBlockquote = false; }
+  }
+
+  function parseCells(line) {
+    return line.split('|').filter(function(c,idx,arr){ return idx>0 && idx<arr.length-1; });
+  }
+
+  while (i < lines.length) {
+    var line = lines[i];
+    var l = line.trim();
+
+    // ── Tabla ──
+    if (/^\|.+\|/.test(l)) {
+      if (!inTable) {
+        closeLists(); closeBlockquote();
+        out += '<table style="border-collapse:collapse;width:100%;margin:10pt 0;">\n<thead>\n<tr>\n';
+        parseCells(l).forEach(function(h){
+          out += '<th style="' + S.th + '">' + _inlineMdWord(h.trim()) + '</th>\n';
+        });
+        out += '</tr>\n</thead>\n<tbody>\n';
+        inTable = true;
+        rowCount = 0;
+        i++;
+        // saltar separador |---|---|
+        if (i < lines.length && /^\|[\s\-:| ]+\|$/.test(lines[i].trim())) i++;
+        continue;
+      } else {
+        var tdStyle = (rowCount % 2 === 0) ? S.tdOdd : S.tdEven;
+        out += '<tr>\n';
+        parseCells(l).forEach(function(c){
+          out += '<td style="' + tdStyle + '">' + _inlineMdWord(c.trim()) + '</td>\n';
+        });
+        out += '</tr>\n';
+        rowCount++;
+        i++; continue;
+      }
+    } else { closeTable(); }
+
+    // ── Vacío ──
+    if (!l) {
+      closeLists(); closeBlockquote();
+      out += '<p style="margin:4pt 0;">&nbsp;</p>\n'; i++; continue;
+    }
+
+    // ── Headings ──
+    var hm = l.match(/^(#{1,6})\s+(.*)/);
+    if (hm) {
+      closeLists(); closeBlockquote();
+      var lvl = hm[1].length;
+      var st = lvl===1 ? S.h1 : (lvl===2 ? S.h2 : S.h3);
+      out += '<h'+lvl+' style="'+st+'">' + _inlineMdWord(hm[2]) + '</h'+lvl+'>\n';
+      i++; continue;
+    }
+
+    // ── HR ──
+    if (/^(---+|\*\*\*+|___+)$/.test(l)) {
+      closeLists(); closeBlockquote();
+      out += '<hr style="'+S.hr+'">\n'; i++; continue;
+    }
+
+    // ── Blockquote ──
+    if (/^>\s?/.test(l)) {
+      closeLists();
+      if (!inBlockquote) { out += '<blockquote style="'+S.bq+'">\n'; inBlockquote = true; }
+      out += '<p style="'+S.p+'">' + _inlineMdWord(l.replace(/^>\s?/,'')) + '</p>\n';
+      i++; continue;
+    } else { closeBlockquote(); }
+
+    // ── Lista desordenada ──
+    if (/^[-*+]\s/.test(l)) {
+      if (inOl) { out += '</ol>\n'; inOl = false; }
+      if (!inUl) { out += '<ul style="margin:4pt 0 8pt;padding-left:18pt;">\n'; inUl = true; }
+      out += '<li style="'+S.li+'">' + _inlineMdWord(l.replace(/^[-*+]\s/,'')) + '</li>\n';
+      i++; continue;
+    }
+
+    // ── Lista ordenada ──
+    if (/^\d+\.\s/.test(l)) {
+      if (inUl) { out += '</ul>\n'; inUl = false; }
+      if (!inOl) { out += '<ol style="margin:4pt 0 8pt;padding-left:18pt;">\n'; inOl = true; }
+      out += '<li style="'+S.li+'">' + _inlineMdWord(l.replace(/^\d+\.\s/,'')) + '</li>\n';
+      i++; continue;
+    }
+
+    closeLists();
+    out += '<p style="'+S.p+'">' + _inlineMdWord(l) + '</p>\n';
+    i++;
+  }
+
+  closeLists(); closeTable(); closeBlockquote();
+  return out;
+}
+
+function _inlineMdWord(str) {
+  return (str||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/__(.+?)__/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/_(.+?)_/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code style="font-family:\'Courier New\',monospace;font-size:9pt;background:#f4f4f4;padding:1pt 3pt;">$1</code>')
+    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" style="color:#1a237e;">$1</a>');
 }
 
 // ── Convertir Markdown a HTML con soporte de tablas ───────
