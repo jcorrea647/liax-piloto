@@ -7247,7 +7247,7 @@ async function _sendRecursoPrompt(prompt, lid, area) {
     var reply;
     try {
       var geminiData = await callGemini({
-        model:   'gemini-2.5-pro-preview-05-06',
+        model:   'gemini-2.5-flash',
         system:  system,
         messages:[{ role: 'user', content: prompt }],
         max_tokens: 16000,
@@ -8370,8 +8370,8 @@ const LIAX_MODELS = {
   'claude-sonnet': { id:'claude-sonnet-4-6',            provider:'claude', label:'Claude Sonnet 4.6',  cost:3,  icon:'🟣', color:'#8b5cf6', desc:'Mejor para tareas complejas, análisis profundo, archivos' },
   'claude-haiku':  { id:'claude-haiku-4-5-20251001',    provider:'claude', label:'Claude Haiku 4.5',   cost:1,  icon:'🟣', color:'#a78bfa', desc:'Rápido y económico para texto simple' },
   // Google
-  'gemini-flash':  { id:'gemini-2.0-flash',             provider:'gemini', label:'Gemini 2.0 Flash',   cost:1,  icon:'🔵', color:'#4285f4', desc:'Muy barato, rápido, excelente para texto y conversación' },
-  'gemini-pro':    { id:'gemini-2.5-pro-preview-05-06',               provider:'gemini', label:'Gemini 2.5 Pro',     cost:2,  icon:'🔵', color:'#34a853', desc:'2M tokens contexto, ideal para Excel/tablas/análisis — 40x más barato que Sonnet' },
+  'gemini-flash':  { id:'gemini-2.5-flash',             provider:'gemini', label:'Gemini 2.5 Flash',   cost:1,  icon:'🔵', color:'#4285f4', desc:'Muy barato, rápido, excelente para texto y conversación' },
+  'gemini-pro':    { id:'gemini-2.5-flash',               provider:'gemini', label:'Gemini 2.5 Flash',     cost:2,  icon:'🔵', color:'#34a853', desc:'2M tokens contexto, ideal para Excel/tablas/análisis — 40x más barato que Sonnet' },
   // OpenAI
   'gpt4o-mini':    { id:'gpt-4o-mini',                  provider:'openai', label:'GPT-4o mini',        cost:1,  icon:'🟢', color:'#10a37f', desc:'Económico, rápido para texto y resúmenes' },
   'gpt4o':         { id:'gpt-4o',                       provider:'openai', label:'GPT-4o',             cost:3,  icon:'🟢', color:'#0ea47a', desc:'Poderoso para análisis, código y razonamiento' },
@@ -8411,8 +8411,8 @@ const TASK_LABELS = {
 const PROVIDER_META = {
   'claude-sonnet':{ icon:'🟣', label:'Claude Sonnet 4.6', color:'#8b5cf6', cost:'$$$' },
   'claude-haiku': { icon:'🟣', label:'Claude Haiku 4.5',  color:'#a78bfa', cost:'$'   },
-  'gemini-flash': { icon:'🔵', label:'Gemini 2.0 Flash',  color:'#4285f4', cost:'$'   },
-  'gemini-pro':   { icon:'🔵', label:'Gemini 2.5 Pro',    color:'#34a853', cost:'$$'  },
+  'gemini-flash': { icon:'🔵', label:'Gemini 2.5 Flash',  color:'#4285f4', cost:'$'   },
+  'gemini-pro':   { icon:'🔵', label:'Gemini 2.5 Flash',    color:'#34a853', cost:'$$'  },
   'gpt4o-mini':   { icon:'🟢', label:'GPT-4o mini',       color:'#10a37f', cost:'$'   },
   'gpt4o':        { icon:'🟢', label:'GPT-4o',            color:'#0ea47a', cost:'$$$' },
   // Legacy keys
@@ -8667,7 +8667,7 @@ async function callGemini(payload) {
   if (!key) key = 'proxy'; // Vercel proxy has the key
 
   // Determine model — use payload.model if it's a Gemini ID, else default
-  var geminiModel = 'gemini-2.0-flash'; // default
+  var geminiModel = 'gemini-2.5-flash'; // default
   if (payload.model && payload.model.includes('gemini')) {
     geminiModel = payload.model;
   }
@@ -8699,7 +8699,7 @@ async function callGemini(payload) {
             }
           });
         } else if (block.type === 'document') {
-          // PDF — Gemini 2.5 Pro supports PDFs natively
+          // PDF — Gemini 2.5 Flash supports PDFs natively
           if (geminiModel.includes('1.5-pro') || geminiModel.includes('1.5-flash')) {
             parts.push({
               inlineData: {
@@ -18660,7 +18660,7 @@ async function extractTextFromFile(file) {
       if (!gkey) return '[Imagen: necesitas Gemini API key para OCR]';
       var b64 = await fileToBase64(file);
       var res = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + gkey,
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + gkey,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -39089,7 +39089,7 @@ if (!dataLoaded) {
         <div style="background:rgba(66,133,244,.07);border:1px solid rgba(66,133,244,.2);border-radius:8px;padding:11px 14px;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
             <span style="font-size:16px">🔵</span>
-            <strong style="font-size:12px">Google — Gemini 2.0 Flash</strong>
+            <strong style="font-size:12px">Google — Gemini 2.5 Flash</strong>
             <span style="font-size:10px;color:var(--muted);margin-left:auto">Opcional · gratis</span>
           </div>
           <input class="form-input" id="geminiKeyInput" type="password" placeholder="AIza..." style="font-family:monospace;letter-spacing:1px;margin-bottom:4px">
