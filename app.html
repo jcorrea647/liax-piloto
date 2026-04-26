@@ -7307,9 +7307,10 @@ async function _sendRecursoPrompt(prompt, lid, area) {
     var bar = document.createElement('div');
     bar.id = 'saveDocBar';
     bar.className = 'save-doc-bar';
+    var _autoTitle = _extractDocTitle(reply);
     bar.innerHTML =
       '<span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar recurso generado:</span>' +
-      '<input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="">' +
+      '<input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="' + _autoTitle.replace(/"/g,'&quot;') + '">' +
       '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>' +
       '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#2B5EE8;color:#2B5EE8;display:flex;align-items:center;gap:4px" onclick="saveAsWord(window._saveDocFullContent)" title="Descargar como Word (.docx)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Word</button>' +
       '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#E53935;color:#E53935;display:flex;align-items:center;gap:4px" onclick="saveAsPDF(window._saveDocFullContent)" title="Descargar como PDF"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> PDF</button>';
@@ -11652,6 +11653,35 @@ function renderDocsPanel() {
     </div>`;
 }
 
+// ── Extraer título automático del contenido del documento ──
+function _extractDocTitle(content) {
+  if (!content) return '';
+  var lines = content.split('\n');
+  for (var i = 0; i < Math.min(lines.length, 15); i++) {
+    var l = lines[i].trim();
+    if (!l) continue;
+    // H1 markdown: # TÍTULO
+    var h1 = l.match(/^#\s+(.+)/);
+    if (h1) return h1[1].replace(/\*\*/g,'').replace(/[_`]/g,'').trim().slice(0,80);
+    // H2 markdown: ## TÍTULO
+    var h2 = l.match(/^##\s+(.+)/);
+    if (h2) return h2[1].replace(/\*\*/g,'').replace(/[_`]/g,'').trim().slice(0,80);
+    // Línea en MAYÚSCULAS que parece título (mín 10 chars, no es tabla ni lista)
+    if (l.length >= 10 && l === l.toUpperCase() && !/^[|*\-\d]/.test(l)) {
+      return l.replace(/[*_`#]/g,'').trim().slice(0,80);
+    }
+    // Bold completo: **TÍTULO**
+    var bold = l.match(/^\*\*(.{8,})\*\*$/);
+    if (bold) return bold[1].trim().slice(0,80);
+    // Primera línea con texto significativo (más de 10 chars, no es tabla/lista)
+    if (l.length >= 10 && !/^[|*\-\d#>]/.test(l) && i === 0) {
+      return l.replace(/[*_`#]/g,'').trim().slice(0,80);
+    }
+  }
+  // Fallback: fecha
+  return 'Documento ' + new Date().toLocaleDateString('es-CL');
+}
+
 function saveCurrentResponseAsDoc(content) {
   const titleInput = document.getElementById('saveDocTitle');
   const title = titleInput?.value.trim() || ('Documento ' + new Date().toLocaleDateString('es-CL'));
@@ -11704,8 +11734,8 @@ function saveAsWord(content) {
     '</w:WordDocument>\n' +
     '</xml><![endif]-->\n' +
     '<style>\n' +
-    '  @page { margin: 2cm; }\n' +
-    '  body { font-family: Arial, sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.5; }\n' +
+    '  @page { margin: 1.5cm; }\n' +
+    '  body { font-family: Arial, sans-serif; font-size: 10pt; color: #1a1a1a; line-height: 1.3; }\n' +
     '  p { margin: 4pt 0; }\n' +
     '  table { border-collapse: collapse; width: 100%; }\n' +
     '  td, th { border: 1px solid #999; padding: 5pt 9pt; font-size: 10pt; }\n' +
@@ -11713,13 +11743,13 @@ function saveAsWord(content) {
     '</head><body>\n' +
 
     // Título del documento
-    '<p style="font-family:Arial,sans-serif;font-size:18pt;font-weight:bold;color:#1a1a1a;' +
-    'border-bottom:2px solid #1a237e;padding-bottom:4pt;margin-bottom:2pt;">' +
+    '<p style="font-family:Arial,sans-serif;font-size:15pt;font-weight:bold;color:#1a1a1a;' +
+    'border-bottom:1.5px solid #1a237e;padding-bottom:2pt;margin-bottom:1pt;">' +
     _escHtml(title) + '</p>\n' +
 
     // Subtítulo/fecha
-    '<p style="font-family:Arial,sans-serif;font-size:9pt;color:#888888;' +
-    'border-bottom:1px solid #cccccc;padding-bottom:6pt;margin-bottom:14pt;">' +
+    '<p style="font-family:Arial,sans-serif;font-size:8pt;color:#888888;' +
+    'border-bottom:1px solid #cccccc;padding-bottom:3pt;margin-bottom:6pt;">' +
     'Generado: ' + new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'}) +
     ' &mdash; LIAX Educativo</p>\n' +
 
@@ -11745,21 +11775,21 @@ function _mdToHtmlWord(text) {
 
   var S = {
     body:   'font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;',
-    h1:     'font-family:Arial,sans-serif;font-size:16pt;font-weight:bold;color:#1a237e;' +
-            'border-bottom:2px solid #1a237e;padding-bottom:3pt;margin:14pt 0 6pt;',
-    h2:     'font-family:Arial,sans-serif;font-size:13pt;font-weight:bold;color:#283593;margin:12pt 0 5pt;',
-    h3:     'font-family:Arial,sans-serif;font-size:11pt;font-weight:bold;color:#37474f;margin:9pt 0 3pt;',
-    p:      'font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;margin:3pt 0 5pt;line-height:1.5;',
-    li:     'font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;margin:2pt 0;',
-    th:     'font-family:Arial,sans-serif;font-size:10pt;font-weight:bold;color:#ffffff;' +
-            'background-color:#1a237e;border:1px solid #666666;padding:5pt 9pt;text-align:left;',
-    tdEven: 'font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;' +
-            'background-color:#eef1fb;border:1px solid #aaaaaa;padding:5pt 9pt;vertical-align:top;',
-    tdOdd:  'font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;' +
-            'background-color:#ffffff;border:1px solid #aaaaaa;padding:5pt 9pt;vertical-align:top;',
-    bq:     'font-family:Arial,sans-serif;font-size:11pt;color:#555555;font-style:italic;' +
-            'border-left:4px solid #1a237e;margin:8pt 0;padding:4pt 12pt;background-color:#f8f9ff;',
-    hr:     'border:none;border-top:1px solid #cccccc;margin:10pt 0;',
+    h1:     'font-family:Arial,sans-serif;font-size:14pt;font-weight:bold;color:#1a237e;' +
+            'border-bottom:1.5px solid #1a237e;padding-bottom:2pt;margin:8pt 0 3pt;',
+    h2:     'font-family:Arial,sans-serif;font-size:12pt;font-weight:bold;color:#283593;margin:6pt 0 2pt;',
+    h3:     'font-family:Arial,sans-serif;font-size:10.5pt;font-weight:bold;color:#37474f;margin:5pt 0 1pt;',
+    p:      'font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;margin:1pt 0 2pt;line-height:1.3;',
+    li:     'font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;margin:1pt 0;',
+    th:     'font-family:Arial,sans-serif;font-size:9pt;font-weight:bold;color:#ffffff;' +
+            'background-color:#1a237e;border:1px solid #666666;padding:3pt 6pt;text-align:left;',
+    tdEven: 'font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a;' +
+            'background-color:#eef1fb;border:1px solid #aaaaaa;padding:2pt 6pt;vertical-align:top;',
+    tdOdd:  'font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a;' +
+            'background-color:#ffffff;border:1px solid #aaaaaa;padding:2pt 6pt;vertical-align:top;',
+    bq:     'font-family:Arial,sans-serif;font-size:10pt;color:#555555;font-style:italic;' +
+            'border-left:3px solid #1a237e;margin:4pt 0;padding:2pt 8pt;background-color:#f8f9ff;',
+    hr:     'border:none;border-top:1px solid #cccccc;margin:5pt 0;',
     code:   'font-family:"Courier New",monospace;font-size:9pt;background-color:#f4f4f4;padding:1pt 3pt;'
   };
 
@@ -11812,7 +11842,7 @@ function _mdToHtmlWord(text) {
     // ── Vacío ──
     if (!l) {
       closeLists(); closeBlockquote();
-      out += '<p style="margin:4pt 0;">&nbsp;</p>\n'; i++; continue;
+    out += '<p style="margin:1pt 0;">&nbsp;</p>\n'; i++; continue;
     }
 
     // ── Headings ──
@@ -11842,7 +11872,7 @@ function _mdToHtmlWord(text) {
     // ── Lista desordenada ──
     if (/^[-*+]\s/.test(l)) {
       if (inOl) { out += '</ol>\n'; inOl = false; }
-      if (!inUl) { out += '<ul style="margin:4pt 0 8pt;padding-left:18pt;">\n'; inUl = true; }
+      if (!inUl) { out += '<ul style="margin:2pt 0 4pt;padding-left:16pt;">\n'; inUl = true; }
       out += '<li style="'+S.li+'">' + _inlineMdWord(l.replace(/^[-*+]\s/,'')) + '</li>\n';
       i++; continue;
     }
@@ -11850,7 +11880,7 @@ function _mdToHtmlWord(text) {
     // ── Lista ordenada ──
     if (/^\d+\.\s/.test(l)) {
       if (inUl) { out += '</ul>\n'; inUl = false; }
-      if (!inOl) { out += '<ol style="margin:4pt 0 8pt;padding-left:18pt;">\n'; inOl = true; }
+      if (!inOl) { out += '<ol style="margin:2pt 0 4pt;padding-left:16pt;">\n'; inOl = true; }
       out += '<li style="'+S.li+'">' + _inlineMdWord(l.replace(/^\d+\.\s/,'')) + '</li>\n';
       i++; continue;
     }
@@ -12008,10 +12038,11 @@ function saveAsPDF(content) {
   html += 'h3{font-size:15px;color:#37474f;margin:12px 0 6px;}';
   html += 'p{margin:5px 0 8px;}';
   html += 'ul,ol{margin:4px 0 10px;padding-left:22px;}li{margin:3px 0;}';
-  html += 'table{border-collapse:collapse;width:100%;margin:12px 0;font-size:12px;}';
-  html += 'th{background:#1a237e;color:#fff;padding:7px 11px;border:1px solid #999;text-align:left;font-weight:bold;}';
-  html += 'td{padding:6px 11px;border:1px solid #ccc;vertical-align:top;}';
-  html += 'tr:nth-child(even) td{background:#f0f4ff;}';
+  html += 'table{border-collapse:collapse;width:100%;margin:10px 0;font-size:11.5px;}';
+  html += 'th{background:#1a237e;color:#ffffff;padding:6px 10px;border:1px solid #3949ab;text-align:left;font-weight:bold;-webkit-print-color-adjust:exact;print-color-adjust:exact;}';
+  html += 'td{padding:5px 10px;border:1px solid #c5cae9;vertical-align:top;}';
+  html += 'tr:nth-child(even) td{background:#e8eaf6;-webkit-print-color-adjust:exact;print-color-adjust:exact;}';
+  html += 'tr:nth-child(odd) td{background:#ffffff;}';
   html += 'code{font-family:monospace;background:#f4f4f4;padding:1px 4px;border-radius:3px;font-size:11px;}';
   html += 'blockquote{border-left:4px solid #1a237e;margin:8px 0;padding:4px 14px;color:#555;background:#f8f9ff;}';
   html += 'hr{border:none;border-top:1px solid #ddd;margin:14px 0;}';
@@ -13139,9 +13170,10 @@ sendChat = async function() {
     bar.className = 'save-doc-bar';
     // Store full content in dataset (truncated for attr, full in window var)
     window._saveDocFullContent = fullContent;
+    var _autoTitle2 = _extractDocTitle(fullContent);
     bar.innerHTML = `
       <span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar documento generado:</span>
-      <input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="">
+      <input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="${_autoTitle2.replace(/"/g,'&quot;')}">
       <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>
       <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#2B5EE8;color:#2B5EE8;display:flex;align-items:center;gap:4px" onclick="saveAsWord(window._saveDocFullContent)" title="Descargar como Word (.docx)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Word</button>
       <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#E53935;color:#E53935;display:flex;align-items:center;gap:4px" onclick="saveAsPDF(window._saveDocFullContent)" title="Descargar como PDF"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> PDF</button>`;
