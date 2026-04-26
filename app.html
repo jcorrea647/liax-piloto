@@ -8030,14 +8030,14 @@ async function sendChat(){
     _selectedTokens = 8000;
   } else if (_isNEE) {
     // NEE — Gemini Pro (análisis pedagógico complejo)
-    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
+    _selectedModel  = LIAX_MODELS['claude-haiku'].id;
     _selectedTokens = 16000;
   } else if (_isInforme || _isDocumento) {
-    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
+    _selectedModel  = LIAX_MODELS['claude-haiku'].id;
     _selectedTokens = 16000;
   } else {
     // Todo lo demás — Gemini Pro para consistencia de instrucciones
-    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
+    _selectedModel  = LIAX_MODELS['claude-haiku'].id;
     _selectedTokens = 4000;
   }
 
@@ -8370,8 +8370,8 @@ const LIAX_MODELS = {
   'claude-sonnet': { id:'claude-sonnet-4-6',            provider:'claude', label:'Claude Sonnet 4.6',  cost:3,  icon:'🟣', color:'#8b5cf6', desc:'Mejor para tareas complejas, análisis profundo, archivos' },
   'claude-haiku':  { id:'claude-haiku-4-5-20251001',    provider:'claude', label:'Claude Haiku 4.5',   cost:1,  icon:'🟣', color:'#a78bfa', desc:'Rápido y económico para texto simple' },
   // Google
-  'gemini-flash':  { id:'gemini-2.0-flash',             provider:'gemini', label:'Gemini 2.0 Flash',   cost:1,  icon:'🔵', color:'#4285f4', desc:'Muy barato, rápido, excelente para texto y conversación' },
-  'gemini-pro':    { id:'gemini-2.0-flash',               provider:'gemini', label:'Gemini 2.0 Flash',     cost:2,  icon:'🔵', color:'#34a853', desc:'2M tokens contexto, ideal para Excel/tablas/análisis — 40x más barato que Sonnet' },
+  'claude-haiku':  { id:'gemini-2.0-flash',             provider:'gemini', label:'Gemini 2.0 Flash',   cost:1,  icon:'🔵', color:'#4285f4', desc:'Muy barato, rápido, excelente para texto y conversación' },
+  'claude-haiku':    { id:'gemini-2.0-flash',               provider:'gemini', label:'Gemini 2.0 Flash',     cost:2,  icon:'🔵', color:'#34a853', desc:'2M tokens contexto, ideal para Excel/tablas/análisis — 40x más barato que Sonnet' },
   // OpenAI
   'gpt4o-mini':    { id:'gpt-4o-mini',                  provider:'openai', label:'GPT-4o mini',        cost:1,  icon:'🟢', color:'#10a37f', desc:'Económico, rápido para texto y resúmenes' },
   'gpt4o':         { id:'gpt-4o',                       provider:'openai', label:'GPT-4o',             cost:3,  icon:'🟢', color:'#0ea47a', desc:'Poderoso para análisis, código y razonamiento' },
@@ -8382,16 +8382,16 @@ const LIAX_MODELS = {
 // ── Defaults por tipo de tarea (optimizado costo/calidad) ─────
 // Lógica: Gemini Flash para texto → Sonnet solo si es complejo
 const ROUTER_DEFAULTS = {
-  simple:        'gemini-pro',    // siempre Pro — Flash ignora instrucciones con más frecuencia
-  conversacion:  'gemini-pro',    // Pro para mantener fidelidad al rol en todo momento
-  analisis:      'gemini-pro',    // análisis datos, diagnóstico → Gemini Pro (gran contexto)
-  creacion:      'gemini-pro',    // planificaciones, rúbricas → balance calidad/precio
+  simple:        'claude-haiku',    // siempre Pro — Flash ignora instrucciones con más frecuencia
+  conversacion:  'claude-haiku',    // Pro para mantener fidelidad al rol en todo momento
+  analisis:      'claude-haiku',    // análisis datos, diagnóstico → Gemini Pro (gran contexto)
+  creacion:      'claude-haiku',    // planificaciones, rúbricas → balance calidad/precio
   nee:           'claude-sonnet', // NEE, DUA, inclusión → mejor modelo (crítico)
-  socioemocional:'gemini-pro',    // convivencia, clima → balance
-  liderazgo:     'gemini-pro',    // gestión directiva → balance
-  recursos:      'gemini-pro',    // consultas con contexto → Pro para consistencia
+  socioemocional:'claude-haiku',    // convivencia, clima → balance
+  liderazgo:     'claude-haiku',    // gestión directiva → balance
+  recursos:      'claude-haiku',    // consultas con contexto → Pro para consistencia
   archivos:      'claude-haiku', // con Excel/PDF → Claude Haiku temperatura 0 (consistencia numérica)
-  prep:          'gemini-pro',    // prepárame el día/semana → Gemini Pro (contexto largo)
+  prep:          'claude-haiku',    // prepárame el día/semana → Gemini Pro (contexto largo)
 };
 
 const TASK_LABELS = {
@@ -8411,8 +8411,8 @@ const TASK_LABELS = {
 const PROVIDER_META = {
   'claude-sonnet':{ icon:'🟣', label:'Claude Sonnet 4.6', color:'#8b5cf6', cost:'$$$' },
   'claude-haiku': { icon:'🟣', label:'Claude Haiku 4.5',  color:'#a78bfa', cost:'$'   },
-  'gemini-flash': { icon:'🔵', label:'Gemini 2.0 Flash',  color:'#4285f4', cost:'$'   },
-  'gemini-pro':   { icon:'🔵', label:'Gemini 2.0 Flash',    color:'#34a853', cost:'$$'  },
+  'claude-haiku': { icon:'🔵', label:'Gemini 2.0 Flash',  color:'#4285f4', cost:'$'   },
+  'claude-haiku':   { icon:'🔵', label:'Gemini 2.0 Flash',    color:'#34a853', cost:'$$'  },
   'gpt4o-mini':   { icon:'🟢', label:'GPT-4o mini',       color:'#10a37f', cost:'$'   },
   'gpt4o':        { icon:'🟢', label:'GPT-4o',            color:'#0ea47a', cost:'$$$' },
   // Legacy keys
@@ -8433,7 +8433,7 @@ function resolveModel(modelKey) {
   if (m) return m.id;
   // Legacy fallback: 'claude' → sonnet, 'gemini' → flash, 'openai' → gpt4o-mini
   if (modelKey === 'claude') return LIAX_MODELS['claude-sonnet'].id;
-  if (modelKey === 'gemini') return LIAX_MODELS['gemini-flash'].id;
+  if (modelKey === 'gemini') return LIAX_MODELS['claude-haiku'].id;
   if (modelKey === 'openai') return LIAX_MODELS['gpt4o-mini'].id;
   return modelKey; // assume it's already a model ID
 }
@@ -8537,17 +8537,18 @@ function classifyComplexity(messages, system) {
       modelId  = LIAX_MODELS[modelKey].id;
     }
     if (provider === 'claude' && !getApiKey()) {
-      if (getGeminiKey()) { provider='gemini'; modelKey='gemini-flash'; modelId=LIAX_MODELS['gemini-flash'].id; }
+      if (getGeminiKey()) { provider='gemini'; modelKey='claude-haiku'; modelId=LIAX_MODELS['claude-haiku'].id; }
     }
   }
   // On Vercel: trust proxy has all keys — use router defaults as-is
   if (provider === 'claude' && !getApiKey()) {
-    if (getGeminiKey())      { provider='gemini'; modelKey='gemini-flash'; modelId=LIAX_MODELS['gemini-flash'].id; }
+    if (getGeminiKey())      { provider='gemini'; modelKey='claude-haiku'; modelId=LIAX_MODELS['claude-haiku'].id; }
     else if (getOpenAIKey()) { provider='openai'; modelKey='gpt4o-mini';   modelId=LIAX_MODELS['gpt4o-mini'].id;   }
   }
 
-  return { provider, task, modelKey, modelId };
-}
+  // Siempre usar Claude vía proxy Vercel — no depender de keys locales
+  // El proxy tiene todas las keys configuradas
+  return { provider: 'claude', task, modelKey: 'claude-haiku', modelId: LIAX_MODELS['claude-haiku'].id };
 
 
 // ── Router config UI ──────────────────────────────────────────
@@ -8569,7 +8570,7 @@ function renderRouterConfigGrid() {
   grid.innerHTML = Object.keys(TASK_LABELS).map(function(task) {
     var meta   = TASK_LABELS[task];
     var current = config[task] || 'claude';
-    var providers = ['gemini-flash','gemini-pro','claude-haiku','claude-sonnet','gpt4o-mini','gpt4o'];
+    var providers = ['claude-haiku','claude-haiku','claude-haiku','claude-sonnet','gpt4o-mini','gpt4o'];
 
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:7px;background:var(--surface)">' +
       '<div style="font-size:20px;flex-shrink:0">' + meta.icon + '</div>' +
@@ -8908,7 +8909,7 @@ async function callClaude(payload) {
   // Derive modelKey for display
   var modelKey = Object.keys(LIAX_MODELS).find(function(k){
     return LIAX_MODELS[k].id === modelId;
-  }) || (isGemini ? 'gemini-pro' : isTogether ? 'together-llama' : 'claude-haiku');
+  }) || (isGemini ? 'claude-haiku' : isTogether ? 'together-llama' : 'claude-haiku');
 
   // Show model badge
   var meta = LIAX_MODELS[modelKey] || {};
@@ -36531,7 +36532,7 @@ async function orquestar(userMessage, agentContext) {
       plan = {
         tipo_tarea: 'consulta',
         complejidad: 'simple',
-        modelo_sugerido: 'gemini-flash',
+        modelo_sugerido: 'claude-haiku',
         pasos: [],
         usa_contexto: false,
         objetivo_pedagogico: '',
@@ -36548,7 +36549,7 @@ async function orquestar(userMessage, agentContext) {
     console.warn('[Orquestador] Error:', e.message);
     return {
       tipo_tarea: 'consulta', complejidad: 'simple',
-      modelo_sugerido: 'gemini-flash', pasos: [],
+      modelo_sugerido: 'claude-haiku', pasos: [],
       usa_contexto: false, objetivo_pedagogico: '', tokens_estimados: 'bajo'
     };
   }
@@ -36557,12 +36558,12 @@ async function orquestar(userMessage, agentContext) {
 // Map orchestrator model suggestion to LIAX_MODELS id
 function _planToModelId(modelSugerido) {
   var map = {
-    'gemini-flash':  LIAX_MODELS['gemini-flash'].id,
-    'gemini-pro':    LIAX_MODELS['gemini-pro'].id,
+    'claude-haiku':  LIAX_MODELS['claude-haiku'].id,
+    'claude-haiku':    LIAX_MODELS['claude-haiku'].id,
     'claude-haiku':  LIAX_MODELS['claude-haiku'].id,
     'claude-sonnet': LIAX_MODELS['claude-sonnet'].id,
   };
-  return map[modelSugerido] || LIAX_MODELS['gemini-flash'].id;
+  return map[modelSugerido] || LIAX_MODELS['claude-haiku'].id;
 }
 
 
