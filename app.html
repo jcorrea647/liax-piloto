@@ -11510,10 +11510,61 @@ const AGENT_STORE = {
   _hist:  {},
   getDocs:     function(agentId) { return AGENT_STORE._docs[agentId]  || []; },
   saveDocs:    function(agentId, docs)  { AGENT_STORE._docs[agentId]  = docs  || []; },
-  getFiles:    function(agentId) { return AGENT_STORE._files[agentId] || []; },
-  saveFiles:   function(agentId, files) { AGENT_STORE._files[agentId] = files || []; },
+  getFiles:    function(agentId) { return GLOBAL_FILES.getAll(); },
+  saveFiles:   function(agentId, files) { /* no-op: global files managed by GLOBAL_FILES */ },
   getHistory:  function(agentId) { return AGENT_STORE._hist[agentId]  || []; },
   saveHistory: function(agentId, hist)  { AGENT_STORE._hist[agentId]  = hist  || []; },
+};
+
+// ── SISTEMA DE ARCHIVOS GLOBAL PERSISTENTE ────────────────
+// Los archivos subidos en cualquier agente quedan disponibles
+// para todos los demás y persisten entre sesiones (localStorage)
+const GLOBAL_FILES = {
+  _key: 'liax_global_files',
+
+  getAll: function() {
+    try {
+      return JSON.parse(localStorage.getItem(GLOBAL_FILES._key) || '[]');
+    } catch(e) { return []; }
+  },
+
+  save: function(files) {
+    try {
+      // Limitar a 50 archivos máximo para no sobrecargar localStorage
+      localStorage.setItem(GLOBAL_FILES._key, JSON.stringify((files||[]).slice(0,50)));
+    } catch(e) { console.warn('GLOBAL_FILES: no se pudo guardar', e); }
+  },
+
+  // Agrega un archivo con su contenido base64 (para reusar en chats)
+  add: function(name, ext, contentB64, size) {
+    var files = GLOBAL_FILES.getAll();
+    // Evitar duplicados por nombre
+    var existing = files.findIndex(function(f){ return f.name === name; });
+    var entry = {
+      id: 'gf_' + Date.now() + '_' + Math.random().toString(36).slice(2,5),
+      name: name,
+      ext: (ext||name.split('.').pop()||'').toLowerCase(),
+      size: size || 0,
+      contentB64: contentB64 || null,
+      loadedAt: new Date().toISOString()
+    };
+    if (existing > -1) {
+      files[existing] = entry; // actualizar si ya existe
+    } else {
+      files.unshift(entry);
+    }
+    GLOBAL_FILES.save(files);
+    return entry;
+  },
+
+  remove: function(id) {
+    var files = GLOBAL_FILES.getAll().filter(function(f){ return f.id !== id; });
+    GLOBAL_FILES.save(files);
+  },
+
+  clear: function() {
+    localStorage.removeItem(GLOBAL_FILES._key);
+  }
 };
 
 let currentAgentPanel = 'chat';
@@ -11634,24 +11685,158 @@ function saveAsWord(content) {
   var titleInput = document.getElementById('saveDocTitle');
   var title = (titleInput && titleInput.value.trim()) || ('Documento_' + new Date().toLocaleDateString('es-CL').replace(/\//g,'-'));
   var text = (content || '').replace(/<[^>]*>/g, '');
-  var rtf = '{\\rtf1\\ansi\\deff0\n{\\fonttbl{\\f0 Arial;}}\n\\f0\\fs24\n';
-  var lines = text.split('\n');
-  lines.forEach(function(line) {
-    var l = line.trim();
-    if (!l) { rtf += '\\par\n'; return; }
-    if (/^###\s/.test(l)) { rtf += '\\pard\\b\\fs26 ' + _rtfEscape(l.replace(/^###\s/,'')) + '\\b0\\fs24\\par\n'; }
-    else if (/^##\s/.test(l)) { rtf += '\\pard\\b\\fs30 ' + _rtfEscape(l.replace(/^##\s/,'')) + '\\b0\\fs24\\par\n'; }
-    else if (/^#\s/.test(l)) { rtf += '\\pard\\b\\fs36 ' + _rtfEscape(l.replace(/^#\s/,'')) + '\\b0\\fs24\\par\n'; }
-    else if (/^\*\*(.+)\*\*$/.test(l)) { rtf += '\\pard\\b ' + _rtfEscape(l.replace(/\*\*/g,'')) + '\\b0\\par\n'; }
-    else { rtf += '\\pard ' + _rtfEscape(l) + '\\par\n'; }
-  });
-  rtf += '}';
-  var blob = new Blob([rtf], {type:'application/msword'});
+
+  // Convertir markdown a HTML completo (Word abre HTML nativamente con formato)
+  var html = _mdToHtml(text);
+
+  var wordHtml = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+    'xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
+    '<head><meta charset="UTF-8">' +
+    '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom>' +
+    '<w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->' +
+    '<style>' +
+    'body{font-family:Arial,sans-serif;font-size:12pt;color:#1a1a1a;margin:2cm;line-height:1.6;}' +
+    'h1{font-size:20pt;font-weight:bold;color:#1a237e;margin:16pt 0 8pt;border-bottom:2px solid #1a237e;padding-bottom:4pt;}' +
+    'h2{font-size:16pt;font-weight:bold;color:#283593;margin:14pt 0 6pt;}' +
+    'h3{font-size:13pt;font-weight:bold;color:#37474f;margin:10pt 0 4pt;}' +
+    'p{margin:4pt 0 6pt;}' +
+    'ul,ol{margin:4pt 0 8pt;padding-left:20pt;}' +
+    'li{margin:2pt 0;}' +
+    'strong,b{font-weight:bold;}' +
+    'em,i{font-style:italic;}' +
+    'table{border-collapse:collapse;width:100%;margin:10pt 0;}' +
+    'th{background:#1a237e;color:#fff;font-weight:bold;padding:6pt 10pt;border:1px solid #999;text-align:left;}' +
+    'td{padding:5pt 10pt;border:1px solid #bbb;vertical-align:top;}' +
+    'tr:nth-child(even) td{background:#f0f4ff;}' +
+    'code{font-family:Courier New,monospace;background:#f5f5f5;padding:1pt 3pt;font-size:10pt;}' +
+    '.doc-title{font-size:22pt;font-weight:bold;color:#1a1a1a;margin-bottom:4pt;}' +
+    '.doc-meta{font-size:9pt;color:#888;border-bottom:1px solid #ccc;padding-bottom:8pt;margin-bottom:16pt;}' +
+    'hr{border:none;border-top:1px solid #ccc;margin:12pt 0;}' +
+    'blockquote{border-left:4px solid #1a237e;margin:8pt 0;padding:4pt 12pt;color:#555;background:#f8f9ff;}' +
+    '</style></head><body>' +
+    '<div class="doc-title">' + _escHtml(title) + '</div>' +
+    '<div class="doc-meta">Generado: ' + new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'}) + ' — LIAX Educativo</div>' +
+    html +
+    '</body></html>';
+
+  var blob = new Blob(['\ufeff' + wordHtml], {type:'application/msword;charset=utf-8'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url; a.download = title + '.doc'; a.click();
   setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
   showSaveToast('📄 Descargando Word: "' + title + '"');
+}
+
+// ── Convertir Markdown a HTML con soporte de tablas ───────
+function _mdToHtml(text) {
+  var lines = text.split('\n');
+  var html = '';
+  var i = 0;
+  var inUl = false, inOl = false, inTable = false, inBlockquote = false;
+
+  function closeLists() {
+    if (inUl) { html += '</ul>'; inUl = false; }
+    if (inOl) { html += '</ol>'; inOl = false; }
+  }
+  function closeTable() {
+    if (inTable) { html += '</tbody></table>'; inTable = false; }
+  }
+  function closeBlockquote() {
+    if (inBlockquote) { html += '</blockquote>'; inBlockquote = false; }
+  }
+
+  while (i < lines.length) {
+    var line = lines[i];
+    var l = line.trim();
+
+    // Tabla markdown: detectar línea con pipes
+    if (/^\|.+\|/.test(l)) {
+      if (!inTable) {
+        closeLists(); closeBlockquote();
+        html += '<table><thead>';
+        // Cabecera
+        var headers = l.split('|').filter(function(c,idx,arr){ return idx>0 && idx<arr.length-1; });
+        html += '<tr>' + headers.map(function(h){ return '<th>' + _inlineMd(h.trim()) + '</th>'; }).join('') + '</tr>';
+        html += '</thead><tbody>';
+        inTable = true;
+        i++; // saltar línea de separador (---|---)
+        if (i < lines.length && /^\|[-:\s|]+\|$/.test(lines[i].trim())) i++;
+        continue;
+      } else {
+        var cells = l.split('|').filter(function(c,idx,arr){ return idx>0 && idx<arr.length-1; });
+        html += '<tr>' + cells.map(function(c){ return '<td>' + _inlineMd(c.trim()) + '</td>'; }).join('') + '</tr>';
+        i++; continue;
+      }
+    } else { closeTable(); }
+
+    // Línea vacía
+    if (!l) {
+      closeLists(); closeBlockquote();
+      html += '<p>&nbsp;</p>'; i++; continue;
+    }
+
+    // Headings
+    if (/^#{1,6}\s/.test(l)) {
+      closeLists(); closeBlockquote();
+      var m = l.match(/^(#{1,6})\s+(.*)/);
+      var lvl = m[1].length;
+      html += '<h'+lvl+'>' + _inlineMd(m[2]) + '</h'+lvl+'>';
+      i++; continue;
+    }
+
+    // HR
+    if (/^(---+|\*\*\*+|___+)$/.test(l)) {
+      closeLists(); closeBlockquote();
+      html += '<hr>'; i++; continue;
+    }
+
+    // Blockquote
+    if (/^>\s?/.test(l)) {
+      closeLists();
+      if (!inBlockquote) { html += '<blockquote>'; inBlockquote = true; }
+      html += '<p>' + _inlineMd(l.replace(/^>\s?/,'')) + '</p>';
+      i++; continue;
+    } else { closeBlockquote(); }
+
+    // Lista desordenada
+    if (/^[-*+]\s/.test(l)) {
+      if (inOl) { html += '</ol>'; inOl = false; }
+      if (!inUl) { html += '<ul>'; inUl = true; }
+      html += '<li>' + _inlineMd(l.replace(/^[-*+]\s/,'')) + '</li>';
+      i++; continue;
+    }
+
+    // Lista ordenada
+    if (/^\d+\.\s/.test(l)) {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (!inOl) { html += '<ol>'; inOl = true; }
+      html += '<li>' + _inlineMd(l.replace(/^\d+\.\s/,'')) + '</li>';
+      i++; continue;
+    }
+
+    closeLists();
+    html += '<p>' + _inlineMd(l) + '</p>';
+    i++;
+  }
+
+  closeLists(); closeTable(); closeBlockquote();
+  return html;
+}
+
+// Procesar markdown inline: bold, italic, code, links
+function _inlineMd(str) {
+  return (str||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/__(.+?)__/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/_(.+?)_/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2">$1</a>');
+}
+function _escHtml(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 function _rtfEscape(str) {
   return (str||'').replace(/\\/g,'\\\\').replace(/\{/g,'\\{').replace(/\}/g,'\\}')
@@ -11663,28 +11848,34 @@ function saveAsPDF(content) {
   var titleInput = document.getElementById('saveDocTitle');
   var title = (titleInput && titleInput.value.trim()) || ('Documento_' + new Date().toLocaleDateString('es-CL').replace(/\//g,'-'));
   var text = (content || '').replace(/<[^>]*>/g, '');
-  var win = window.open('','_blank','width=800,height=900');
+  var win = window.open('','_blank','width=860,height:960');
   if (!win) { alert('Permite ventanas emergentes para guardar PDF'); return; }
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title>';
-  html += '<style>body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;margin:40px;line-height:1.7;}';
-  html += 'h1{font-size:22px;}h2{font-size:18px;margin-top:18px;}h3{font-size:15px;margin-top:12px;}p{margin:6px 0;}';
-  html += '.doc-title{font-size:24px;font-weight:800;margin-bottom:4px;}.doc-date{font-size:11px;color:#888;margin-bottom:24px;border-bottom:1px solid #ddd;padding-bottom:10px;}';
-  html += '@media print{body{margin:20px;}}</style></head><body>';
-  html += '<div class="doc-title">' + title + '</div>';
+  var bodyHtml = _mdToHtml(text);
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + _escHtml(title) + '</title>';
+  html += '<style>';
+  html += 'body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;margin:40px;line-height:1.7;max-width:800px;}';
+  html += 'h1{font-size:22px;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:5px;margin:20px 0 10px;}';
+  html += 'h2{font-size:18px;color:#283593;margin:16px 0 8px;}';
+  html += 'h3{font-size:15px;color:#37474f;margin:12px 0 6px;}';
+  html += 'p{margin:5px 0 8px;}';
+  html += 'ul,ol{margin:4px 0 10px;padding-left:22px;}li{margin:3px 0;}';
+  html += 'table{border-collapse:collapse;width:100%;margin:12px 0;font-size:12px;}';
+  html += 'th{background:#1a237e;color:#fff;padding:7px 11px;border:1px solid #999;text-align:left;font-weight:bold;}';
+  html += 'td{padding:6px 11px;border:1px solid #ccc;vertical-align:top;}';
+  html += 'tr:nth-child(even) td{background:#f0f4ff;}';
+  html += 'code{font-family:monospace;background:#f4f4f4;padding:1px 4px;border-radius:3px;font-size:11px;}';
+  html += 'blockquote{border-left:4px solid #1a237e;margin:8px 0;padding:4px 14px;color:#555;background:#f8f9ff;}';
+  html += 'hr{border:none;border-top:1px solid #ddd;margin:14px 0;}';
+  html += '.doc-title{font-size:24px;font-weight:800;margin-bottom:4px;}';
+  html += '.doc-date{font-size:11px;color:#888;border-bottom:1px solid #ddd;padding-bottom:10px;margin-bottom:20px;}';
+  html += '@media print{body{margin:15mm;}@page{margin:15mm;}}';
+  html += '</style></head><body>';
+  html += '<div class="doc-title">' + _escHtml(title) + '</div>';
   html += '<div class="doc-date">Generado: ' + new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'}) + ' — LIAX Educativo</div>';
-  text.split('\n').forEach(function(line){
-    var l = line.trim();
-    if (!l) { html += '<br>'; return; }
-    if (/^###\s/.test(l)) html += '<h3>' + l.replace(/^###\s/,'') + '</h3>';
-    else if (/^##\s/.test(l)) html += '<h2>' + l.replace(/^##\s/,'') + '</h2>';
-    else if (/^#\s/.test(l)) html += '<h1>' + l.replace(/^#\s/,'') + '</h1>';
-    else if (/^\*\*(.+)\*\*$/.test(l)) html += '<p><strong>' + l.replace(/\*\*/g,'') + '</strong></p>';
-    else if (/^[-*•]\s/.test(l)) html += '<p style="margin-left:16px">• ' + l.replace(/^[-*•]\s/,'') + '</p>';
-    else html += '<p>' + l + '</p>';
-  });
+  html += bodyHtml;
   html += '</body></html>';
   win.document.write(html); win.document.close(); win.focus();
-  setTimeout(function(){ win.print(); }, 600);
+  setTimeout(function(){ win.print(); }, 700);
   showSaveToast('📄 Abriendo PDF: "' + title + '"');
 }
 
@@ -12536,56 +12727,107 @@ function deleteDoc(i) {
 const FILE_EMOJI = {pdf:'📄',docx:'📝',doc:'📝',xlsx:'📊',xls:'📊',csv:'📊',pptx:'📑',ppt:'📑',png:'🖼️',jpg:'🖼️',jpeg:'🖼️',gif:'🖼️',webp:'🖼️',txt:'📃'};
 
 function renderFilesPanel() {
-  if (!currentAgent) return;
-  const files = AGENT_STORE.getFiles(currentAgent.id);
+  const files = GLOBAL_FILES.getAll();
+  const agentName = currentAgent ? currentAgent.nombre : 'todos los agentes';
   document.getElementById('mBody').innerHTML = `
     <div class="ap-panel active" id="ap-files">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)">📎 Archivos cargados — ${currentAgent.nombre}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)">📎 Archivos Globales</div>
         <span style="font-size:10px;color:var(--muted)">${files.length} archivo${files.length!==1?'s':''}</span>
+      </div>
+      <div style="font-size:10px;color:var(--accent2);margin-bottom:12px;background:rgba(0,229,192,.07);border-radius:7px;padding:6px 10px">
+        💡 Disponibles en <strong>todos los agentes</strong> — se guardan aunque recargues la página
       </div>
       ${files.length === 0 ? `
         <div class="empty-panel">
           <div class="empty-panel-icon">📎</div>
           <div class="empty-panel-title">Sin archivos aún</div>
-          <div style="font-size:12px">Los archivos que adjuntes al chat se registrarán aquí.<br>Usa el botón <strong>"+"</strong> junto al campo de texto para adjuntar archivos.</div>
+          <div style="font-size:12px">Adjunta archivos en el chat y quedarán guardados aquí para usar en cualquier agente.<br><br>Usa el botón <strong>"+"</strong> junto al campo de texto para adjuntar.</div>
         </div>` :
-        `<div style="margin-bottom:10px">
+        `<div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap">
+          <label style="cursor:pointer;background:var(--surface2);border:1px solid var(--accent2)44;color:var(--accent2);border-radius:7px;padding:5px 11px;font-size:10px;font-weight:600" title="Subir archivo directamente al panel">
+            📤 Subir archivo
+            <input type="file" multiple style="display:none" onchange="uploadFilesToPanel(this.files)">
+          </label>
           <button class="btn btn-outline" style="font-size:10px;color:var(--accent3);border-color:var(--accent3)33" onclick="clearAllFiles()">🗑️ Limpiar todos</button>
         </div>
-        ${files.map((f,i) => `
-          <div class="file-card">
+        ${files.map((f) => `
+          <div class="file-card" style="flex-wrap:wrap;gap:6px">
             <div class="file-icon">${FILE_EMOJI[f.ext]||'📎'}</div>
             <div style="flex:1;min-width:0">
               <div class="file-name">${f.name}</div>
-              <div class="file-size">${f.ext.toUpperCase()} · ${f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL') : '—'}</div>
+              <div class="file-size">${f.ext.toUpperCase()}${f.size ? ' · ' + (f.size > 1024*1024 ? (f.size/1024/1024).toFixed(1)+'MB' : Math.round(f.size/1024)+'KB') : ''} · ${f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL') : '—'}</div>
             </div>
-            <button class="doc-btn danger" onclick="deleteFile(${i})">✕</button>
+            <div style="display:flex;gap:4px;flex-shrink:0">
+              ${f.contentB64 ? `<button class="doc-btn" style="font-size:9px;padding:3px 7px;background:var(--accent2)22;color:var(--accent2);border-color:var(--accent2)44" onclick="useFileInChat('${f.id}')" title="Adjuntar este archivo al chat actual">💬 Usar</button>` : ''}
+              <button class="doc-btn danger" onclick="deleteFile('${f.id}')">✕</button>
+            </div>
           </div>`).join('')}
         `
       }
+      ${files.length === 0 ? '' : `
+      <div style="margin-top:12px">
+        <label style="cursor:pointer;background:var(--surface2);border:1px dashed var(--border);color:var(--muted);border-radius:7px;padding:8px 14px;font-size:10px;display:flex;align-items:center;gap:6px;justify-content:center">
+          📤 Subir más archivos
+          <input type="file" multiple style="display:none" onchange="uploadFilesToPanel(this.files)">
+        </label>
+      </div>`}
     </div>`;
 }
 
-function logFileToPanel(name) {
-  if (!currentAgent) return;
-  const ext = name.split('.').pop().toLowerCase();
-  const files = AGENT_STORE.getFiles(currentAgent.id);
-  // Avoid duplicate names
-  if (!files.find(f => f.name === name)) {
-    files.unshift({ name, ext, loadedAt: new Date().toISOString() });
-    AGENT_STORE.saveFiles(currentAgent.id, files);
+// ── Subir archivos directamente al panel global ───────────
+async function uploadFilesToPanel(fileList) {
+  if (!fileList || !fileList.length) return;
+  for (const file of fileList) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const b64 = await new Promise(function(res) {
+      const r = new FileReader();
+      r.onload = function(){ res(r.result.split(',')[1]); };
+      r.readAsDataURL(file);
+    });
+    GLOBAL_FILES.add(file.name, ext, b64, file.size);
   }
+  renderFilesPanel();
+  showSaveToast('✅ ' + fileList.length + ' archivo' + (fileList.length>1?'s':'') + ' guardado' + (fileList.length>1?'s':'') + ' globalmente');
 }
-function deleteFile(i) {
-  const files = AGENT_STORE.getFiles(currentAgent.id);
-  files.splice(i, 1);
-  AGENT_STORE.saveFiles(currentAgent.id, files);
+
+// ── Usar archivo guardado en el chat actual ───────────────
+function useFileInChat(fileId) {
+  const files = GLOBAL_FILES.getAll();
+  const f = files.find(function(x){ return x.id === fileId; });
+  if (!f || !f.contentB64) { showSaveToast('⚠️ Este archivo no tiene contenido guardado'); return; }
+  // Inyectar en pendingAttachments para que el próximo mensaje lo incluya
+  if (typeof pendingAttachments === 'undefined') { window.pendingAttachments = []; }
+  const mediaTypes = {
+    pdf:'application/pdf', png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg',
+    gif:'image/gif', webp:'image/webp', docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    txt:'text/plain', csv:'text/csv'
+  };
+  pendingAttachments.push({
+    name: f.name,
+    type: mediaTypes[f.ext] || 'application/octet-stream',
+    content: f.contentB64,
+    mediaType: mediaTypes[f.ext] || 'application/octet-stream'
+  });
+  // Mostrar preview en el chat
+  if (typeof renderAttachPreview === 'function') renderAttachPreview();
+  // Volver al panel de chat
+  switchAgentPanel('chat');
+  showSaveToast('📎 "' + f.name + '" listo para enviar en el chat');
+}
+
+function logFileToPanel(name, contentB64, size) {
+  const ext = name.split('.').pop().toLowerCase();
+  GLOBAL_FILES.add(name, ext, contentB64 || null, size || 0);
+}
+function deleteFile(id) {
+  GLOBAL_FILES.remove(id);
   renderFilesPanel();
 }
 function clearAllFiles() {
-  if (!confirm('¿Eliminar el registro de todos los archivos?')) return;
-  AGENT_STORE.saveFiles(currentAgent.id, []);
+  if (!confirm('¿Eliminar todos los archivos globales?')) return;
+  GLOBAL_FILES.clear();
   renderFilesPanel();
 }
 
@@ -12758,12 +13000,25 @@ sendChat = async function() {
   }, 300);
 };
 
-// ── PATCH handleAttachFiles to log files ─────────────────
+// ── PATCH handleAttachFiles to log files globally ─────────
 const _origHandleAttach = handleAttachFiles;
 handleAttachFiles = async function(files) {
   await _origHandleAttach.apply(this, arguments);
-  if (currentAgent && files) {
-    [...files].forEach(f => logFileToPanel(f.name));
+  if (files && files.length) {
+    for (const f of [...files]) {
+      const ext = f.name.split('.').pop().toLowerCase();
+      try {
+        const b64 = await new Promise(function(res) {
+          const r = new FileReader();
+          r.onload = function(){ res(r.result.split(',')[1]); };
+          r.readAsDataURL(f);
+        });
+        GLOBAL_FILES.add(f.name, ext, b64, f.size);
+      } catch(e) {
+        // Si no se puede leer, guardar solo metadata
+        GLOBAL_FILES.add(f.name, ext, null, f.size);
+      }
+    }
   }
 };
 
