@@ -7312,8 +7312,8 @@ async function _sendRecursoPrompt(prompt, lid, area) {
       '<span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar recurso generado:</span>' +
       '<input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="' + _autoTitle.replace(/"/g,'&quot;') + '">' +
       '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>' +
-      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#2B5EE8;color:#2B5EE8;display:flex;align-items:center;gap:4px" onclick="saveAsWord(window._saveDocFullContent)" title="Descargar como Word (.docx)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Word</button>' +
-      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#E53935;color:#E53935;display:flex;align-items:center;gap:4px" onclick="saveAsPDF(window._saveDocFullContent)" title="Descargar como PDF"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> PDF</button>';
+      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#2B5EE8;color:#2B5EE8;display:flex;align-items:center;gap:4px" onclick="saveAsWord(window._saveDocFullContent)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Word</button>' +
+      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#E53935;color:#E53935;display:flex;align-items:center;gap:4px" onclick="saveAsPDF(window._saveDocFullContent)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> PDF</button>';
     if (area.parentElement) area.parentElement.insertBefore(bar, area.nextSibling);
   } catch(e) {
     document.getElementById(lid).outerHTML = makeBubbleAI('<span style="color:var(--accent3)">' + (e.message||'Error al generar el recurso.') + '</span>');
@@ -8370,8 +8370,8 @@ const LIAX_MODELS = {
   'claude-sonnet': { id:'claude-sonnet-4-6',            provider:'claude', label:'Claude Sonnet 4.6',  cost:3,  icon:'🟣', color:'#8b5cf6', desc:'Mejor para tareas complejas, análisis profundo, archivos' },
   'claude-haiku':  { id:'claude-haiku-4-5-20251001',    provider:'claude', label:'Claude Haiku 4.5',   cost:1,  icon:'🟣', color:'#a78bfa', desc:'Rápido y económico para texto simple' },
   // Google
-  'claude-haiku':  { id:'gemini-2.0-flash',             provider:'gemini', label:'Gemini 2.0 Flash',   cost:1,  icon:'🔵', color:'#4285f4', desc:'Muy barato, rápido, excelente para texto y conversación' },
-  'claude-haiku':    { id:'gemini-2.0-flash',               provider:'gemini', label:'Gemini 2.0 Flash',     cost:2,  icon:'🔵', color:'#34a853', desc:'2M tokens contexto, ideal para Excel/tablas/análisis — 40x más barato que Sonnet' },
+  'gemini-flash':  { id:'gemini-2.0-flash',             provider:'gemini', label:'Gemini 2.0 Flash',   cost:1,  icon:'🔵', color:'#4285f4', desc:'Muy barato, rápido, excelente para texto y conversación' },
+  'gemini-pro':    { id:'gemini-2.0-flash',               provider:'gemini', label:'Gemini 2.0 Flash',     cost:2,  icon:'🔵', color:'#34a853', desc:'2M tokens contexto, ideal para Excel/tablas/análisis — 40x más barato que Sonnet' },
   // OpenAI
   'gpt4o-mini':    { id:'gpt-4o-mini',                  provider:'openai', label:'GPT-4o mini',        cost:1,  icon:'🟢', color:'#10a37f', desc:'Económico, rápido para texto y resúmenes' },
   'gpt4o':         { id:'gpt-4o',                       provider:'openai', label:'GPT-4o',             cost:3,  icon:'🟢', color:'#0ea47a', desc:'Poderoso para análisis, código y razonamiento' },
@@ -8411,8 +8411,8 @@ const TASK_LABELS = {
 const PROVIDER_META = {
   'claude-sonnet':{ icon:'🟣', label:'Claude Sonnet 4.6', color:'#8b5cf6', cost:'$$$' },
   'claude-haiku': { icon:'🟣', label:'Claude Haiku 4.5',  color:'#a78bfa', cost:'$'   },
-  'claude-haiku': { icon:'🔵', label:'Gemini 2.0 Flash',  color:'#4285f4', cost:'$'   },
-  'claude-haiku':   { icon:'🔵', label:'Gemini 2.0 Flash',    color:'#34a853', cost:'$$'  },
+  'gemini-flash': { icon:'🔵', label:'Gemini 2.0 Flash',  color:'#4285f4', cost:'$'   },
+  'gemini-pro':   { icon:'🔵', label:'Gemini 2.0 Flash',    color:'#34a853', cost:'$$'  },
   'gpt4o-mini':   { icon:'🟢', label:'GPT-4o mini',       color:'#10a37f', cost:'$'   },
   'gpt4o':        { icon:'🟢', label:'GPT-4o',            color:'#0ea47a', cost:'$$$' },
   // Legacy keys
@@ -8433,7 +8433,7 @@ function resolveModel(modelKey) {
   if (m) return m.id;
   // Legacy fallback: 'claude' → sonnet, 'gemini' → flash, 'openai' → gpt4o-mini
   if (modelKey === 'claude') return LIAX_MODELS['claude-sonnet'].id;
-  if (modelKey === 'gemini') return LIAX_MODELS['claude-haiku'].id;
+  if (modelKey === 'gemini') return LIAX_MODELS['gemini-flash'].id;
   if (modelKey === 'openai') return LIAX_MODELS['gpt4o-mini'].id;
   return modelKey; // assume it's already a model ID
 }
@@ -8537,17 +8537,16 @@ function classifyComplexity(messages, system) {
       modelId  = LIAX_MODELS[modelKey].id;
     }
     if (provider === 'claude' && !getApiKey()) {
-      if (getGeminiKey()) { provider='gemini'; modelKey='claude-haiku'; modelId=LIAX_MODELS['claude-haiku'].id; }
+      if (getGeminiKey()) { provider='gemini'; modelKey='gemini-flash'; modelId=LIAX_MODELS['gemini-flash'].id; }
     }
   }
   // On Vercel: trust proxy has all keys — use router defaults as-is
   if (provider === 'claude' && !getApiKey()) {
-    if (getGeminiKey())      { provider='gemini'; modelKey='claude-haiku'; modelId=LIAX_MODELS['claude-haiku'].id; }
+    if (getGeminiKey())      { provider='gemini'; modelKey='gemini-flash'; modelId=LIAX_MODELS['gemini-flash'].id; }
     else if (getOpenAIKey()) { provider='openai'; modelKey='gpt4o-mini';   modelId=LIAX_MODELS['gpt4o-mini'].id;   }
   }
 
-  // Siempre usar Claude vía proxy Vercel — no depender de keys locales
-  return { provider: 'claude', task, modelKey: 'claude-haiku', modelId: LIAX_MODELS['claude-haiku'].id };
+  return { provider, task, modelKey, modelId };
 }
 
 
@@ -8570,7 +8569,7 @@ function renderRouterConfigGrid() {
   grid.innerHTML = Object.keys(TASK_LABELS).map(function(task) {
     var meta   = TASK_LABELS[task];
     var current = config[task] || 'claude';
-    var providers = ['claude-haiku','claude-haiku','claude-haiku','claude-sonnet','gpt4o-mini','gpt4o'];
+    var providers = ['gemini-flash','gemini-pro','claude-haiku','claude-sonnet','gpt4o-mini','gpt4o'];
 
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:7px;background:var(--surface)">' +
       '<div style="font-size:20px;flex-shrink:0">' + meta.icon + '</div>' +
@@ -8909,7 +8908,7 @@ async function callClaude(payload) {
   // Derive modelKey for display
   var modelKey = Object.keys(LIAX_MODELS).find(function(k){
     return LIAX_MODELS[k].id === modelId;
-  }) || (isGemini ? 'claude-haiku' : isTogether ? 'together-llama' : 'claude-haiku');
+  }) || (isGemini ? 'gemini-pro' : isTogether ? 'together-llama' : 'claude-haiku');
 
   // Show model badge
   var meta = LIAX_MODELS[modelKey] || {};
@@ -11513,7 +11512,7 @@ const AGENT_STORE = {
   getDocs:     function(agentId) { return AGENT_STORE._docs[agentId]  || []; },
   saveDocs:    function(agentId, docs)  { AGENT_STORE._docs[agentId]  = docs  || []; },
   getFiles:    function(agentId) { return GLOBAL_FILES.getAll(); },
-  saveFiles:   function(agentId, files) { /* no-op: global files managed by GLOBAL_FILES */ },
+  saveFiles:   function(agentId, files) { /* global files managed by GLOBAL_FILES */ },
   getHistory:  function(agentId) { return AGENT_STORE._hist[agentId]  || []; },
   saveHistory: function(agentId, hist)  { AGENT_STORE._hist[agentId]  = hist  || []; },
 };
@@ -11653,6 +11652,36 @@ function renderDocsPanel() {
       }
     </div>`;
 }
+
+// ── Extraer título automático del contenido del documento ──
+function _extractDocTitle(content) {
+  if (!content) return '';
+  var lines = content.split('\n');
+  for (var i = 0; i < Math.min(lines.length, 15); i++) {
+    var l = lines[i].trim();
+    if (!l) continue;
+    // H1 markdown: # TÍTULO
+    var h1 = l.match(/^#\s+(.+)/);
+    if (h1) return h1[1].replace(/\*\*/g,'').replace(/[_`]/g,'').trim().slice(0,80);
+    // H2 markdown: ## TÍTULO
+    var h2 = l.match(/^##\s+(.+)/);
+    if (h2) return h2[1].replace(/\*\*/g,'').replace(/[_`]/g,'').trim().slice(0,80);
+    // Línea en MAYÚSCULAS que parece título (mín 10 chars, no es tabla ni lista)
+    if (l.length >= 10 && l === l.toUpperCase() && !/^[|*\-\d]/.test(l)) {
+      return l.replace(/[*_`#]/g,'').trim().slice(0,80);
+    }
+    // Bold completo: **TÍTULO**
+    var bold = l.match(/^\*\*(.{8,})\*\*$/);
+    if (bold) return bold[1].trim().slice(0,80);
+    // Primera línea con texto significativo (más de 10 chars, no es tabla/lista)
+    if (l.length >= 10 && !/^[|*\-\d#>]/.test(l) && i === 0) {
+      return l.replace(/[*_`#]/g,'').trim().slice(0,80);
+    }
+  }
+  // Fallback: fecha
+  return 'Documento ' + new Date().toLocaleDateString('es-CL');
+}
+
 
 // ── Extraer título automático del contenido del documento ──
 function _extractDocTitle(content) {
@@ -12059,6 +12088,904 @@ function saveAsPDF(content) {
   setTimeout(function(){ win.print(); }, 700);
   showSaveToast('📄 Abriendo PDF: "' + title + '"');
 }
+
+function saveCurrentResponseAsDoc(content) {
+  const titleInput = document.getElementById('saveDocTitle');
+  const title = titleInput?.value.trim() || ('Documento ' + new Date().toLocaleDateString('es-CL'));
+  var fullContent = window._saveDocFullContent || content;
+
+  // Determinar agente — currentAgent puede ser undefined en agente Generar Recursos
+  var agId     = (currentAgent && currentAgent.id)     || window._lastRecursoAgentId || 'v1';
+  var agNombre = (currentAgent && currentAgent.nombre) || window._lastRecursoAgentNombre || 'Diseñador de Material';
+
+  const docs = AGENT_STORE.getDocs(agId) || [];
+  const existingIdx = docs.findIndex(function(d){ return d.title === title; });
+  const existingId  = existingIdx > -1 ? docs[existingIdx].id : null;
+  const newId = existingId || ('doc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6));
+  const docObj = { title: title, content: fullContent, savedAt: new Date().toISOString(), agentId: agId, agentName: agNombre, id: newId };
+
+  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(agId, title, fullContent, existingId).catch(function(){});
+  if (existingIdx > -1) {
+    docs[existingIdx] = docObj;
+  } else {
+    docs.unshift(docObj);
+  }
+  AGENT_STORE.saveDocs(agId, docs);
+  const bar = document.getElementById('saveDocBar');
+  if (bar) { bar.style.display = 'none'; }
+  showSaveToast('✅ Documento guardado: "' + title + '"');
+}
+
+
+// ── Descargar como Word (.doc RTF) ─────────────────────────
+function saveAsWord(content) {
+  var titleInput = document.getElementById('saveDocTitle');
+  var title = (titleInput && titleInput.value.trim()) || ('Documento_' + new Date().toLocaleDateString('es-CL').replace(/\//g,'-'));
+  var text = (content || '').replace(/<[^>]*>/g, '');
+
+  // Convertir markdown a HTML con estilos INLINE (Word los respeta siempre)
+  var html = _mdToHtmlWord(text);
+
+  var wordHtml = '<!DOCTYPE html>\n' +
+    '<html xmlns:o="urn:schemas-microsoft-com:office:office"\n' +
+    '      xmlns:w="urn:schemas-microsoft-com:office:word"\n' +
+    '      xmlns="http://www.w3.org/TR/REC-html40">\n' +
+    '<head><meta charset="UTF-8">\n' +
+    '<meta name=ProgId content=Word.Document>\n' +
+    '<meta name=Generator content="LIAX Educativo">\n' +
+    '<!--[if gte mso 9]><xml>\n' +
+    '<w:WordDocument>\n' +
+    '  <w:View>Print</w:View>\n' +
+    '  <w:Zoom>100</w:Zoom>\n' +
+    '  <w:DoNotOptimizeForBrowser/>\n' +
+    '</w:WordDocument>\n' +
+    '</xml><![endif]-->\n' +
+    '<style>\n' +
+    '  @page { margin: 1.5cm; }\n' +
+    '  body { font-family: Arial, sans-serif; font-size: 10pt; color: #1a1a1a; line-height: 1.3; }\n' +
+    '  p { margin: 4pt 0; }\n' +
+    '  table { border-collapse: collapse; width: 100%; }\n' +
+    '  td, th { border: 1px solid #999; padding: 5pt 9pt; font-size: 10pt; }\n' +
+    '</style>\n' +
+    '</head><body>\n' +
+
+    // Título del documento
+    '<p style="font-family:Arial,sans-serif;font-size:15pt;font-weight:bold;color:#1a1a1a;' +
+    'border-bottom:1.5px solid #1a237e;padding-bottom:2pt;margin-bottom:1pt;">' +
+    _escHtml(title) + '</p>\n' +
+
+    // Subtítulo/fecha
+    '<p style="font-family:Arial,sans-serif;font-size:8pt;color:#888888;' +
+    'border-bottom:1px solid #cccccc;padding-bottom:3pt;margin-bottom:6pt;">' +
+    'Generado: ' + new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'}) +
+    ' &mdash; LIAX Educativo</p>\n' +
+
+    html +
+    '\n</body></html>';
+
+  var blob = new Blob(['\ufeff' + wordHtml], {type: 'application/msword;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = title + '.doc'; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+  showSaveToast('📄 Descargando Word: "' + title + '"');
+}
+
+// ── Markdown → HTML con estilos INLINE para Word ──────────
+// (Word ignora CSS externo en muchos casos; inline siempre funciona)
+function _mdToHtmlWord(text) {
+  var lines = text.split('\n');
+  var out = '';
+  var i = 0;
+  var inUl = false, inOl = false, inTable = false, inBlockquote = false;
+  var rowCount = 0; // para filas alternas
+
+  var S = {
+    body:   'font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;',
+    h1:     'font-family:Arial,sans-serif;font-size:14pt;font-weight:bold;color:#1a237e;' +
+            'border-bottom:1.5px solid #1a237e;padding-bottom:2pt;margin:8pt 0 3pt;',
+    h2:     'font-family:Arial,sans-serif;font-size:12pt;font-weight:bold;color:#283593;margin:6pt 0 2pt;',
+    h3:     'font-family:Arial,sans-serif;font-size:10.5pt;font-weight:bold;color:#37474f;margin:5pt 0 1pt;',
+    p:      'font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;margin:1pt 0 2pt;line-height:1.3;',
+    li:     'font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;margin:1pt 0;',
+    th:     'font-family:Arial,sans-serif;font-size:9pt;font-weight:bold;color:#ffffff;' +
+            'background-color:#1a237e;border:1px solid #666666;padding:3pt 6pt;text-align:left;',
+    tdEven: 'font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a;' +
+            'background-color:#eef1fb;border:1px solid #aaaaaa;padding:2pt 6pt;vertical-align:top;',
+    tdOdd:  'font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a;' +
+            'background-color:#ffffff;border:1px solid #aaaaaa;padding:2pt 6pt;vertical-align:top;',
+    bq:     'font-family:Arial,sans-serif;font-size:10pt;color:#555555;font-style:italic;' +
+            'border-left:3px solid #1a237e;margin:4pt 0;padding:2pt 8pt;background-color:#f8f9ff;',
+    hr:     'border:none;border-top:1px solid #cccccc;margin:5pt 0;',
+    code:   'font-family:"Courier New",monospace;font-size:9pt;background-color:#f4f4f4;padding:1pt 3pt;'
+  };
+
+  function closeLists() {
+    if (inUl) { out += '</ul>\n'; inUl = false; }
+    if (inOl) { out += '</ol>\n'; inOl = false; }
+  }
+  function closeTable() {
+    if (inTable) { out += '</tbody></table>\n'; inTable = false; rowCount = 0; }
+  }
+  function closeBlockquote() {
+    if (inBlockquote) { out += '</blockquote>\n'; inBlockquote = false; }
+  }
+
+  function parseCells(line) {
+    return line.split('|').filter(function(c,idx,arr){ return idx>0 && idx<arr.length-1; });
+  }
+
+  while (i < lines.length) {
+    var line = lines[i];
+    var l = line.trim();
+
+    // ── Tabla ──
+    if (/^\|.+\|/.test(l)) {
+      if (!inTable) {
+        closeLists(); closeBlockquote();
+        out += '<table style="border-collapse:collapse;width:100%;margin:10pt 0;">\n<thead>\n<tr>\n';
+        parseCells(l).forEach(function(h){
+          out += '<th style="' + S.th + '">' + _inlineMdWord(h.trim()) + '</th>\n';
+        });
+        out += '</tr>\n</thead>\n<tbody>\n';
+        inTable = true;
+        rowCount = 0;
+        i++;
+        // saltar separador |---|---|
+        if (i < lines.length && /^\|[\s\-:| ]+\|$/.test(lines[i].trim())) i++;
+        continue;
+      } else {
+        var tdStyle = (rowCount % 2 === 0) ? S.tdOdd : S.tdEven;
+        out += '<tr>\n';
+        parseCells(l).forEach(function(c){
+          out += '<td style="' + tdStyle + '">' + _inlineMdWord(c.trim()) + '</td>\n';
+        });
+        out += '</tr>\n';
+        rowCount++;
+        i++; continue;
+      }
+    } else { closeTable(); }
+
+    // ── Vacío ──
+    if (!l) {
+      closeLists(); closeBlockquote();
+    out += '<p style="margin:1pt 0;">&nbsp;</p>\n'; i++; continue;
+    }
+
+    // ── Headings ──
+    var hm = l.match(/^(#{1,6})\s+(.*)/);
+    if (hm) {
+      closeLists(); closeBlockquote();
+      var lvl = hm[1].length;
+      var st = lvl===1 ? S.h1 : (lvl===2 ? S.h2 : S.h3);
+      out += '<h'+lvl+' style="'+st+'">' + _inlineMdWord(hm[2]) + '</h'+lvl+'>\n';
+      i++; continue;
+    }
+
+    // ── HR ──
+    if (/^(---+|\*\*\*+|___+)$/.test(l)) {
+      closeLists(); closeBlockquote();
+      out += '<hr style="'+S.hr+'">\n'; i++; continue;
+    }
+
+    // ── Blockquote ──
+    if (/^>\s?/.test(l)) {
+      closeLists();
+      if (!inBlockquote) { out += '<blockquote style="'+S.bq+'">\n'; inBlockquote = true; }
+      out += '<p style="'+S.p+'">' + _inlineMdWord(l.replace(/^>\s?/,'')) + '</p>\n';
+      i++; continue;
+    } else { closeBlockquote(); }
+
+    // ── Lista desordenada ──
+    if (/^[-*+]\s/.test(l)) {
+      if (inOl) { out += '</ol>\n'; inOl = false; }
+      if (!inUl) { out += '<ul style="margin:2pt 0 4pt;padding-left:16pt;">\n'; inUl = true; }
+      out += '<li style="'+S.li+'">' + _inlineMdWord(l.replace(/^[-*+]\s/,'')) + '</li>\n';
+      i++; continue;
+    }
+
+    // ── Lista ordenada ──
+    if (/^\d+\.\s/.test(l)) {
+      if (inUl) { out += '</ul>\n'; inUl = false; }
+      if (!inOl) { out += '<ol style="margin:2pt 0 4pt;padding-left:16pt;">\n'; inOl = true; }
+      out += '<li style="'+S.li+'">' + _inlineMdWord(l.replace(/^\d+\.\s/,'')) + '</li>\n';
+      i++; continue;
+    }
+
+    closeLists();
+    out += '<p style="'+S.p+'">' + _inlineMdWord(l) + '</p>\n';
+    i++;
+  }
+
+  closeLists(); closeTable(); closeBlockquote();
+  return out;
+}
+
+function _inlineMdWord(str) {
+  return (str||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/__(.+?)__/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/_(.+?)_/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code style="font-family:\'Courier New\',monospace;font-size:9pt;background:#f4f4f4;padding:1pt 3pt;">$1</code>')
+    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" style="color:#1a237e;">$1</a>');
+}
+
+// ── Convertir Markdown a HTML con soporte de tablas ───────
+function _mdToHtml(text) {
+  var lines = text.split('\n');
+  var html = '';
+  var i = 0;
+  var inUl = false, inOl = false, inTable = false, inBlockquote = false;
+
+  function closeLists() {
+    if (inUl) { html += '</ul>'; inUl = false; }
+    if (inOl) { html += '</ol>'; inOl = false; }
+  }
+  function closeTable() {
+    if (inTable) { html += '</tbody></table>'; inTable = false; }
+  }
+  function closeBlockquote() {
+    if (inBlockquote) { html += '</blockquote>'; inBlockquote = false; }
+  }
+
+  while (i < lines.length) {
+    var line = lines[i];
+    var l = line.trim();
+
+    // Tabla markdown: detectar línea con pipes
+    if (/^\|.+\|/.test(l)) {
+      if (!inTable) {
+        closeLists(); closeBlockquote();
+        html += '<table><thead>';
+        // Cabecera
+        var headers = l.split('|').filter(function(c,idx,arr){ return idx>0 && idx<arr.length-1; });
+        html += '<tr>' + headers.map(function(h){ return '<th>' + _inlineMd(h.trim()) + '</th>'; }).join('') + '</tr>';
+        html += '</thead><tbody>';
+        inTable = true;
+        i++; // saltar línea de separador (---|---)
+        if (i < lines.length && /^\|[-:\s|]+\|$/.test(lines[i].trim())) i++;
+        continue;
+      } else {
+        var cells = l.split('|').filter(function(c,idx,arr){ return idx>0 && idx<arr.length-1; });
+        html += '<tr>' + cells.map(function(c){ return '<td>' + _inlineMd(c.trim()) + '</td>'; }).join('') + '</tr>';
+        i++; continue;
+      }
+    } else { closeTable(); }
+
+    // Línea vacía
+    if (!l) {
+      closeLists(); closeBlockquote();
+      html += '<p>&nbsp;</p>'; i++; continue;
+    }
+
+    // Headings
+    if (/^#{1,6}\s/.test(l)) {
+      closeLists(); closeBlockquote();
+      var m = l.match(/^(#{1,6})\s+(.*)/);
+      var lvl = m[1].length;
+      html += '<h'+lvl+'>' + _inlineMd(m[2]) + '</h'+lvl+'>';
+      i++; continue;
+    }
+
+    // HR
+    if (/^(---+|\*\*\*+|___+)$/.test(l)) {
+      closeLists(); closeBlockquote();
+      html += '<hr>'; i++; continue;
+    }
+
+    // Blockquote
+    if (/^>\s?/.test(l)) {
+      closeLists();
+      if (!inBlockquote) { html += '<blockquote>'; inBlockquote = true; }
+      html += '<p>' + _inlineMd(l.replace(/^>\s?/,'')) + '</p>';
+      i++; continue;
+    } else { closeBlockquote(); }
+
+    // Lista desordenada
+    if (/^[-*+]\s/.test(l)) {
+      if (inOl) { html += '</ol>'; inOl = false; }
+      if (!inUl) { html += '<ul>'; inUl = true; }
+      html += '<li>' + _inlineMd(l.replace(/^[-*+]\s/,'')) + '</li>';
+      i++; continue;
+    }
+
+    // Lista ordenada
+    if (/^\d+\.\s/.test(l)) {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (!inOl) { html += '<ol>'; inOl = true; }
+      html += '<li>' + _inlineMd(l.replace(/^\d+\.\s/,'')) + '</li>';
+      i++; continue;
+    }
+
+    closeLists();
+    html += '<p>' + _inlineMd(l) + '</p>';
+    i++;
+  }
+
+  closeLists(); closeTable(); closeBlockquote();
+  return html;
+}
+
+// Procesar markdown inline: bold, italic, code, links
+function _inlineMd(str) {
+  return (str||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/__(.+?)__/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/_(.+?)_/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2">$1</a>');
+}
+function _escHtml(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _rtfEscape(str) {
+  return (str||'').replace(/\\/g,'\\\\').replace(/\{/g,'\\{').replace(/\}/g,'\\}')
+    .replace(/[^\x00-\x7F]/g, function(c){ return '\\u'+c.charCodeAt(0)+'?'; });
+}
+
+// ── Descargar como PDF (ventana de impresión) ──────────────
+function saveAsPDF(content) {
+  var titleInput = document.getElementById('saveDocTitle');
+  var title = (titleInput && titleInput.value.trim()) || ('Documento_' + new Date().toLocaleDateString('es-CL').replace(/\//g,'-'));
+  var text = (content || '').replace(/<[^>]*>/g, '');
+  var win = window.open('','_blank','width=860,height:960');
+  if (!win) { alert('Permite ventanas emergentes para guardar PDF'); return; }
+  var bodyHtml = _mdToHtml(text);
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + _escHtml(title) + '</title>';
+  html += '<style>';
+  html += 'body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;margin:40px;line-height:1.7;max-width:800px;}';
+  html += 'h1{font-size:22px;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:5px;margin:20px 0 10px;}';
+  html += 'h2{font-size:18px;color:#283593;margin:16px 0 8px;}';
+  html += 'h3{font-size:15px;color:#37474f;margin:12px 0 6px;}';
+  html += 'p{margin:5px 0 8px;}';
+  html += 'ul,ol{margin:4px 0 10px;padding-left:22px;}li{margin:3px 0;}';
+  html += 'table{border-collapse:collapse;width:100%;margin:10px 0;font-size:11.5px;}';
+  html += 'th{background:#1a237e;color:#ffffff;padding:6px 10px;border:1px solid #3949ab;text-align:left;font-weight:bold;-webkit-print-color-adjust:exact;print-color-adjust:exact;}';
+  html += 'td{padding:5px 10px;border:1px solid #c5cae9;vertical-align:top;}';
+  html += 'tr:nth-child(even) td{background:#e8eaf6;-webkit-print-color-adjust:exact;print-color-adjust:exact;}';
+  html += 'tr:nth-child(odd) td{background:#ffffff;}';
+  html += 'code{font-family:monospace;background:#f4f4f4;padding:1px 4px;border-radius:3px;font-size:11px;}';
+  html += 'blockquote{border-left:4px solid #1a237e;margin:8px 0;padding:4px 14px;color:#555;background:#f8f9ff;}';
+  html += 'hr{border:none;border-top:1px solid #ddd;margin:14px 0;}';
+  html += '.doc-title{font-size:24px;font-weight:800;margin-bottom:4px;}';
+  html += '.doc-date{font-size:11px;color:#888;border-bottom:1px solid #ddd;padding-bottom:10px;margin-bottom:20px;}';
+  html += '@media print{body{margin:15mm;}@page{margin:15mm;}}';
+  html += '</style></head><body>';
+  html += '<div class="doc-title">' + _escHtml(title) + '</div>';
+  html += '<div class="doc-date">Generado: ' + new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'}) + ' — LIAX Educativo</div>';
+  html += bodyHtml;
+  html += '</body></html>';
+  win.document.write(html); win.document.close(); win.focus();
+  setTimeout(function(){ win.print(); }, 700);
+  showSaveToast('📄 Abriendo PDF: "' + title + '"');
+}
+
+
+let currentAgentPanel = 'chat';
+let viewingDoc = null;
+
+function switchAgentPanel(panel) {
+  currentAgentPanel = panel;
+  document.querySelectorAll('.agent-panel-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('apbtn-'+panel);
+  if (btn) btn.classList.add('active');
+  document.getElementById('mFooter').style.display = 'none';
+  if (panel === 'chat') {
+    var existingChat = document.getElementById('chatArea');
+    var existingBody = document.getElementById('mBody');
+    if (!existingChat || !existingBody || existingBody.querySelector('#ap-docs,#ap-files,#ap-history,#ap-ajustar')) {
+      // Switching back from another panel — restore chat
+      _buildChatView();
+      // Re-inject saved conversation bubbles if history exists
+      if (chatHistory.length > 0 && window._savedChatHTML) {
+        var area = document.getElementById('chatArea');
+        if (area) {
+          area.innerHTML = window._savedChatHTML;
+          area.style.display = 'flex';
+          var ws = document.getElementById('agentWelcomeScreen');
+          if (ws) ws.style.display = 'none';
+          area.scrollTop = area.scrollHeight;
+        }
+      }
+    }
+    // Show footer
+    var footer = document.getElementById('mFooter');
+    if (footer) footer.style.display = '';
+  } else if (panel === 'docs') {
+    // Save current chat HTML before leaving
+    var chatArea2 = document.getElementById('chatArea');
+    if (chatArea2 && chatHistory.length > 0) window._savedChatHTML = chatArea2.innerHTML;
+    renderDocsPanel();
+  } else if (panel === 'files') {
+    var chatArea3 = document.getElementById('chatArea');
+    if (chatArea3 && chatHistory.length > 0) window._savedChatHTML = chatArea3.innerHTML;
+    renderFilesPanel();
+  } else if (panel === 'history') {
+    renderHistoryPanel();
+  } else if (panel === 'ajustar') {
+    renderAjustarPanel(); setTimeout(_addBancoShareInAjuste, 100);
+  }
+}
+
+// ── DOCUMENTOS ───────────────────────────────────────────
+function renderDocsPanel() {
+  if (!currentAgent) return;
+  const docs = AGENT_STORE.getDocs(currentAgent.id);
+  const c = COLORS[currentAgent.dim];
+  document.getElementById('mBody').innerHTML = `
+    <div class="ap-panel active" id="ap-docs">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)">📄 Documentos guardados — ${currentAgent.nombre}</div>
+        <span style="font-size:10px;color:var(--muted)">${docs.length} documento${docs.length!==1?'s':''}</span>
+      </div>
+      ${docs.length === 0 ? `
+        <div class="empty-panel">
+          <div class="empty-panel-icon">📄</div>
+          <div class="empty-panel-title">Sin documentos aún</div>
+          <div style="font-size:12px">Los documentos que guardes desde el chat aparecerán aquí.<br>En el chat, después de una respuesta de la IA, usa el botón <strong>"💾 Guardar como documento"</strong>.</div>
+        </div>` :
+        docs.map((d,i) => `
+          <div class="doc-card">
+            <div class="doc-title">📄 ${d.title}</div>
+            <div class="doc-meta">
+              <span>🕐 ${new Date(d.savedAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'})} ${new Date(d.savedAt).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})}</span>
+              <span>🤖 ${currentAgent.nombre}</span>
+              <span>${d.content.length} caracteres</span>
+            </div>
+            <div class="doc-preview">${d.content.slice(0,150)}${d.content.length>150?'…':''}</div>
+            <div class="doc-actions">
+              <button class="doc-btn" onclick="openDocViewer(${i})">👁️ Ver completo</button>
+              <button class="doc-btn" onclick="downloadDocByIndex(${i})">📄 PDF</button>
+              <button class="doc-btn" onclick="openCalEventModal('','',encodeURIComponent(${JSON.stringify(d.title||'')}||'').replace(/%20/g,' '),'documento')">📅 Calendarizar</button>
+              <button class="doc-btn" onclick="calShareDocByMail(${i})">📤 Compartir</button>
+              <button class="doc-btn" onclick="editDocNameByIndex(${i})">✏️ Editar</button>
+              <button class="doc-btn danger" onclick="deleteDoc(${i})">🗑️ Eliminar</button>
+            </div>
+          </div>`).join('')
+      }
+    </div>`;
+}
+
+
+// ── Extraer título automático del contenido del documento ──
+function _extractDocTitle(content) {
+  if (!content) return '';
+  var lines = content.split('\n');
+  for (var i = 0; i < Math.min(lines.length, 15); i++) {
+    var l = lines[i].trim();
+    if (!l) continue;
+    // H1 markdown: # TÍTULO
+    var h1 = l.match(/^#\s+(.+)/);
+    if (h1) return h1[1].replace(/\*\*/g,'').replace(/[_`]/g,'').trim().slice(0,80);
+    // H2 markdown: ## TÍTULO
+    var h2 = l.match(/^##\s+(.+)/);
+    if (h2) return h2[1].replace(/\*\*/g,'').replace(/[_`]/g,'').trim().slice(0,80);
+    // Línea en MAYÚSCULAS que parece título (mín 10 chars, no es tabla ni lista)
+    if (l.length >= 10 && l === l.toUpperCase() && !/^[|*\-\d]/.test(l)) {
+      return l.replace(/[*_`#]/g,'').trim().slice(0,80);
+    }
+    // Bold completo: **TÍTULO**
+    var bold = l.match(/^\*\*(.{8,})\*\*$/);
+    if (bold) return bold[1].trim().slice(0,80);
+    // Primera línea con texto significativo (más de 10 chars, no es tabla/lista)
+    if (l.length >= 10 && !/^[|*\-\d#>]/.test(l) && i === 0) {
+      return l.replace(/[*_`#]/g,'').trim().slice(0,80);
+    }
+  }
+  // Fallback: fecha
+  return 'Documento ' + new Date().toLocaleDateString('es-CL');
+}
+
+function saveCurrentResponseAsDoc(content) {
+  const titleInput = document.getElementById('saveDocTitle');
+  const title = titleInput?.value.trim() || ('Documento ' + new Date().toLocaleDateString('es-CL'));
+  var fullContent = window._saveDocFullContent || content;
+
+  // Determinar agente — currentAgent puede ser undefined en agente Generar Recursos
+  var agId     = (currentAgent && currentAgent.id)     || window._lastRecursoAgentId || 'v1';
+  var agNombre = (currentAgent && currentAgent.nombre) || window._lastRecursoAgentNombre || 'Diseñador de Material';
+
+  const docs = AGENT_STORE.getDocs(agId) || [];
+  const existingIdx = docs.findIndex(function(d){ return d.title === title; });
+  const existingId  = existingIdx > -1 ? docs[existingIdx].id : null;
+  const newId = existingId || ('doc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6));
+  const docObj = { title: title, content: fullContent, savedAt: new Date().toISOString(), agentId: agId, agentName: agNombre, id: newId };
+
+  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(agId, title, fullContent, existingId).catch(function(){});
+  if (existingIdx > -1) {
+    docs[existingIdx] = docObj;
+  } else {
+    docs.unshift(docObj);
+  }
+  AGENT_STORE.saveDocs(agId, docs);
+  const bar = document.getElementById('saveDocBar');
+  if (bar) { bar.style.display = 'none'; }
+  showSaveToast('✅ Documento guardado: "' + title + '"');
+}
+
+
+// ── Descargar como Word (.doc RTF) ─────────────────────────
+function saveAsWord(content) {
+  var titleInput = document.getElementById('saveDocTitle');
+  var title = (titleInput && titleInput.value.trim()) || ('Documento_' + new Date().toLocaleDateString('es-CL').replace(/\//g,'-'));
+  var text = (content || '').replace(/<[^>]*>/g, '');
+
+  // Convertir markdown a HTML con estilos INLINE (Word los respeta siempre)
+  var html = _mdToHtmlWord(text);
+
+  var wordHtml = '<!DOCTYPE html>\n' +
+    '<html xmlns:o="urn:schemas-microsoft-com:office:office"\n' +
+    '      xmlns:w="urn:schemas-microsoft-com:office:word"\n' +
+    '      xmlns="http://www.w3.org/TR/REC-html40">\n' +
+    '<head><meta charset="UTF-8">\n' +
+    '<meta name=ProgId content=Word.Document>\n' +
+    '<meta name=Generator content="LIAX Educativo">\n' +
+    '<!--[if gte mso 9]><xml>\n' +
+    '<w:WordDocument>\n' +
+    '  <w:View>Print</w:View>\n' +
+    '  <w:Zoom>100</w:Zoom>\n' +
+    '  <w:DoNotOptimizeForBrowser/>\n' +
+    '</w:WordDocument>\n' +
+    '</xml><![endif]-->\n' +
+    '<style>\n' +
+    '  @page { margin: 1.5cm; }\n' +
+    '  body { font-family: Arial, sans-serif; font-size: 10pt; color: #1a1a1a; line-height: 1.3; }\n' +
+    '  p { margin: 4pt 0; }\n' +
+    '  table { border-collapse: collapse; width: 100%; }\n' +
+    '  td, th { border: 1px solid #999; padding: 5pt 9pt; font-size: 10pt; }\n' +
+    '</style>\n' +
+    '</head><body>\n' +
+
+    // Título del documento
+    '<p style="font-family:Arial,sans-serif;font-size:15pt;font-weight:bold;color:#1a1a1a;' +
+    'border-bottom:1.5px solid #1a237e;padding-bottom:2pt;margin-bottom:1pt;">' +
+    _escHtml(title) + '</p>\n' +
+
+    // Subtítulo/fecha
+    '<p style="font-family:Arial,sans-serif;font-size:8pt;color:#888888;' +
+    'border-bottom:1px solid #cccccc;padding-bottom:3pt;margin-bottom:6pt;">' +
+    'Generado: ' + new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'}) +
+    ' &mdash; LIAX Educativo</p>\n' +
+
+    html +
+    '\n</body></html>';
+
+  var blob = new Blob(['\ufeff' + wordHtml], {type: 'application/msword;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = title + '.doc'; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+  showSaveToast('📄 Descargando Word: "' + title + '"');
+}
+
+// ── Markdown → HTML con estilos INLINE para Word ──────────
+// (Word ignora CSS externo en muchos casos; inline siempre funciona)
+function _mdToHtmlWord(text) {
+  var lines = text.split('\n');
+  var out = '';
+  var i = 0;
+  var inUl = false, inOl = false, inTable = false, inBlockquote = false;
+  var rowCount = 0; // para filas alternas
+
+  var S = {
+    body:   'font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;',
+    h1:     'font-family:Arial,sans-serif;font-size:14pt;font-weight:bold;color:#1a237e;' +
+            'border-bottom:1.5px solid #1a237e;padding-bottom:2pt;margin:8pt 0 3pt;',
+    h2:     'font-family:Arial,sans-serif;font-size:12pt;font-weight:bold;color:#283593;margin:6pt 0 2pt;',
+    h3:     'font-family:Arial,sans-serif;font-size:10.5pt;font-weight:bold;color:#37474f;margin:5pt 0 1pt;',
+    p:      'font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;margin:1pt 0 2pt;line-height:1.3;',
+    li:     'font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;margin:1pt 0;',
+    th:     'font-family:Arial,sans-serif;font-size:9pt;font-weight:bold;color:#ffffff;' +
+            'background-color:#1a237e;border:1px solid #666666;padding:3pt 6pt;text-align:left;',
+    tdEven: 'font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a;' +
+            'background-color:#eef1fb;border:1px solid #aaaaaa;padding:2pt 6pt;vertical-align:top;',
+    tdOdd:  'font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a;' +
+            'background-color:#ffffff;border:1px solid #aaaaaa;padding:2pt 6pt;vertical-align:top;',
+    bq:     'font-family:Arial,sans-serif;font-size:10pt;color:#555555;font-style:italic;' +
+            'border-left:3px solid #1a237e;margin:4pt 0;padding:2pt 8pt;background-color:#f8f9ff;',
+    hr:     'border:none;border-top:1px solid #cccccc;margin:5pt 0;',
+    code:   'font-family:"Courier New",monospace;font-size:9pt;background-color:#f4f4f4;padding:1pt 3pt;'
+  };
+
+  function closeLists() {
+    if (inUl) { out += '</ul>\n'; inUl = false; }
+    if (inOl) { out += '</ol>\n'; inOl = false; }
+  }
+  function closeTable() {
+    if (inTable) { out += '</tbody></table>\n'; inTable = false; rowCount = 0; }
+  }
+  function closeBlockquote() {
+    if (inBlockquote) { out += '</blockquote>\n'; inBlockquote = false; }
+  }
+
+  function parseCells(line) {
+    return line.split('|').filter(function(c,idx,arr){ return idx>0 && idx<arr.length-1; });
+  }
+
+  while (i < lines.length) {
+    var line = lines[i];
+    var l = line.trim();
+
+    // ── Tabla ──
+    if (/^\|.+\|/.test(l)) {
+      if (!inTable) {
+        closeLists(); closeBlockquote();
+        out += '<table style="border-collapse:collapse;width:100%;margin:10pt 0;">\n<thead>\n<tr>\n';
+        parseCells(l).forEach(function(h){
+          out += '<th style="' + S.th + '">' + _inlineMdWord(h.trim()) + '</th>\n';
+        });
+        out += '</tr>\n</thead>\n<tbody>\n';
+        inTable = true;
+        rowCount = 0;
+        i++;
+        // saltar separador |---|---|
+        if (i < lines.length && /^\|[\s\-:| ]+\|$/.test(lines[i].trim())) i++;
+        continue;
+      } else {
+        var tdStyle = (rowCount % 2 === 0) ? S.tdOdd : S.tdEven;
+        out += '<tr>\n';
+        parseCells(l).forEach(function(c){
+          out += '<td style="' + tdStyle + '">' + _inlineMdWord(c.trim()) + '</td>\n';
+        });
+        out += '</tr>\n';
+        rowCount++;
+        i++; continue;
+      }
+    } else { closeTable(); }
+
+    // ── Vacío ──
+    if (!l) {
+      closeLists(); closeBlockquote();
+    out += '<p style="margin:1pt 0;">&nbsp;</p>\n'; i++; continue;
+    }
+
+    // ── Headings ──
+    var hm = l.match(/^(#{1,6})\s+(.*)/);
+    if (hm) {
+      closeLists(); closeBlockquote();
+      var lvl = hm[1].length;
+      var st = lvl===1 ? S.h1 : (lvl===2 ? S.h2 : S.h3);
+      out += '<h'+lvl+' style="'+st+'">' + _inlineMdWord(hm[2]) + '</h'+lvl+'>\n';
+      i++; continue;
+    }
+
+    // ── HR ──
+    if (/^(---+|\*\*\*+|___+)$/.test(l)) {
+      closeLists(); closeBlockquote();
+      out += '<hr style="'+S.hr+'">\n'; i++; continue;
+    }
+
+    // ── Blockquote ──
+    if (/^>\s?/.test(l)) {
+      closeLists();
+      if (!inBlockquote) { out += '<blockquote style="'+S.bq+'">\n'; inBlockquote = true; }
+      out += '<p style="'+S.p+'">' + _inlineMdWord(l.replace(/^>\s?/,'')) + '</p>\n';
+      i++; continue;
+    } else { closeBlockquote(); }
+
+    // ── Lista desordenada ──
+    if (/^[-*+]\s/.test(l)) {
+      if (inOl) { out += '</ol>\n'; inOl = false; }
+      if (!inUl) { out += '<ul style="margin:2pt 0 4pt;padding-left:16pt;">\n'; inUl = true; }
+      out += '<li style="'+S.li+'">' + _inlineMdWord(l.replace(/^[-*+]\s/,'')) + '</li>\n';
+      i++; continue;
+    }
+
+    // ── Lista ordenada ──
+    if (/^\d+\.\s/.test(l)) {
+      if (inUl) { out += '</ul>\n'; inUl = false; }
+      if (!inOl) { out += '<ol style="margin:2pt 0 4pt;padding-left:16pt;">\n'; inOl = true; }
+      out += '<li style="'+S.li+'">' + _inlineMdWord(l.replace(/^\d+\.\s/,'')) + '</li>\n';
+      i++; continue;
+    }
+
+    closeLists();
+    out += '<p style="'+S.p+'">' + _inlineMdWord(l) + '</p>\n';
+    i++;
+  }
+
+  closeLists(); closeTable(); closeBlockquote();
+  return out;
+}
+
+function _inlineMdWord(str) {
+  return (str||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/__(.+?)__/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/_(.+?)_/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code style="font-family:\'Courier New\',monospace;font-size:9pt;background:#f4f4f4;padding:1pt 3pt;">$1</code>')
+    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" style="color:#1a237e;">$1</a>');
+}
+
+// ── Convertir Markdown a HTML con soporte de tablas ───────
+function _mdToHtml(text) {
+  var lines = text.split('\n');
+  var html = '';
+  var i = 0;
+  var inUl = false, inOl = false, inTable = false, inBlockquote = false;
+
+  function closeLists() {
+    if (inUl) { html += '</ul>'; inUl = false; }
+    if (inOl) { html += '</ol>'; inOl = false; }
+  }
+  function closeTable() {
+    if (inTable) { html += '</tbody></table>'; inTable = false; }
+  }
+  function closeBlockquote() {
+    if (inBlockquote) { html += '</blockquote>'; inBlockquote = false; }
+  }
+
+  while (i < lines.length) {
+    var line = lines[i];
+    var l = line.trim();
+
+    // Tabla markdown: detectar línea con pipes
+    if (/^\|.+\|/.test(l)) {
+      if (!inTable) {
+        closeLists(); closeBlockquote();
+        html += '<table><thead>';
+        // Cabecera
+        var headers = l.split('|').filter(function(c,idx,arr){ return idx>0 && idx<arr.length-1; });
+        html += '<tr>' + headers.map(function(h){ return '<th>' + _inlineMd(h.trim()) + '</th>'; }).join('') + '</tr>';
+        html += '</thead><tbody>';
+        inTable = true;
+        i++; // saltar línea de separador (---|---)
+        if (i < lines.length && /^\|[-:\s|]+\|$/.test(lines[i].trim())) i++;
+        continue;
+      } else {
+        var cells = l.split('|').filter(function(c,idx,arr){ return idx>0 && idx<arr.length-1; });
+        html += '<tr>' + cells.map(function(c){ return '<td>' + _inlineMd(c.trim()) + '</td>'; }).join('') + '</tr>';
+        i++; continue;
+      }
+    } else { closeTable(); }
+
+    // Línea vacía
+    if (!l) {
+      closeLists(); closeBlockquote();
+      html += '<p>&nbsp;</p>'; i++; continue;
+    }
+
+    // Headings
+    if (/^#{1,6}\s/.test(l)) {
+      closeLists(); closeBlockquote();
+      var m = l.match(/^(#{1,6})\s+(.*)/);
+      var lvl = m[1].length;
+      html += '<h'+lvl+'>' + _inlineMd(m[2]) + '</h'+lvl+'>';
+      i++; continue;
+    }
+
+    // HR
+    if (/^(---+|\*\*\*+|___+)$/.test(l)) {
+      closeLists(); closeBlockquote();
+      html += '<hr>'; i++; continue;
+    }
+
+    // Blockquote
+    if (/^>\s?/.test(l)) {
+      closeLists();
+      if (!inBlockquote) { html += '<blockquote>'; inBlockquote = true; }
+      html += '<p>' + _inlineMd(l.replace(/^>\s?/,'')) + '</p>';
+      i++; continue;
+    } else { closeBlockquote(); }
+
+    // Lista desordenada
+    if (/^[-*+]\s/.test(l)) {
+      if (inOl) { html += '</ol>'; inOl = false; }
+      if (!inUl) { html += '<ul>'; inUl = true; }
+      html += '<li>' + _inlineMd(l.replace(/^[-*+]\s/,'')) + '</li>';
+      i++; continue;
+    }
+
+    // Lista ordenada
+    if (/^\d+\.\s/.test(l)) {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (!inOl) { html += '<ol>'; inOl = true; }
+      html += '<li>' + _inlineMd(l.replace(/^\d+\.\s/,'')) + '</li>';
+      i++; continue;
+    }
+
+    closeLists();
+    html += '<p>' + _inlineMd(l) + '</p>';
+    i++;
+  }
+
+  closeLists(); closeTable(); closeBlockquote();
+  return html;
+}
+
+// Procesar markdown inline: bold, italic, code, links
+function _inlineMd(str) {
+  return (str||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/__(.+?)__/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/_(.+?)_/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2">$1</a>');
+}
+function _escHtml(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _rtfEscape(str) {
+  return (str||'').replace(/\\/g,'\\\\').replace(/\{/g,'\\{').replace(/\}/g,'\\}')
+    .replace(/[^\x00-\x7F]/g, function(c){ return '\\u'+c.charCodeAt(0)+'?'; });
+}
+
+// ── Descargar como PDF (ventana de impresión) ──────────────
+function saveAsPDF(content) {
+  var titleInput = document.getElementById('saveDocTitle');
+  var title = (titleInput && titleInput.value.trim()) || ('Documento_' + new Date().toLocaleDateString('es-CL').replace(/\//g,'-'));
+  var text = (content || '').replace(/<[^>]*>/g, '');
+  var win = window.open('','_blank','width=860,height:960');
+  if (!win) { alert('Permite ventanas emergentes para guardar PDF'); return; }
+  var bodyHtml = _mdToHtml(text);
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + _escHtml(title) + '</title>';
+  html += '<style>';
+  html += 'body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;margin:40px;line-height:1.7;max-width:800px;}';
+  html += 'h1{font-size:22px;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:5px;margin:20px 0 10px;}';
+  html += 'h2{font-size:18px;color:#283593;margin:16px 0 8px;}';
+  html += 'h3{font-size:15px;color:#37474f;margin:12px 0 6px;}';
+  html += 'p{margin:5px 0 8px;}';
+  html += 'ul,ol{margin:4px 0 10px;padding-left:22px;}li{margin:3px 0;}';
+  html += 'table{border-collapse:collapse;width:100%;margin:10px 0;font-size:11.5px;}';
+  html += 'th{background:#1a237e;color:#ffffff;padding:6px 10px;border:1px solid #3949ab;text-align:left;font-weight:bold;-webkit-print-color-adjust:exact;print-color-adjust:exact;}';
+  html += 'td{padding:5px 10px;border:1px solid #c5cae9;vertical-align:top;}';
+  html += 'tr:nth-child(even) td{background:#e8eaf6;-webkit-print-color-adjust:exact;print-color-adjust:exact;}';
+  html += 'tr:nth-child(odd) td{background:#ffffff;}';
+  html += 'code{font-family:monospace;background:#f4f4f4;padding:1px 4px;border-radius:3px;font-size:11px;}';
+  html += 'blockquote{border-left:4px solid #1a237e;margin:8px 0;padding:4px 14px;color:#555;background:#f8f9ff;}';
+  html += 'hr{border:none;border-top:1px solid #ddd;margin:14px 0;}';
+  html += '.doc-title{font-size:24px;font-weight:800;margin-bottom:4px;}';
+  html += '.doc-date{font-size:11px;color:#888;border-bottom:1px solid #ddd;padding-bottom:10px;margin-bottom:20px;}';
+  html += '@media print{body{margin:15mm;}@page{margin:15mm;}}';
+  html += '</style></head><body>';
+  html += '<div class="doc-title">' + _escHtml(title) + '</div>';
+  html += '<div class="doc-date">Generado: ' + new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'}) + ' — LIAX Educativo</div>';
+  html += bodyHtml;
+  html += '</body></html>';
+  win.document.write(html); win.document.close(); win.focus();
+  setTimeout(function(){ win.print(); }, 700);
+  showSaveToast('📄 Abriendo PDF: "' + title + '"');
+}
+
+function saveCurrentResponseAsDoc(content) {
+  const titleInput = document.getElementById('saveDocTitle');
+  const title = titleInput?.value.trim() || ('Documento ' + new Date().toLocaleDateString('es-CL'));
+  var fullContent = window._saveDocFullContent || content;
+
+  // Determinar agente — currentAgent puede ser undefined en agente Generar Recursos
+  var agId     = (currentAgent && currentAgent.id)     || window._lastRecursoAgentId || 'v1';
+  var agNombre = (currentAgent && currentAgent.nombre) || window._lastRecursoAgentNombre || 'Diseñador de Material';
+
+  const docs = AGENT_STORE.getDocs(agId) || [];
+  const existingIdx = docs.findIndex(function(d){ return d.title === title; });
+  const existingId  = existingIdx > -1 ? docs[existingIdx].id : null;
+  const newId = existingId || ('doc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6));
+  const docObj = { title: title, content: fullContent, savedAt: new Date().toISOString(), agentId: agId, agentName: agNombre, id: newId };
+
+  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(agId, title, fullContent, existingId).catch(function(){});
+  if (existingIdx > -1) {
+    docs[existingIdx] = docObj;
+  } else {
+    docs.unshift(docObj);
+  }
+  AGENT_STORE.saveDocs(agId, docs);
+  const bar = document.getElementById('saveDocBar');
+  if (bar) { bar.style.display = 'none'; }
+  showSaveToast('✅ Documento guardado: "' + title + '"');
+}
+
 
 function calShareDocByMail(idx) {
   var docs = AGENT_STORE.getDocs(currentAgent.id);
@@ -12908,107 +13835,56 @@ function deleteDoc(i) {
 const FILE_EMOJI = {pdf:'📄',docx:'📝',doc:'📝',xlsx:'📊',xls:'📊',csv:'📊',pptx:'📑',ppt:'📑',png:'🖼️',jpg:'🖼️',jpeg:'🖼️',gif:'🖼️',webp:'🖼️',txt:'📃'};
 
 function renderFilesPanel() {
-  const files = GLOBAL_FILES.getAll();
-  const agentName = currentAgent ? currentAgent.nombre : 'todos los agentes';
+  if (!currentAgent) return;
+  const files = AGENT_STORE.getFiles(currentAgent.id);
   document.getElementById('mBody').innerHTML = `
     <div class="ap-panel active" id="ap-files">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)">📎 Archivos Globales</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)">📎 Archivos cargados — ${currentAgent.nombre}</div>
         <span style="font-size:10px;color:var(--muted)">${files.length} archivo${files.length!==1?'s':''}</span>
-      </div>
-      <div style="font-size:10px;color:var(--accent2);margin-bottom:12px;background:rgba(0,229,192,.07);border-radius:7px;padding:6px 10px">
-        💡 Disponibles en <strong>todos los agentes</strong> — se guardan aunque recargues la página
       </div>
       ${files.length === 0 ? `
         <div class="empty-panel">
           <div class="empty-panel-icon">📎</div>
           <div class="empty-panel-title">Sin archivos aún</div>
-          <div style="font-size:12px">Adjunta archivos en el chat y quedarán guardados aquí para usar en cualquier agente.<br><br>Usa el botón <strong>"+"</strong> junto al campo de texto para adjuntar.</div>
+          <div style="font-size:12px">Los archivos que adjuntes al chat se registrarán aquí.<br>Usa el botón <strong>"+"</strong> junto al campo de texto para adjuntar archivos.</div>
         </div>` :
-        `<div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap">
-          <label style="cursor:pointer;background:var(--surface2);border:1px solid var(--accent2)44;color:var(--accent2);border-radius:7px;padding:5px 11px;font-size:10px;font-weight:600" title="Subir archivo directamente al panel">
-            📤 Subir archivo
-            <input type="file" multiple style="display:none" onchange="uploadFilesToPanel(this.files)">
-          </label>
+        `<div style="margin-bottom:10px">
           <button class="btn btn-outline" style="font-size:10px;color:var(--accent3);border-color:var(--accent3)33" onclick="clearAllFiles()">🗑️ Limpiar todos</button>
         </div>
-        ${files.map((f) => `
-          <div class="file-card" style="flex-wrap:wrap;gap:6px">
+        ${files.map((f,i) => `
+          <div class="file-card">
             <div class="file-icon">${FILE_EMOJI[f.ext]||'📎'}</div>
             <div style="flex:1;min-width:0">
               <div class="file-name">${f.name}</div>
-              <div class="file-size">${f.ext.toUpperCase()}${f.size ? ' · ' + (f.size > 1024*1024 ? (f.size/1024/1024).toFixed(1)+'MB' : Math.round(f.size/1024)+'KB') : ''} · ${f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL') : '—'}</div>
+              <div class="file-size">${f.ext.toUpperCase()} · ${f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL') : '—'}</div>
             </div>
-            <div style="display:flex;gap:4px;flex-shrink:0">
-              ${f.contentB64 ? `<button class="doc-btn" style="font-size:9px;padding:3px 7px;background:var(--accent2)22;color:var(--accent2);border-color:var(--accent2)44" onclick="useFileInChat('${f.id}')" title="Adjuntar este archivo al chat actual">💬 Usar</button>` : ''}
-              <button class="doc-btn danger" onclick="deleteFile('${f.id}')">✕</button>
-            </div>
+            <button class="doc-btn danger" onclick="deleteFile(${i})">✕</button>
           </div>`).join('')}
         `
       }
-      ${files.length === 0 ? '' : `
-      <div style="margin-top:12px">
-        <label style="cursor:pointer;background:var(--surface2);border:1px dashed var(--border);color:var(--muted);border-radius:7px;padding:8px 14px;font-size:10px;display:flex;align-items:center;gap:6px;justify-content:center">
-          📤 Subir más archivos
-          <input type="file" multiple style="display:none" onchange="uploadFilesToPanel(this.files)">
-        </label>
-      </div>`}
     </div>`;
 }
 
-// ── Subir archivos directamente al panel global ───────────
-async function uploadFilesToPanel(fileList) {
-  if (!fileList || !fileList.length) return;
-  for (const file of fileList) {
-    const ext = file.name.split('.').pop().toLowerCase();
-    const b64 = await new Promise(function(res) {
-      const r = new FileReader();
-      r.onload = function(){ res(r.result.split(',')[1]); };
-      r.readAsDataURL(file);
-    });
-    GLOBAL_FILES.add(file.name, ext, b64, file.size);
-  }
-  renderFilesPanel();
-  showSaveToast('✅ ' + fileList.length + ' archivo' + (fileList.length>1?'s':'') + ' guardado' + (fileList.length>1?'s':'') + ' globalmente');
-}
-
-// ── Usar archivo guardado en el chat actual ───────────────
-function useFileInChat(fileId) {
-  const files = GLOBAL_FILES.getAll();
-  const f = files.find(function(x){ return x.id === fileId; });
-  if (!f || !f.contentB64) { showSaveToast('⚠️ Este archivo no tiene contenido guardado'); return; }
-  // Inyectar en pendingAttachments para que el próximo mensaje lo incluya
-  if (typeof pendingAttachments === 'undefined') { window.pendingAttachments = []; }
-  const mediaTypes = {
-    pdf:'application/pdf', png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg',
-    gif:'image/gif', webp:'image/webp', docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    txt:'text/plain', csv:'text/csv'
-  };
-  pendingAttachments.push({
-    name: f.name,
-    type: mediaTypes[f.ext] || 'application/octet-stream',
-    content: f.contentB64,
-    mediaType: mediaTypes[f.ext] || 'application/octet-stream'
-  });
-  // Mostrar preview en el chat
-  if (typeof renderAttachPreview === 'function') renderAttachPreview();
-  // Volver al panel de chat
-  switchAgentPanel('chat');
-  showSaveToast('📎 "' + f.name + '" listo para enviar en el chat');
-}
-
-function logFileToPanel(name, contentB64, size) {
+function logFileToPanel(name) {
+  if (!currentAgent) return;
   const ext = name.split('.').pop().toLowerCase();
-  GLOBAL_FILES.add(name, ext, contentB64 || null, size || 0);
+  const files = AGENT_STORE.getFiles(currentAgent.id);
+  // Avoid duplicate names
+  if (!files.find(f => f.name === name)) {
+    files.unshift({ name, ext, loadedAt: new Date().toISOString() });
+    AGENT_STORE.saveFiles(currentAgent.id, files);
+  }
 }
-function deleteFile(id) {
-  GLOBAL_FILES.remove(id);
+function deleteFile(i) {
+  const files = AGENT_STORE.getFiles(currentAgent.id);
+  files.splice(i, 1);
+  AGENT_STORE.saveFiles(currentAgent.id, files);
   renderFilesPanel();
 }
 function clearAllFiles() {
-  if (!confirm('¿Eliminar todos los archivos globales?')) return;
-  GLOBAL_FILES.clear();
+  if (!confirm('¿Eliminar el registro de todos los archivos?')) return;
+  AGENT_STORE.saveFiles(currentAgent.id, []);
   renderFilesPanel();
 }
 
@@ -13176,13 +14052,13 @@ sendChat = async function() {
       <span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar documento generado:</span>
       <input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="${_autoTitle2.replace(/"/g,'&quot;')}">
       <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>
-      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#2B5EE8;color:#2B5EE8;display:flex;align-items:center;gap:4px" onclick="saveAsWord(window._saveDocFullContent)" title="Descargar como Word (.docx)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Word</button>
-      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#E53935;color:#E53935;display:flex;align-items:center;gap:4px" onclick="saveAsPDF(window._saveDocFullContent)" title="Descargar como PDF"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> PDF</button>`;
+      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#2B5EE8;color:#2B5EE8;display:flex;align-items:center;gap:4px" onclick="saveAsWord(window._saveDocFullContent)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Word</button>
+      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#E53935;color:#E53935;display:flex;align-items:center;gap:4px" onclick="saveAsPDF(window._saveDocFullContent)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> PDF</button>`;
     area.parentElement.insertBefore(bar, area.nextSibling);
   }, 300);
 };
 
-// ── PATCH handleAttachFiles to log files globally ─────────
+// ── PATCH handleAttachFiles to log files ─────────────────
 const _origHandleAttach = handleAttachFiles;
 handleAttachFiles = async function(files) {
   await _origHandleAttach.apply(this, arguments);
@@ -13197,7 +14073,6 @@ handleAttachFiles = async function(files) {
         });
         GLOBAL_FILES.add(f.name, ext, b64, f.size);
       } catch(e) {
-        // Si no se puede leer, guardar solo metadata
         GLOBAL_FILES.add(f.name, ext, null, f.size);
       }
     }
@@ -34702,7 +35577,7 @@ function ayudaFAQHTML() {
     { q:'¿Mis conversaciones se guardan en algún servidor?', a:'Sí. Las conversaciones se guardan de forma segura en Supabase. Nada queda en el navegador local.' },
     { q:'¿Cómo recupero datos si cambio de computador?', a:'Por ahora usa el botón ⬇️ Backup en el panel de Agentes para exportar tus agentes custom. Próximamente con Supabase podrás acceder desde cualquier dispositivo.' },
     { q:'¿El director puede ver mis conversaciones?', a:'No. El director solo ve estadísticas agregadas (cuántos documentos generó cada docente, qué agentes usa más), no el contenido de las conversaciones.' },
-    { q:'¿Qué modelos de IA usa LIAX?', a:'Por defecto: Gemini 1.5 Flash para texto simple (más barato), Gemini 1.5 Pro para análisis y archivos, Claude Sonnet para tareas críticas (NEE). El router IA elige automáticamente el más eficiente para cada tarea.' },
+    { q:'¿Qué modelos de IA usa LIAX?', a:'Por defecto: Gemini 2.0 Flash para texto simple (más barato), Gemini 2.0 Flash para análisis y archivos, Claude Sonnet para tareas críticas (NEE). El router IA elige automáticamente el más eficiente para cada tarea.' },
     { q:'¿Puedo usar LIAX sin internet?', a:'No. LIAX necesita internet para llamar a las APIs de IA. Sin internet la plataforma carga pero los agentes no pueden responder.' },
     { q:'¿Qué hago si aparece un error de API?', a:'(1) Verifica que tu API key esté bien configurada en ⚙️ Configurar IAs. (2) Usa el botón 🔌 Probar conexión para diagnosticar. (3) Si usas file://, abre con python3 -m http.server 8000 en la carpeta del archivo.' },
   ];
@@ -36532,7 +37407,7 @@ async function orquestar(userMessage, agentContext) {
       plan = {
         tipo_tarea: 'consulta',
         complejidad: 'simple',
-        modelo_sugerido: 'claude-haiku',
+        modelo_sugerido: 'gemini-flash',
         pasos: [],
         usa_contexto: false,
         objetivo_pedagogico: '',
@@ -36549,7 +37424,7 @@ async function orquestar(userMessage, agentContext) {
     console.warn('[Orquestador] Error:', e.message);
     return {
       tipo_tarea: 'consulta', complejidad: 'simple',
-      modelo_sugerido: 'claude-haiku', pasos: [],
+      modelo_sugerido: 'gemini-flash', pasos: [],
       usa_contexto: false, objetivo_pedagogico: '', tokens_estimados: 'bajo'
     };
   }
@@ -36558,12 +37433,12 @@ async function orquestar(userMessage, agentContext) {
 // Map orchestrator model suggestion to LIAX_MODELS id
 function _planToModelId(modelSugerido) {
   var map = {
-    'claude-haiku':  LIAX_MODELS['claude-haiku'].id,
-    'claude-haiku':    LIAX_MODELS['claude-haiku'].id,
+    'gemini-flash':  LIAX_MODELS['gemini-flash'].id,
+    'gemini-pro':    LIAX_MODELS['claude-haiku'].id,
     'claude-haiku':  LIAX_MODELS['claude-haiku'].id,
     'claude-sonnet': LIAX_MODELS['claude-sonnet'].id,
   };
-  return map[modelSugerido] || LIAX_MODELS['claude-haiku'].id;
+  return map[modelSugerido] || LIAX_MODELS['gemini-flash'].id;
 }
 
 
