@@ -1884,7 +1884,7 @@
       <!-- ══ TÍTULO PRINCIPAL ══ -->
       <div style="padding:20px 24px 14px;border-bottom:1px solid var(--border)">
         <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#000;line-height:1.2">
-          Consejero Educativo Liax - Indi
+          CONSEJERO EDUCATIVO LIAX - INDI PERÚ
         </div>
       </div>
 
@@ -7310,7 +7310,9 @@ async function _sendRecursoPrompt(prompt, lid, area) {
     bar.innerHTML =
       '<span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar recurso generado:</span>' +
       '<input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="">' +
-      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>';
+      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>' +
+      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#2B5EE8;color:#2B5EE8;display:flex;align-items:center;gap:4px" onclick="saveAsWord(window._saveDocFullContent)" title="Descargar como Word (.docx)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Word</button>' +
+      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#E53935;color:#E53935;display:flex;align-items:center;gap:4px" onclick="saveAsPDF(window._saveDocFullContent)" title="Descargar como PDF"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> PDF</button>';
     if (area.parentElement) area.parentElement.insertBefore(bar, area.nextSibling);
   } catch(e) {
     document.getElementById(lid).outerHTML = makeBubbleAI('<span style="color:var(--accent3)">' + (e.message||'Error al generar el recurso.') + '</span>');
@@ -11627,6 +11629,65 @@ function saveCurrentResponseAsDoc(content) {
 }
 
 
+// ── Descargar como Word (.doc RTF) ─────────────────────────
+function saveAsWord(content) {
+  var titleInput = document.getElementById('saveDocTitle');
+  var title = (titleInput && titleInput.value.trim()) || ('Documento_' + new Date().toLocaleDateString('es-CL').replace(/\//g,'-'));
+  var text = (content || '').replace(/<[^>]*>/g, '');
+  var rtf = '{\\rtf1\\ansi\\deff0\n{\\fonttbl{\\f0 Arial;}}\n\\f0\\fs24\n';
+  var lines = text.split('\n');
+  lines.forEach(function(line) {
+    var l = line.trim();
+    if (!l) { rtf += '\\par\n'; return; }
+    if (/^###\s/.test(l)) { rtf += '\\pard\\b\\fs26 ' + _rtfEscape(l.replace(/^###\s/,'')) + '\\b0\\fs24\\par\n'; }
+    else if (/^##\s/.test(l)) { rtf += '\\pard\\b\\fs30 ' + _rtfEscape(l.replace(/^##\s/,'')) + '\\b0\\fs24\\par\n'; }
+    else if (/^#\s/.test(l)) { rtf += '\\pard\\b\\fs36 ' + _rtfEscape(l.replace(/^#\s/,'')) + '\\b0\\fs24\\par\n'; }
+    else if (/^\*\*(.+)\*\*$/.test(l)) { rtf += '\\pard\\b ' + _rtfEscape(l.replace(/\*\*/g,'')) + '\\b0\\par\n'; }
+    else { rtf += '\\pard ' + _rtfEscape(l) + '\\par\n'; }
+  });
+  rtf += '}';
+  var blob = new Blob([rtf], {type:'application/msword'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = title + '.doc'; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  showSaveToast('📄 Descargando Word: "' + title + '"');
+}
+function _rtfEscape(str) {
+  return (str||'').replace(/\\/g,'\\\\').replace(/\{/g,'\\{').replace(/\}/g,'\\}')
+    .replace(/[^\x00-\x7F]/g, function(c){ return '\\u'+c.charCodeAt(0)+'?'; });
+}
+
+// ── Descargar como PDF (ventana de impresión) ──────────────
+function saveAsPDF(content) {
+  var titleInput = document.getElementById('saveDocTitle');
+  var title = (titleInput && titleInput.value.trim()) || ('Documento_' + new Date().toLocaleDateString('es-CL').replace(/\//g,'-'));
+  var text = (content || '').replace(/<[^>]*>/g, '');
+  var win = window.open('','_blank','width=800,height=900');
+  if (!win) { alert('Permite ventanas emergentes para guardar PDF'); return; }
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title>';
+  html += '<style>body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;margin:40px;line-height:1.7;}';
+  html += 'h1{font-size:22px;}h2{font-size:18px;margin-top:18px;}h3{font-size:15px;margin-top:12px;}p{margin:6px 0;}';
+  html += '.doc-title{font-size:24px;font-weight:800;margin-bottom:4px;}.doc-date{font-size:11px;color:#888;margin-bottom:24px;border-bottom:1px solid #ddd;padding-bottom:10px;}';
+  html += '@media print{body{margin:20px;}}</style></head><body>';
+  html += '<div class="doc-title">' + title + '</div>';
+  html += '<div class="doc-date">Generado: ' + new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'}) + ' — LIAX Educativo</div>';
+  text.split('\n').forEach(function(line){
+    var l = line.trim();
+    if (!l) { html += '<br>'; return; }
+    if (/^###\s/.test(l)) html += '<h3>' + l.replace(/^###\s/,'') + '</h3>';
+    else if (/^##\s/.test(l)) html += '<h2>' + l.replace(/^##\s/,'') + '</h2>';
+    else if (/^#\s/.test(l)) html += '<h1>' + l.replace(/^#\s/,'') + '</h1>';
+    else if (/^\*\*(.+)\*\*$/.test(l)) html += '<p><strong>' + l.replace(/\*\*/g,'') + '</strong></p>';
+    else if (/^[-*•]\s/.test(l)) html += '<p style="margin-left:16px">• ' + l.replace(/^[-*•]\s/,'') + '</p>';
+    else html += '<p>' + l + '</p>';
+  });
+  html += '</body></html>';
+  win.document.write(html); win.document.close(); win.focus();
+  setTimeout(function(){ win.print(); }, 600);
+  showSaveToast('📄 Abriendo PDF: "' + title + '"');
+}
+
 function calShareDocByMail(idx) {
   var docs = AGENT_STORE.getDocs(currentAgent.id);
   var d    = docs[idx];
@@ -12690,7 +12751,9 @@ sendChat = async function() {
     bar.innerHTML = `
       <span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar documento generado:</span>
       <input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="">
-      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>`;
+      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>
+      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#2B5EE8;color:#2B5EE8;display:flex;align-items:center;gap:4px" onclick="saveAsWord(window._saveDocFullContent)" title="Descargar como Word (.docx)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#2B5EE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Word</button>
+      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#E53935;color:#E53935;display:flex;align-items:center;gap:4px" onclick="saveAsPDF(window._saveDocFullContent)" title="Descargar como PDF"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="#E53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> PDF</button>`;
     area.parentElement.insertBefore(bar, area.nextSibling);
   }, 300);
 };
