@@ -14,7 +14,7 @@ const handler = async (req, res) => {
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) { res.status(500).json({ error: 'GEMINI_API_KEY not configured' }); return; }
 
-    const model = body.model || 'gemini-2.5-flash';
+    const model = body.model || 'gemini-2.0-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
     // Convert Anthropic-style to Gemini format
