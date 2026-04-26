@@ -7243,15 +7243,31 @@ async function _sendRecursoPrompt(prompt, lid, area) {
       system += userCtx;
     }
 
-    var data = await callClaude({
-      model:      LIAX_MODELS['gemini-pro'].id,
-      max_tokens: 16000,
-      system:     system,
-      messages:   [{ role: 'user', content: prompt }],
-    });
-
-    var reply = data.content && data.content.find(function(c){ return c.type==='text'; });
-    reply = reply ? reply.text : 'No pude generar el recurso. Intenta nuevamente.';
+    // Intentar con Gemini primero (más barato), fallback a Claude Haiku
+    var reply;
+    try {
+      var geminiData = await callGemini({
+        model:   'gemini-1.5-pro',
+        system:  system,
+        messages:[{ role: 'user', content: prompt }],
+        max_tokens: 16000,
+      });
+      reply = geminiData.content && geminiData.content.find(function(c){ return c.type==='text'; });
+      reply = reply ? reply.text : null;
+    } catch(geminiErr) {
+      console.warn('[LIAX] Gemini falló, usando Claude Haiku:', geminiErr.message);
+      reply = null;
+    }
+    if (!reply) {
+      var claudeData = await callClaude({
+        model:      'claude-haiku-4-5-20251001',
+        max_tokens: 8000,
+        system:     system,
+        messages:   [{ role: 'user', content: prompt }],
+      });
+      reply = claudeData.content && claudeData.content.find(function(c){ return c.type==='text'; });
+      reply = reply ? reply.text : 'No pude generar el recurso. Intenta nuevamente.';
+    }
 
     chatHistory.push({ role: 'assistant', content: reply });
 
@@ -8286,6 +8302,8 @@ function renderApiKeyStatus() {
 // Usa el header oficial "dangerous-direct-browser-access" de Anthropic
 // ── GEMINI KEY HELPERS ───────────────────────────────────
 function getGeminiKey() {
+  // Si hay key inyectada desde Vercel env, usarla
+  if (window._vercelGeminiKey) return window._vercelGeminiKey;
   return (window._geminiKey||'') || window._cachedGeminiKey || '';
 }
 function setGeminiKey(key) {
