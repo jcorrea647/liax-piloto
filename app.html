@@ -8547,8 +8547,8 @@ function classifyComplexity(messages, system) {
   }
 
   // Siempre usar Claude vía proxy Vercel — no depender de keys locales
-  // El proxy tiene todas las keys configuradas
   return { provider: 'claude', task, modelKey: 'claude-haiku', modelId: LIAX_MODELS['claude-haiku'].id };
+}
 
 
 // ── Router config UI ──────────────────────────────────────────
