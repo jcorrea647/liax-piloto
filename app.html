@@ -7516,7 +7516,7 @@ function formatMsg(text) {
     var pid = '__SVG_' + (svgIdx++) + '__';
     // Sanitize: only allow safe SVG tags, strip scripts
     var clean = svgCode.trim()
-      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<script[\s\S]*?<\/scr'+'ipt>/gi, '')
       .replace(/on\w+="[^"]*"/gi, '')
       .replace(/javascript:/gi, '');
     // Ensure viewBox and width are set
@@ -7537,7 +7537,7 @@ function formatMsg(text) {
   });
 
   // ── STEP 2: Escape HTML for normal text ──────────────────
-  // Pre-marca blockquotes ANTES del escape para que > no se convierta en &gt;
+  // Pre-marca blockquotes ANTES del escape para que > no quede como &gt;
   var rawLines = text.split('\n');
   var lines = rawLines.map(function(rl) {
     if (/^> /.test(rl)) { return '\x00BQ\x00' + rl.slice(2); }
@@ -7563,9 +7563,7 @@ function formatMsg(text) {
       var fuId = 'ifu_' + uid;
       out.push(
         '<div class="reply-field-wrap">' +
-          '<textarea id="' + uid + '" class="reply-field" rows="2" placeholder="' + ph + '" ' +
-            '></textarea>' +
-
+          '<textarea id="' + uid + '" class="reply-field" rows="2" placeholder="' + ph + '"></textarea>' +
           (needsFile ? buildInlineFileUploader(fuId, 'archivo') : '') +
         '</div>'
       );
@@ -23583,7 +23581,7 @@ var SEC = {
       .trim()
       .slice(0, maxLen || 500)
       .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // control chars
-      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/scr'+'ipt>/gi, '')
       .replace(/javascript:/gi, '')
       .replace(/on\w+\s*=/gi, '');
   },
