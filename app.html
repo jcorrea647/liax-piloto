@@ -14188,7 +14188,7 @@ function renderMisDocs() {
   var countEl = document.getElementById('misDocs-count');
   if (!list) return;
 
-  // Recopilar todos los docs con su storeKey garantizada
+  // Recopilar todos los docs con storeKey garantizada
   var allDocs = [];
   Object.keys(AGENT_STORE._docs || {}).forEach(function(storeKey) {
     (AGENT_STORE._docs[storeKey] || []).forEach(function(d) {
@@ -14198,7 +14198,6 @@ function renderMisDocs() {
         title:     d.title     || 'Sin título',
         content:   d.content   || '',
         agentName: d.agentName || 'Sin agente',
-        agentId:   d.agentId   || storeKey,
         savedAt:   d.savedAt   || '',
       });
     });
@@ -14226,9 +14225,13 @@ function renderMisDocs() {
     return;
   }
 
+  // Guardar docs en array global para acceso por índice desde onclick
+  window._misDocsArr = filtered;
+
   // Agrupar por agente
   var groups = {};
-  filtered.forEach(function(d) {
+  filtered.forEach(function(d, idx) {
+    d._idx = idx; // guardar índice global
     var key = d.agentName;
     if (!groups[key]) groups[key] = [];
     groups[key].push(d);
@@ -14239,9 +14242,8 @@ function renderMisDocs() {
     var docsHtml = docs.map(function(d) {
       var fecha   = d.savedAt ? new Date(d.savedAt).toLocaleDateString('es-CL', {day:'2-digit',month:'short',year:'numeric'}) : '';
       var preview = d.content.replace(/<[^>]*>/g,'').substring(0, 120);
-      // Usar storeKey y title como claves — siempre definidas
-      var sk = JSON.stringify(d.storeKey);
-      var tl = JSON.stringify(d.title);
+      // Usar índice numérico — sin strings con comillas en onclick
+      var i = d._idx;
       return (
         '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px">' +
           '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
@@ -14250,12 +14252,12 @@ function renderMisDocs() {
           '</div>' +
           '<div style="font-size:12px;color:var(--text2);line-height:1.5">' + preview + (preview.length >= 120 ? '…' : '') + '</div>' +
           '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">' +
-            '<button onclick="misDocsVer(' + sk + ',' + tl + ')" style="background:var(--accent2);color:#000;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer">👁️ Ver</button>' +
-            '<button class="doc-btn" onclick="misDocsPDF(' + sk + ',' + tl + ')">📄 PDF</button>' +
-            '<button class="doc-btn" onclick="misDocsCalendarizar(' + tl + ')">📅 Calendarizar</button>' +
-            '<button class="doc-btn" onclick="misDocsCompartir(' + sk + ',' + tl + ')">📤 Compartir</button>' +
-            '<button class="doc-btn" onclick="misDocsEditar(' + sk + ',' + tl + ')">✏️ Editar</button>' +
-            '<button class="doc-btn danger" onclick="misDocsEliminar(' + sk + ',' + tl + ')">🗑️ Eliminar</button>' +
+            '<button onclick="misDocsVer(' + i + ')" style="background:var(--accent2);color:#000;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer">👁️ Ver</button>' +
+            '<button class="doc-btn" onclick="misDocsPDF(' + i + ')">📄 PDF</button>' +
+            '<button class="doc-btn" onclick="misDocsCalendarizar(' + i + ')">📅 Calendarizar</button>' +
+            '<button class="doc-btn" onclick="misDocsCompartir(' + i + ')">📤 Compartir</button>' +
+            '<button class="doc-btn" onclick="misDocsEditar(' + i + ')">✏️ Editar</button>' +
+            '<button class="doc-btn danger" onclick="misDocsEliminar(' + i + ')">🗑️ Eliminar</button>' +
           '</div>' +
         '</div>'
       );
@@ -14298,94 +14300,91 @@ function editDocNameByIndex(i) {
   renderDocsPanel();
 }
 
-// ── HELPERS Ver Mis Docs ─────────────────────────────────────
-function _misDocsFind(storeKey, title) {
-  // Buscar en el storeKey dado
-  var docs = AGENT_STORE._docs[storeKey] || [];
-  var found = docs.find(function(d){ return d.title === title; });
-  if (found) return found;
-  // Fallback: buscar en todos los agentes
-  var keys = Object.keys(AGENT_STORE._docs || {});
-  for (var i = 0; i < keys.length; i++) {
-    found = (AGENT_STORE._docs[keys[i]] || []).find(function(d){ return d.title === title; });
-    if (found) return found;
-  }
-  return null;
+// ── HELPERS Ver Mis Docs — usan índice en window._misDocsArr ──
+function _misDocsGet(i) {
+  return (window._misDocsArr && window._misDocsArr[i]) || null;
 }
 
-function misDocsVer(storeKey, title) {
-  var d = _misDocsFind(storeKey, title);
+function misDocsVer(i) {
+  var d = _misDocsGet(i);
   if (!d) { showSaveToast('⚠️ Documento no encontrado'); return; }
   _renderDocViewer({
     title:     d.title,
-    meta:      (d.agentName || storeKey) + ' · ' + (d.savedAt ? new Date(d.savedAt).toLocaleString('es-CL') : ''),
+    meta:      d.agentName + ' · ' + (d.savedAt ? new Date(d.savedAt).toLocaleString('es-CL') : ''),
     icon:      '📄',
     content:   d.content || '',
-    agentName: d.agentName || storeKey,
+    agentName: d.agentName,
     savedAt:   d.savedAt,
   });
 }
 
-function misDocsPDF(storeKey, title) {
-  var d = _misDocsFind(storeKey, title);
+function misDocsPDF(i) {
+  var d = _misDocsGet(i);
   if (!d) { showSaveToast('⚠️ Documento no encontrado'); return; }
   _renderDocViewer({
     title:     d.title,
-    meta:      (d.agentName || storeKey) + ' · ' + (d.savedAt ? new Date(d.savedAt).toLocaleString('es-CL') : ''),
+    meta:      d.agentName + ' · ' + (d.savedAt ? new Date(d.savedAt).toLocaleString('es-CL') : ''),
     icon:      '📄',
     content:   d.content || '',
-    agentName: d.agentName || storeKey,
+    agentName: d.agentName,
     savedAt:   d.savedAt,
   });
   showSaveToast('⏳ Preparando PDF...');
-  var _tries = 0;
-  var _wait = function() {
+  var tries = 0;
+  var wait = function() {
     var dvBody = document.getElementById('dv-body');
     var busy = dvBody && (dvBody.querySelectorAll('[data-generating]').length > 0 || dvBody.querySelectorAll('[data-genprompt]').length > 0);
-    if (busy && _tries++ < 60) { setTimeout(_wait, 500); }
+    if (busy && tries++ < 60) { setTimeout(wait, 500); }
     else { downloadDoc(); }
   };
-  setTimeout(_wait, 700);
+  setTimeout(wait, 700);
 }
 
-function misDocsCalendarizar(title) {
-  openCalEventModal('', '', title, 'documento');
+function misDocsCalendarizar(i) {
+  var d = _misDocsGet(i);
+  if (!d) return;
+  openCalEventModal('', '', d.title, 'documento');
 }
 
-function misDocsCompartir(storeKey, title) {
-  var d = _misDocsFind(storeKey, title);
+function misDocsCompartir(i) {
+  var d = _misDocsGet(i);
   if (!d) { showSaveToast('⚠️ Documento no encontrado'); return; }
   var subj = encodeURIComponent('[LIAX] ' + d.title);
   var body = encodeURIComponent('Hola,\n\nTe comparto este documento generado en LIAX:\n\n' + d.content.replace(/<[^>]*>/g,'').slice(0,500) + '\n\n— Enviado desde LIAX');
   window.open('mailto:?subject=' + subj + '&body=' + body);
 }
 
-function misDocsEditar(storeKey, title) {
-  var nuevo = prompt('Nuevo nombre del documento:', title);
+function misDocsEditar(i) {
+  var d = _misDocsGet(i);
+  if (!d) { showSaveToast('⚠️ Documento no encontrado'); return; }
+  var nuevo = prompt('Nuevo nombre del documento:', d.title);
   if (!nuevo || !nuevo.trim()) return;
   nuevo = nuevo.trim();
-  var docs = AGENT_STORE._docs[storeKey] || [];
-  var idx = docs.findIndex(function(d){ return d.title === title; });
-  if (idx === -1) { showSaveToast('⚠️ Documento no encontrado'); return; }
+  var docs = AGENT_STORE._docs[d.storeKey] || [];
+  var idx = docs.findIndex(function(x){ return x.title === d.title; });
+  if (idx === -1) { showSaveToast('⚠️ No encontrado'); return; }
   docs[idx].title = nuevo;
-  AGENT_STORE.saveDocs(storeKey, docs);
-  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(storeKey, nuevo, docs[idx].content, docs[idx].id||null).catch(function(){});
+  AGENT_STORE.saveDocs(d.storeKey, docs);
+  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(d.storeKey, nuevo, docs[idx].content, docs[idx].id||null).catch(function(){});
   showSaveToast('✅ Nombre actualizado');
   renderMisDocs();
 }
 
-function misDocsEliminar(storeKey, title) {
-  if (!confirm('¿Eliminar "' + title + '"?')) return;
-  var docs = AGENT_STORE._docs[storeKey] || [];
-  var idx = docs.findIndex(function(d){ return d.title === title; });
-  if (idx === -1) { showSaveToast('⚠️ No encontrado'); return; }
+function misDocsEliminar(i) {
+  var d = _misDocsGet(i);
+  if (!d) { showSaveToast('⚠️ No encontrado'); return; }
+  if (!confirm('¿Eliminar "' + d.title + '"?')) return;
+  var docs = AGENT_STORE._docs[d.storeKey] || [];
+  var idx = docs.findIndex(function(x){ return x.title === d.title; });
+  if (idx === -1) return;
   var docId = docs[idx].id || null;
   docs.splice(idx, 1);
-  AGENT_STORE.saveDocs(storeKey, docs);
+  AGENT_STORE.saveDocs(d.storeKey, docs);
   if (docId && typeof _supa !== 'undefined') _supa.from('documentos_chat').delete().eq('id', docId).then(function(){});
   showSaveToast('🗑️ Documento eliminado');
   renderMisDocs();
 }
+
 
 // ── loadFromStorage: no-op — datos vienen de Supabase en _supaLoadPerfil ──
 function loadFromStorage() {
