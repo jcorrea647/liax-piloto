@@ -14,10 +14,9 @@ const handler = async (req, res) => {
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) { res.status(500).json({ error: 'GEMINI_API_KEY not configured' }); return; }
 
-    const model = body.model || 'gemini-2.0-flash';
+    const model = (body.model && body.model.includes('gemini')) ? body.model : 'gemini-2.0-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
-    // Convert Anthropic-style to Gemini format
     const systemText = body.system || '';
     const contents = (body.messages || []).map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
@@ -35,8 +34,6 @@ const handler = async (req, res) => {
       });
       const data = await response.json();
       if (!response.ok) { res.status(response.status).json(data); return; }
-
-      // Convert Gemini response to Anthropic format
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
       res.status(200).json({
         content: [{ type: 'text', text }],
@@ -57,6 +54,11 @@ const handler = async (req, res) => {
     if (body._task) delete body._task;
     if (body._provider) delete body._provider;
 
+    // Asegurar modelo Claude válido — nunca pasar modelo Gemini a Anthropic
+    if (!body.model || body.model.includes('gemini')) {
+      body.model = 'claude-haiku-4-5-20251001';
+    }
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -72,4 +74,5 @@ const handler = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 module.exports = handler;
