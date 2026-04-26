@@ -7732,10 +7732,17 @@ async function sendChat(){
     }
   });
 
-  if(!msg && !pendingAttachments.length && !inlineAnswers.length) return;
+  // ── Recolectar respuestas de los workspaces (reply-field) ──
+  var replyFieldParts = [];
+  document.querySelectorAll('.reply-field').forEach(function(el) {
+    var val = el.value.trim();
+    if (val) replyFieldParts.push(val);
+  });
+
+  if(!msg && !pendingAttachments.length && !inlineAnswers.length && !replyFieldParts.length) return;
   inp.value='';
 
-  // Construir contenido combinado: respuestas inline + mensaje libre
+  // Construir contenido combinado: respuestas inline + workspaces + mensaje libre
   var combinedParts = [];
   if (inlineAnswers.length) {
     inlineAnswers.forEach(function(ia) {
@@ -7743,6 +7750,11 @@ async function sendChat(){
     });
     // Limpiar los inputs inline tras enviar
     document.querySelectorAll('.q-inline-answer').forEach(function(el){ el.value=''; });
+  }
+  if (replyFieldParts.length) {
+    replyFieldParts.forEach(function(rp) { combinedParts.push(rp); });
+    // Limpiar workspaces tras enviar
+    document.querySelectorAll('.reply-field').forEach(function(el){ el.value=''; });
   }
   if (msg) combinedParts.push(msg);
   var finalMsg = combinedParts.join('\n\n');
