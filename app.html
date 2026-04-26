@@ -1884,7 +1884,7 @@
       <!-- ══ TÍTULO PRINCIPAL ══ -->
       <div style="padding:20px 24px 14px;border-bottom:1px solid var(--border)">
         <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#000;line-height:1.2">
-          CONSEJERO EDUCATIVO LIAX - INDI PERÚ
+          Consejero Educativo Liax - Indi
         </div>
       </div>
 
@@ -7307,13 +7307,10 @@ async function _sendRecursoPrompt(prompt, lid, area) {
     var bar = document.createElement('div');
     bar.id = 'saveDocBar';
     bar.className = 'save-doc-bar';
-    var _t1 = _extractDocTitle(reply);
     bar.innerHTML =
       '<span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar recurso generado:</span>' +
-      '<input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="' + _t1.replace(/"/g,'&quot;') + '">' +
-      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>' +
-      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#2B5EE8;color:#2B5EE8" onclick="saveAsWord(window._saveDocFullContent)">📄 Word</button>' +
-      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#E53935;color:#E53935" onclick="saveAsPDF(window._saveDocFullContent)">📄 PDF</button>';
+      '<input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="">' +
+      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>';
     if (area.parentElement) area.parentElement.insertBefore(bar, area.nextSibling);
   } catch(e) {
     document.getElementById(lid).outerHTML = makeBubbleAI('<span style="color:var(--accent3)">' + (e.message||'Error al generar el recurso.') + '</span>');
@@ -8030,14 +8027,14 @@ async function sendChat(){
     _selectedTokens = 8000;
   } else if (_isNEE) {
     // NEE — Gemini Pro (análisis pedagógico complejo)
-    _selectedModel  = LIAX_MODELS['claude-haiku'].id;
+    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
     _selectedTokens = 16000;
   } else if (_isInforme || _isDocumento) {
-    _selectedModel  = LIAX_MODELS['claude-haiku'].id;
+    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
     _selectedTokens = 16000;
   } else {
     // Todo lo demás — Gemini Pro para consistencia de instrucciones
-    _selectedModel  = LIAX_MODELS['claude-haiku'].id;
+    _selectedModel  = LIAX_MODELS['gemini-pro'].id;
     _selectedTokens = 4000;
   }
 
@@ -8370,8 +8367,8 @@ const LIAX_MODELS = {
   'claude-sonnet': { id:'claude-sonnet-4-6',            provider:'claude', label:'Claude Sonnet 4.6',  cost:3,  icon:'🟣', color:'#8b5cf6', desc:'Mejor para tareas complejas, análisis profundo, archivos' },
   'claude-haiku':  { id:'claude-haiku-4-5-20251001',    provider:'claude', label:'Claude Haiku 4.5',   cost:1,  icon:'🟣', color:'#a78bfa', desc:'Rápido y económico para texto simple' },
   // Google
-  'gemini-flash':  { id:'gemini-2.0-flash',             provider:'gemini', label:'Gemini 2.0 Flash',   cost:1,  icon:'🔵', color:'#4285f4', desc:'Muy barato, rápido, excelente para texto y conversación' },
-  'gemini-pro':    { id:'gemini-2.0-flash',               provider:'gemini', label:'Gemini 2.0 Flash',     cost:2,  icon:'🔵', color:'#34a853', desc:'2M tokens contexto, ideal para Excel/tablas/análisis — 40x más barato que Sonnet' },
+  'gemini-flash':  { id:'gemini-2.0-flash',             provider:'gemini', label:'Gemini 1.5 Flash',   cost:1,  icon:'🔵', color:'#4285f4', desc:'Muy barato, rápido, excelente para texto y conversación' },
+  'gemini-pro':    { id:'gemini-2.0-flash',               provider:'gemini', label:'Gemini 1.5 Pro',     cost:2,  icon:'🔵', color:'#34a853', desc:'2M tokens contexto, ideal para Excel/tablas/análisis — 40x más barato que Sonnet' },
   // OpenAI
   'gpt4o-mini':    { id:'gpt-4o-mini',                  provider:'openai', label:'GPT-4o mini',        cost:1,  icon:'🟢', color:'#10a37f', desc:'Económico, rápido para texto y resúmenes' },
   'gpt4o':         { id:'gpt-4o',                       provider:'openai', label:'GPT-4o',             cost:3,  icon:'🟢', color:'#0ea47a', desc:'Poderoso para análisis, código y razonamiento' },
@@ -8382,16 +8379,16 @@ const LIAX_MODELS = {
 // ── Defaults por tipo de tarea (optimizado costo/calidad) ─────
 // Lógica: Gemini Flash para texto → Sonnet solo si es complejo
 const ROUTER_DEFAULTS = {
-  simple:        'claude-haiku',    // siempre Pro — Flash ignora instrucciones con más frecuencia
-  conversacion:  'claude-haiku',    // Pro para mantener fidelidad al rol en todo momento
-  analisis:      'claude-haiku',    // análisis datos, diagnóstico → Gemini Pro (gran contexto)
-  creacion:      'claude-haiku',    // planificaciones, rúbricas → balance calidad/precio
+  simple:        'gemini-pro',    // siempre Pro — Flash ignora instrucciones con más frecuencia
+  conversacion:  'gemini-pro',    // Pro para mantener fidelidad al rol en todo momento
+  analisis:      'gemini-pro',    // análisis datos, diagnóstico → Gemini Pro (gran contexto)
+  creacion:      'gemini-pro',    // planificaciones, rúbricas → balance calidad/precio
   nee:           'claude-sonnet', // NEE, DUA, inclusión → mejor modelo (crítico)
-  socioemocional:'claude-haiku',    // convivencia, clima → balance
-  liderazgo:     'claude-haiku',    // gestión directiva → balance
-  recursos:      'claude-haiku',    // consultas con contexto → Pro para consistencia
+  socioemocional:'gemini-pro',    // convivencia, clima → balance
+  liderazgo:     'gemini-pro',    // gestión directiva → balance
+  recursos:      'gemini-pro',    // consultas con contexto → Pro para consistencia
   archivos:      'claude-haiku', // con Excel/PDF → Claude Haiku temperatura 0 (consistencia numérica)
-  prep:          'claude-haiku',    // prepárame el día/semana → Gemini Pro (contexto largo)
+  prep:          'gemini-pro',    // prepárame el día/semana → Gemini Pro (contexto largo)
 };
 
 const TASK_LABELS = {
@@ -8411,8 +8408,8 @@ const TASK_LABELS = {
 const PROVIDER_META = {
   'claude-sonnet':{ icon:'🟣', label:'Claude Sonnet 4.6', color:'#8b5cf6', cost:'$$$' },
   'claude-haiku': { icon:'🟣', label:'Claude Haiku 4.5',  color:'#a78bfa', cost:'$'   },
-  'gemini-flash': { icon:'🔵', label:'Gemini 2.0 Flash',  color:'#4285f4', cost:'$'   },
-  'gemini-pro':   { icon:'🔵', label:'Gemini 2.0 Flash',    color:'#34a853', cost:'$$'  },
+  'gemini-flash': { icon:'🔵', label:'Gemini 1.5 Flash',  color:'#4285f4', cost:'$'   },
+  'gemini-pro':   { icon:'🔵', label:'Gemini 1.5 Pro',    color:'#34a853', cost:'$$'  },
   'gpt4o-mini':   { icon:'🟢', label:'GPT-4o mini',       color:'#10a37f', cost:'$'   },
   'gpt4o':        { icon:'🟢', label:'GPT-4o',            color:'#0ea47a', cost:'$$$' },
   // Legacy keys
@@ -8699,7 +8696,7 @@ async function callGemini(payload) {
             }
           });
         } else if (block.type === 'document') {
-          // PDF — Gemini 2.0 Flash supports PDFs natively
+          // PDF — Gemini 1.5 Pro supports PDFs natively
           if (geminiModel.includes('1.5-pro') || geminiModel.includes('1.5-flash')) {
             parts.push({
               inlineData: {
@@ -11505,37 +11502,14 @@ buildDashboard=function(){
 
 // ── AGENT PANELS: DOCS / FILES / HISTORY ─────────────────
 // Storage: in-memory only — data comes from Supabase on login
-// ── SISTEMA DE ARCHIVOS GLOBAL PERSISTENTE ────────────────
-const GLOBAL_FILES = {
-  _key: 'liax_global_files',
-  getAll: function() {
-    try { return JSON.parse(localStorage.getItem(GLOBAL_FILES._key) || '[]'); }
-    catch(e) { return []; }
-  },
-  save: function(files) {
-    try { localStorage.setItem(GLOBAL_FILES._key, JSON.stringify((files||[]).slice(0,50))); }
-    catch(e) {}
-  },
-  add: function(name, ext, contentB64, size) {
-    var files = GLOBAL_FILES.getAll();
-    var existing = files.findIndex(function(f){ return f.name === name; });
-    var entry = { id:'gf_'+Date.now()+'_'+Math.random().toString(36).slice(2,5), name:name, ext:(ext||'').toLowerCase(), size:size||0, contentB64:contentB64||null, loadedAt:new Date().toISOString() };
-    if (existing > -1) { files[existing] = entry; } else { files.unshift(entry); }
-    GLOBAL_FILES.save(files); return entry;
-  },
-  remove: function(id) { GLOBAL_FILES.save(GLOBAL_FILES.getAll().filter(function(f){ return f.id !== id; })); },
-  clear: function() { localStorage.removeItem(GLOBAL_FILES._key); }
-};
-
-
 const AGENT_STORE = {
   _docs:  {},
   _files: {},
   _hist:  {},
   getDocs:     function(agentId) { return AGENT_STORE._docs[agentId]  || []; },
   saveDocs:    function(agentId, docs)  { AGENT_STORE._docs[agentId]  = docs  || []; },
-  getFiles:    function(agentId) { return GLOBAL_FILES.getAll(); },
-  saveFiles:   function(agentId, files) { /* global */ },
+  getFiles:    function(agentId) { return AGENT_STORE._files[agentId] || []; },
+  saveFiles:   function(agentId, files) { AGENT_STORE._files[agentId] = files || []; },
   getHistory:  function(agentId) { return AGENT_STORE._hist[agentId]  || []; },
   saveHistory: function(agentId, hist)  { AGENT_STORE._hist[agentId]  = hist  || []; },
 };
@@ -11624,112 +11598,6 @@ function renderDocsPanel() {
       }
     </div>`;
 }
-
-// ── Extraer título del documento automáticamente ──────────
-function _extractDocTitle(content) {
-  if (!content) return '';
-  var lines = (content||'').split('\n');
-  for (var i=0; i<Math.min(lines.length,15); i++) {
-    var l = lines[i].trim();
-    if (!l) continue;
-    var h1 = l.match(/^#\s+(.+)/);
-    if (h1) return h1[1].replace(/\*\*/g,'').trim().slice(0,80);
-    var h2 = l.match(/^##\s+(.+)/);
-    if (h2) return h2[1].replace(/\*\*/g,'').trim().slice(0,80);
-    if (l.length>=10 && l===l.toUpperCase() && !/^[|*\-\d]/.test(l))
-      return l.replace(/[*_`#]/g,'').trim().slice(0,80);
-    var bold = l.match(/^\*\*(.{8,})\*\*$/);
-    if (bold) return bold[1].trim().slice(0,80);
-  }
-  return 'Documento '+new Date().toLocaleDateString('es-CL');
-}
-
-// ── Guardar como Word ──────────────────────────────────────
-function saveAsWord(content) {
-  var titleInput = document.getElementById('saveDocTitle');
-  var title = (titleInput&&titleInput.value.trim()) || _extractDocTitle(content) || 'Documento';
-  var text = (content||'').replace(/<[^>]*>/g,'');
-  var html = _mdToHtmlWord(text);
-  var wordHtml = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><meta name=ProgId content=Word.Document><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]--><style>@page{margin:1.5cm}body{font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;line-height:1.3}p{margin:1pt 0 2pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #aaa;padding:2pt 6pt;font-size:9pt}th{background-color:#1a237e;color:#fff;font-weight:bold}</style></head><body>'
-    + '<p style="font-family:Arial,sans-serif;font-size:15pt;font-weight:bold;border-bottom:1.5px solid #1a237e;padding-bottom:2pt;margin-bottom:1pt">' + _escHtml(title) + '</p>'
-    + '<p style="font-family:Arial,sans-serif;font-size:8pt;color:#888;border-bottom:1px solid #ccc;padding-bottom:3pt;margin-bottom:6pt">Generado: ' + new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'}) + ' &mdash; LIAX Educativo</p>'
-    + html + '</body></html>';
-  var blob = new Blob(['\ufeff'+wordHtml], {type:'application/msword;charset=utf-8'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href=url; a.download=title+'.doc'; a.click();
-  setTimeout(function(){URL.revokeObjectURL(url);},3000);
-  showSaveToast('📄 Descargando Word: "'+title+'"');
-}
-
-// ── Guardar como PDF ───────────────────────────────────────
-function saveAsPDF(content) {
-  var titleInput = document.getElementById('saveDocTitle');
-  var title = (titleInput&&titleInput.value.trim()) || _extractDocTitle(content) || 'Documento';
-  var text = (content||'').replace(/<[^>]*>/g,'');
-  var win = window.open('','_blank','width=860,height=960');
-  if (!win) { alert('Permite ventanas emergentes para guardar PDF'); return; }
-  var bodyHtml = _mdToHtml(text);
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+_escHtml(title)+'</title><style>body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;margin:40px;line-height:1.7;max-width:800px}h1{font-size:22px;color:#1a237e;border-bottom:2px solid #1a237e;padding-bottom:5px;margin:20px 0 10px}h2{font-size:18px;color:#283593;margin:16px 0 8px}h3{font-size:15px;color:#37474f;margin:12px 0 6px}p{margin:5px 0 8px}ul,ol{margin:4px 0 10px;padding-left:22px}li{margin:3px 0}table{border-collapse:collapse;width:100%;margin:12px 0;font-size:12px}th{background:#1a237e;color:#fff;padding:6px 10px;border:1px solid #999;text-align:left;font-weight:bold;-webkit-print-color-adjust:exact;print-color-adjust:exact}td{padding:5px 10px;border:1px solid #c5cae9;vertical-align:top}tr:nth-child(even) td{background:#e8eaf6;-webkit-print-color-adjust:exact;print-color-adjust:exact}code{font-family:monospace;background:#f4f4f4;padding:1px 4px;border-radius:3px;font-size:11px}blockquote{border-left:4px solid #1a237e;margin:8px 0;padding:4pt 14px;color:#555;background:#f8f9ff}.doc-title{font-size:24px;font-weight:800;margin-bottom:4px}.doc-date{font-size:11px;color:#888;border-bottom:1px solid #ddd;padding-bottom:10px;margin-bottom:20px}@media print{body{margin:15mm}}</style></head><body>'
-    + '<div class="doc-title">'+_escHtml(title)+'</div>'
-    + '<div class="doc-date">Generado: '+new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'})+' &mdash; LIAX Educativo</div>'
-    + bodyHtml + '</body></html>';
-  win.document.write(html); win.document.close(); win.focus();
-  setTimeout(function(){win.print();},700);
-  showSaveToast('📄 Abriendo PDF: "'+title+'"');
-}
-
-function _escHtml(str){return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-function _mdToHtml(text) {
-  var lines=text.split('\n'),html='',i=0,inUl=false,inOl=false,inTable=false;
-  function closeLists(){if(inUl){html+='</ul>';inUl=false;}if(inOl){html+='</ol>';inOl=false;}}
-  function closeTable(){if(inTable){html+='</tbody></table>';inTable=false;}}
-  while(i<lines.length){
-    var l=lines[i].trim();
-    if(/^\|.+\|/.test(l)){
-      if(!inTable){closeLists();html+='<table><thead><tr>';l.split('|').filter(function(c,x,a){return x>0&&x<a.length-1;}).forEach(function(h){html+='<th>'+_inlineMd(h.trim())+'</th>';});html+='</tr></thead><tbody>';inTable=true;i++;if(i<lines.length&&/^\|[\s\-:|]+\|$/.test(lines[i].trim()))i++;continue;}
-      else{html+='<tr>';l.split('|').filter(function(c,x,a){return x>0&&x<a.length-1;}).forEach(function(c){html+='<td>'+_inlineMd(c.trim())+'</td>';});html+='</tr>';i++;continue;}
-    } else closeTable();
-    if(!l){closeLists();html+='<p>&nbsp;</p>';i++;continue;}
-    var hm=l.match(/^(#{1,6})\s+(.*)/);
-    if(hm){closeLists();html+='<h'+hm[1].length+'>'+_inlineMd(hm[2])+'</h'+hm[1].length+'>';i++;continue;}
-    if(/^(---+|\*\*\*+)$/.test(l)){closeLists();html+='<hr>';i++;continue;}
-    if(/^[\-\*\+]\s/.test(l)){if(inOl){html+='</ol>';inOl=false;}if(!inUl){html+='<ul>';inUl=true;}html+='<li>'+_inlineMd(l.replace(/^[\-\*\+]\s/,''))+'</li>';i++;continue;}
-    if(/^\d+\.\s/.test(l)){if(inUl){html+='</ul>';inUl=false;}if(!inOl){html+='<ol>';inOl=true;}html+='<li>'+_inlineMd(l.replace(/^\d+\.\s/,''))+'</li>';i++;continue;}
-    closeLists();html+='<p>'+_inlineMd(l)+'</p>';i++;
-  }
-  closeLists();closeTable();return html;
-}
-
-function _mdToHtmlWord(text) {
-  var TH='font-family:Arial,sans-serif;font-size:9pt;font-weight:bold;color:#fff;background-color:#1a237e;border:1px solid #666;padding:3pt 6pt;text-align:left;';
-  var TD_ODD='font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a;background-color:#fff;border:1px solid #aaa;padding:2pt 6pt;vertical-align:top;';
-  var TD_EVN='font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a;background-color:#eef1fb;border:1px solid #aaa;padding:2pt 6pt;vertical-align:top;';
-  var P='font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;margin:1pt 0 2pt;line-height:1.3;';
-  var lines=text.split('\n'),out='',i=0,inUl=false,inOl=false,inTable=false,row=0;
-  function closeLists(){if(inUl){out+='</ul>';inUl=false;}if(inOl){out+='</ol>';inOl=false;}}
-  function closeTable(){if(inTable){out+='</tbody></table>';inTable=false;row=0;}}
-  while(i<lines.length){
-    var l=lines[i].trim();
-    if(/^\|.+\|/.test(l)){
-      if(!inTable){closeLists();out+='<table style="border-collapse:collapse;width:100%;margin:6pt 0"><thead><tr>';l.split('|').filter(function(c,x,a){return x>0&&x<a.length-1;}).forEach(function(h){out+='<th style="'+TH+'">'+_inlineMdWord(h.trim())+'</th>';});out+='</tr></thead><tbody>';inTable=true;row=0;i++;if(i<lines.length&&/^\|[\s\-:|]+\|$/.test(lines[i].trim()))i++;continue;}
-      else{var tds=l.split('|').filter(function(c,x,a){return x>0&&x<a.length-1;});out+='<tr>';tds.forEach(function(c){out+='<td style="'+(row%2===0?TD_ODD:TD_EVN)+'">'+_inlineMdWord(c.trim())+'</td>';});out+='</tr>';row++;i++;continue;}
-    } else closeTable();
-    if(!l){closeLists();out+='<p style="margin:1pt 0">&nbsp;</p>';i++;continue;}
-    var hm=l.match(/^(#{1,3})\s+(.*)/);
-    if(hm){closeLists();var fs=hm[1].length===1?'14pt':hm[1].length===2?'12pt':'11pt';out+='<p style="font-family:Arial,sans-serif;font-size:'+fs+';font-weight:bold;color:#1a237e;margin:5pt 0 2pt">'+_inlineMdWord(hm[2])+'</p>';i++;continue;}
-    if(/^(---+)$/.test(l)){closeLists();out+='<hr style="border:none;border-top:1px solid #ccc;margin:4pt 0">';i++;continue;}
-    if(/^[\-\*\+]\s/.test(l)){if(inOl){out+='</ol>';inOl=false;}if(!inUl){out+='<ul style="margin:2pt 0 4pt;padding-left:16pt">';inUl=true;}out+='<li style="'+P+'">'+_inlineMdWord(l.replace(/^[\-\*\+]\s/,''))+'</li>';i++;continue;}
-    if(/^\d+\.\s/.test(l)){if(inUl){out+='</ul>';inUl=false;}if(!inOl){out+='<ol style="margin:2pt 0 4pt;padding-left:16pt">';inOl=true;}out+='<li style="'+P+'">'+_inlineMdWord(l.replace(/^\d+\.\s/,''))+'</li>';i++;continue;}
-    closeLists();out+='<p style="'+P+'">'+_inlineMdWord(l)+'</p>';i++;
-  }
-  closeLists();closeTable();return out;
-}
-
-function _inlineMd(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`(.+?)`/g,'<code>$1</code>');}
-function _inlineMdWord(s){return _inlineMd(s);}
-
 
 function saveCurrentResponseAsDoc(content) {
   const titleInput = document.getElementById('saveDocTitle');
@@ -12821,10 +12689,8 @@ sendChat = async function() {
     window._saveDocFullContent = fullContent;
     bar.innerHTML = `
       <span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar documento generado:</span>
-      <input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="${_extractDocTitle(fullContent).replace(/\"/g,'&quot;')}">
-      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>
-      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#2B5EE8;color:#2B5EE8" onclick="saveAsWord(window._saveDocFullContent)">📄 Word</button>
-      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:#E53935;color:#E53935" onclick="saveAsPDF(window._saveDocFullContent)">📄 PDF</button>`;
+      <input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="">
+      <button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>`;
     area.parentElement.insertBefore(bar, area.nextSibling);
   }, 300);
 };
@@ -12833,14 +12699,8 @@ sendChat = async function() {
 const _origHandleAttach = handleAttachFiles;
 handleAttachFiles = async function(files) {
   await _origHandleAttach.apply(this, arguments);
-  if (files && files.length) {
-    for (const f of [...files]) {
-      const ext = f.name.split('.').pop().toLowerCase();
-      try {
-        const b64 = await new Promise(function(res){const r=new FileReader();r.onload=function(){res(r.result.split(',')[1]);};r.readAsDataURL(f);});
-        GLOBAL_FILES.add(f.name, ext, b64, f.size);
-      } catch(e) { GLOBAL_FILES.add(f.name, ext, null, f.size); }
-    }
+  if (currentAgent && files) {
+    [...files].forEach(f => logFileToPanel(f.name));
   }
 };
 
@@ -34342,7 +34202,7 @@ function ayudaFAQHTML() {
     { q:'¿Mis conversaciones se guardan en algún servidor?', a:'Sí. Las conversaciones se guardan de forma segura en Supabase. Nada queda en el navegador local.' },
     { q:'¿Cómo recupero datos si cambio de computador?', a:'Por ahora usa el botón ⬇️ Backup en el panel de Agentes para exportar tus agentes custom. Próximamente con Supabase podrás acceder desde cualquier dispositivo.' },
     { q:'¿El director puede ver mis conversaciones?', a:'No. El director solo ve estadísticas agregadas (cuántos documentos generó cada docente, qué agentes usa más), no el contenido de las conversaciones.' },
-    { q:'¿Qué modelos de IA usa LIAX?', a:'Por defecto: Gemini 2.0 Flash para texto simple (más barato), Gemini 2.0 Flash para análisis y archivos, Claude Sonnet para tareas críticas (NEE). El router IA elige automáticamente el más eficiente para cada tarea.' },
+    { q:'¿Qué modelos de IA usa LIAX?', a:'Por defecto: Gemini 1.5 Flash para texto simple (más barato), Gemini 1.5 Pro para análisis y archivos, Claude Sonnet para tareas críticas (NEE). El router IA elige automáticamente el más eficiente para cada tarea.' },
     { q:'¿Puedo usar LIAX sin internet?', a:'No. LIAX necesita internet para llamar a las APIs de IA. Sin internet la plataforma carga pero los agentes no pueden responder.' },
     { q:'¿Qué hago si aparece un error de API?', a:'(1) Verifica que tu API key esté bien configurada en ⚙️ Configurar IAs. (2) Usa el botón 🔌 Probar conexión para diagnosticar. (3) Si usas file://, abre con python3 -m http.server 8000 en la carpeta del archivo.' },
   ];
@@ -36199,7 +36059,7 @@ async function orquestar(userMessage, agentContext) {
 function _planToModelId(modelSugerido) {
   var map = {
     'gemini-flash':  LIAX_MODELS['gemini-flash'].id,
-    'gemini-pro':    LIAX_MODELS['claude-haiku'].id,
+    'gemini-pro':    LIAX_MODELS['gemini-pro'].id,
     'claude-haiku':  LIAX_MODELS['claude-haiku'].id,
     'claude-sonnet': LIAX_MODELS['claude-sonnet'].id,
   };
