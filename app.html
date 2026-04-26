@@ -14188,21 +14188,25 @@ function renderMisDocs() {
   var countEl = document.getElementById('misDocs-count');
   if (!list) return;
 
-  // Recopilar todos los docs
+  // Recopilar todos los docs con su storeKey garantizada
   var allDocs = [];
-  if (typeof AGENT_STORE !== 'undefined') {
-    Object.keys(AGENT_STORE._docs || {}).forEach(function(agId) {
-      AGENT_STORE.getDocs(agId).forEach(function(d) {
-        // Forzar agentId con la key real del store (d.agentId puede ser undefined)
-        var doc = Object.assign({}, d, { _storeKey: agId });
-        allDocs.push(doc);
+  Object.keys(AGENT_STORE._docs || {}).forEach(function(storeKey) {
+    (AGENT_STORE._docs[storeKey] || []).forEach(function(d) {
+      allDocs.push({
+        storeKey:  storeKey,
+        id:        d.id        || null,
+        title:     d.title     || 'Sin título',
+        content:   d.content   || '',
+        agentName: d.agentName || 'Sin agente',
+        agentId:   d.agentId   || storeKey,
+        savedAt:   d.savedAt   || '',
       });
     });
-  }
+  });
 
   // Filtrar
   var filtered = allDocs.filter(function(d) {
-    var matchSearch = !search || (d.title||'').toLowerCase().includes(search);
+    var matchSearch = !search || d.title.toLowerCase().includes(search);
     var matchAgente = !agente || d.agentName === agente;
     return matchSearch && matchAgente;
   });
@@ -14211,7 +14215,7 @@ function renderMisDocs() {
   filtered.sort(function(a, b) {
     if (order === 'reciente') return new Date(b.savedAt||0) - new Date(a.savedAt||0);
     if (order === 'antiguo')  return new Date(a.savedAt||0) - new Date(b.savedAt||0);
-    if (order === 'titulo')   return (a.title||'').localeCompare(b.title||'');
+    if (order === 'titulo')   return a.title.localeCompare(b.title);
     return 0;
   });
 
@@ -14225,7 +14229,7 @@ function renderMisDocs() {
   // Agrupar por agente
   var groups = {};
   filtered.forEach(function(d) {
-    var key = d.agentName || 'Sin agente';
+    var key = d.agentName;
     if (!groups[key]) groups[key] = [];
     groups[key].push(d);
   });
@@ -14233,31 +14237,39 @@ function renderMisDocs() {
   list.innerHTML = Object.keys(groups).sort().map(function(agName) {
     var docs = groups[agName];
     var docsHtml = docs.map(function(d) {
-      var fecha = d.savedAt ? new Date(d.savedAt).toLocaleDateString('es-CL', {day:'2-digit',month:'short',year:'numeric'}) : '';
-      var preview = (d.content||'').replace(/<[^>]*>/g,'').substring(0, 120);
-      return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
-          '<span style="font-weight:700;font-size:14px;color:var(--text)">📄 ' + (d.title||'Sin título') + '</span>' +
-          '<span style="font-size:11px;color:var(--text2);white-space:nowrap">' + fecha + '</span>' +
-        '</div>' +
-        '<div style="font-size:12px;color:var(--text2);line-height:1.5">' + preview + (preview.length >= 120 ? '…' : '') + '</div>' +
-        '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">' +
-          '<button onclick="misDocsOpenDoc(' + JSON.stringify(d.title) + ',' + JSON.stringify(d.agentId) + ')" style="background:var(--accent2);color:#000;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer">👁️ Ver</button>' +
-          '<button class="doc-btn" onclick="misDocsPDF(' + JSON.stringify(d._storeKey||d.agentId) + ',' + JSON.stringify(d.title||'') + ')">📄 PDF</button>' +
-          '<button class="doc-btn" onclick="misDocsCalendarizar(' + JSON.stringify(d.title||'') + ')">📅 Calendarizar</button>' +
-          '<button class="doc-btn" onclick="misDocsCompartir(' + JSON.stringify(d._storeKey||d.agentId) + ',' + JSON.stringify(d.title||'') + ')">📤 Compartir</button>' +
-          '<button class="doc-btn" onclick="misDocsEditar(' + JSON.stringify(d._storeKey||d.agentId) + ',' + JSON.stringify(d.title||'') + ')">✏️ Editar</button>' +
-          '<button class="doc-btn danger" onclick="misDocsEliminar(' + JSON.stringify(d._storeKey||d.agentId) + ',' + JSON.stringify(d.title||'') + ')">🗑️ Eliminar</button>' +
-        '</div>' +
-      '</div>';
+      var fecha   = d.savedAt ? new Date(d.savedAt).toLocaleDateString('es-CL', {day:'2-digit',month:'short',year:'numeric'}) : '';
+      var preview = d.content.replace(/<[^>]*>/g,'').substring(0, 120);
+      // Usar storeKey y title como claves — siempre definidas
+      var sk = JSON.stringify(d.storeKey);
+      var tl = JSON.stringify(d.title);
+      return (
+        '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+            '<span style="font-weight:700;font-size:14px;color:var(--text)">📄 ' + d.title + '</span>' +
+            '<span style="font-size:11px;color:var(--text2);white-space:nowrap">' + fecha + '</span>' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--text2);line-height:1.5">' + preview + (preview.length >= 120 ? '…' : '') + '</div>' +
+          '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">' +
+            '<button onclick="misDocsVer(' + sk + ',' + tl + ')" style="background:var(--accent2);color:#000;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer">👁️ Ver</button>' +
+            '<button class="doc-btn" onclick="misDocsPDF(' + sk + ',' + tl + ')">📄 PDF</button>' +
+            '<button class="doc-btn" onclick="misDocsCalendarizar(' + tl + ')">📅 Calendarizar</button>' +
+            '<button class="doc-btn" onclick="misDocsCompartir(' + sk + ',' + tl + ')">📤 Compartir</button>' +
+            '<button class="doc-btn" onclick="misDocsEditar(' + sk + ',' + tl + ')">✏️ Editar</button>' +
+            '<button class="doc-btn danger" onclick="misDocsEliminar(' + sk + ',' + tl + ')">🗑️ Eliminar</button>' +
+          '</div>' +
+        '</div>'
+      );
     }).join('');
 
-    return '<div style="margin-bottom:18px">' +
-      '<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding-left:2px">🤖 ' + agName + ' (' + docs.length + ')</div>' +
-      '<div style="display:flex;flex-direction:column;gap:8px">' + docsHtml + '</div>' +
-    '</div>';
+    return (
+      '<div style="margin-bottom:18px">' +
+        '<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding-left:2px">🤖 ' + agName + ' (' + docs.length + ')</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px">' + docsHtml + '</div>' +
+      '</div>'
+    );
   }).join('');
 }
+
 
 function misDocsOpenDoc(title, agentId) {
   // Ir al agente y abrir el doc
@@ -14286,40 +14298,51 @@ function editDocNameByIndex(i) {
   renderDocsPanel();
 }
 
-// ── HELPERS Ver Mis Docs — buscan por agentId + title ────────
-function _misDocsFind(agentId, title) {
-  // Buscar primero en el agentId dado
-  var docs = AGENT_STORE.getDocs(agentId) || [];
+// ── HELPERS Ver Mis Docs ─────────────────────────────────────
+function _misDocsFind(storeKey, title) {
+  // Buscar en el storeKey dado
+  var docs = AGENT_STORE._docs[storeKey] || [];
   var found = docs.find(function(d){ return d.title === title; });
   if (found) return found;
   // Fallback: buscar en todos los agentes
-  var allKeys = Object.keys(AGENT_STORE._docs || {});
-  for (var i = 0; i < allKeys.length; i++) {
-    var allDocs = AGENT_STORE.getDocs(allKeys[i]) || [];
-    found = allDocs.find(function(d){ return d.title === title; });
+  var keys = Object.keys(AGENT_STORE._docs || {});
+  for (var i = 0; i < keys.length; i++) {
+    found = (AGENT_STORE._docs[keys[i]] || []).find(function(d){ return d.title === title; });
     if (found) return found;
   }
   return null;
 }
 
-// PDF: abre en viewer (con imágenes IA) y espera hasta que cargan
-function misDocsPDF(agentId, title) {
-  var d = _misDocsFind(agentId, title);
+function misDocsVer(storeKey, title) {
+  var d = _misDocsFind(storeKey, title);
   if (!d) { showSaveToast('⚠️ Documento no encontrado'); return; }
   _renderDocViewer({
     title:     d.title,
-    meta:      (d.agentName || '') + ' · ' + (d.savedAt ? new Date(d.savedAt).toLocaleString('es-CL') : ''),
+    meta:      (d.agentName || storeKey) + ' · ' + (d.savedAt ? new Date(d.savedAt).toLocaleString('es-CL') : ''),
     icon:      '📄',
     content:   d.content || '',
-    agentName: d.agentName || agentId,
+    agentName: d.agentName || storeKey,
     savedAt:   d.savedAt,
   });
-  showSaveToast('⏳ Preparando PDF, espera...');
+}
+
+function misDocsPDF(storeKey, title) {
+  var d = _misDocsFind(storeKey, title);
+  if (!d) { showSaveToast('⚠️ Documento no encontrado'); return; }
+  _renderDocViewer({
+    title:     d.title,
+    meta:      (d.agentName || storeKey) + ' · ' + (d.savedAt ? new Date(d.savedAt).toLocaleString('es-CL') : ''),
+    icon:      '📄',
+    content:   d.content || '',
+    agentName: d.agentName || storeKey,
+    savedAt:   d.savedAt,
+  });
+  showSaveToast('⏳ Preparando PDF...');
   var _tries = 0;
   var _wait = function() {
     var dvBody = document.getElementById('dv-body');
     var busy = dvBody && (dvBody.querySelectorAll('[data-generating]').length > 0 || dvBody.querySelectorAll('[data-genprompt]').length > 0);
-    if (busy && _tries < 60) { _tries++; setTimeout(_wait, 500); }
+    if (busy && _tries++ < 60) { setTimeout(_wait, 500); }
     else { downloadDoc(); }
   };
   setTimeout(_wait, 700);
@@ -14329,37 +14352,36 @@ function misDocsCalendarizar(title) {
   openCalEventModal('', '', title, 'documento');
 }
 
-function misDocsCompartir(agentId, title) {
-  var d = _misDocsFind(agentId, title);
+function misDocsCompartir(storeKey, title) {
+  var d = _misDocsFind(storeKey, title);
   if (!d) { showSaveToast('⚠️ Documento no encontrado'); return; }
-  var subj = encodeURIComponent('[LIAX] ' + (d.title || 'Documento'));
-  var body = encodeURIComponent('Hola,\n\nTe comparto este documento generado en LIAX:\n\n' + (d.content || '').replace(/<[^>]*>/g,'').slice(0, 500) + '\n\n— Enviado desde LIAX');
+  var subj = encodeURIComponent('[LIAX] ' + d.title);
+  var body = encodeURIComponent('Hola,\n\nTe comparto este documento generado en LIAX:\n\n' + d.content.replace(/<[^>]*>/g,'').slice(0,500) + '\n\n— Enviado desde LIAX');
   window.open('mailto:?subject=' + subj + '&body=' + body);
 }
 
-function misDocsEditar(agentId, tituloActual) {
-  var nuevoNombre = prompt('Nuevo nombre del documento:', tituloActual || '');
-  if (nuevoNombre === null) return;
-  nuevoNombre = nuevoNombre.trim();
-  if (!nuevoNombre) { showSaveToast('⚠️ El nombre no puede estar vacío'); return; }
-  var docs = AGENT_STORE.getDocs(agentId) || [];
-  var idx = docs.findIndex(function(d){ return d.title === tituloActual; });
+function misDocsEditar(storeKey, title) {
+  var nuevo = prompt('Nuevo nombre del documento:', title);
+  if (!nuevo || !nuevo.trim()) return;
+  nuevo = nuevo.trim();
+  var docs = AGENT_STORE._docs[storeKey] || [];
+  var idx = docs.findIndex(function(d){ return d.title === title; });
   if (idx === -1) { showSaveToast('⚠️ Documento no encontrado'); return; }
-  docs[idx].title = nuevoNombre;
-  AGENT_STORE.saveDocs(agentId, docs);
-  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(agentId, nuevoNombre, docs[idx].content, docs[idx].id || null).catch(function(){});
+  docs[idx].title = nuevo;
+  AGENT_STORE.saveDocs(storeKey, docs);
+  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(storeKey, nuevo, docs[idx].content, docs[idx].id||null).catch(function(){});
   showSaveToast('✅ Nombre actualizado');
   renderMisDocs();
 }
 
-function misDocsEliminar(agentId, title) {
+function misDocsEliminar(storeKey, title) {
   if (!confirm('¿Eliminar "' + title + '"?')) return;
-  var docs = AGENT_STORE.getDocs(agentId) || [];
+  var docs = AGENT_STORE._docs[storeKey] || [];
   var idx = docs.findIndex(function(d){ return d.title === title; });
   if (idx === -1) { showSaveToast('⚠️ No encontrado'); return; }
   var docId = docs[idx].id || null;
   docs.splice(idx, 1);
-  AGENT_STORE.saveDocs(agentId, docs);
+  AGENT_STORE.saveDocs(storeKey, docs);
   if (docId && typeof _supa !== 'undefined') _supa.from('documentos_chat').delete().eq('id', docId).then(function(){});
   showSaveToast('🗑️ Documento eliminado');
   renderMisDocs();
