@@ -910,6 +910,11 @@
   .reply-send-btn{position:absolute;right:6px;bottom:6px;background:var(--accent1);color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;opacity:0;transition:opacity .15s;}
   .reply-field-wrap:focus-within .reply-send-btn{opacity:1;}
   .reply-send-btn{display:none !important;}
+  .indi-load-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 20px;background:linear-gradient(135deg,#1a3a5c,#3469dc);color:#fff;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.3px;box-shadow:0 4px 14px #3469dc44;}
+  .indi-load-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px #3469dc66;}
+  .indi-load-btn.loaded{background:linear-gradient(135deg,#1a5c3a,#28a86a);box-shadow:0 4px 14px #28a86a44;}
+  .indi-load-btn.loaded:hover{box-shadow:0 6px 20px #28a86a66;}
+  .indi-load-btn .indi-icon{font-size:20px;}
   .opt-btn-wrap{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;}
   .opt-btn-wrap::before{content:'☑️ Elige una o más opciones';display:block;width:100%;font-size:10px;font-weight:800;color:var(--accent1);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
   .opt-btn{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:8px 14px;font-size:13px;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;text-align:left;}
@@ -1889,8 +1894,18 @@
       <!-- ══ TÍTULO PRINCIPAL ══ -->
       <div style="padding:20px 24px 14px;border-bottom:1px solid var(--border)">
         <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#000;line-height:1.2">
-          Consejero Educativo Liax - Indi
+          CONSEJERO EDUCATIVO LIAX - INDI PERÚ
         </div>
+      </div>
+
+      <!-- ══ CARGAR RESULTADOS INDI ══ -->
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+        <input type="file" id="indiFileInput" accept=".xlsx,.xls,.csv,.pdf" style="display:none" onchange="indiLoadFile(this)">
+        <button class="indi-load-btn" id="indiLoadBtn" onclick="document.getElementById('indiFileInput').click()">
+          <span class="indi-icon">📊</span>
+          <span id="indiLoadBtnText">Carga tus resultados INDI</span>
+        </button>
+        <div id="indiLoadStatus" style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center;display:none"></div>
       </div>
 
       <!-- ══ AGENTES FAVORITOS — compacto ══ -->
@@ -7740,6 +7755,161 @@ function makeBubbleLoading(id) {
 
 // ── REPLY FIELD: enviar respuesta desde campo inline ──────
 
+// ══ CARGA RESULTADOS INDI ══════════════════════════════════
+window.INDI_RESULTS = null;
+
+function indiLoadFile(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var btn  = document.getElementById('indiLoadBtn');
+  var txt  = document.getElementById('indiLoadBtnText');
+  var stat = document.getElementById('indiLoadStatus');
+  txt.textContent = '⏳ Procesando...';
+  stat.style.display = 'none';
+
+  var ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'csv') {
+    var reader = new FileReader();
+    reader.onload = function(e) { _indiParseCSV(e.target.result, file.name, btn, txt, stat); };
+    reader.readAsText(file, 'UTF-8');
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var wb = XLSX.read(e.target.result, { type: 'array' });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var csv = XLSX.utils.sheet_to_csv(ws);
+        _indiParseCSV(csv, file.name, btn, txt, stat);
+      } catch(err) {
+        txt.textContent = '❌ Error leyendo Excel';
+        stat.textContent = err.message;
+        stat.style.display = 'block';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else if (ext === 'pdf') {
+    txt.textContent = '❌ PDF no soportado aún';
+    stat.textContent = 'Usa Excel o CSV';
+    stat.style.display = 'block';
+    return;
+  } else {
+    txt.textContent = '❌ Formato no reconocido';
+    stat.style.display = 'block';
+    return;
+  }
+  // Reset input so same file can be re-loaded
+  input.value = '';
+}
+
+function _indiParseCSV(csv, filename, btn, txt, stat) {
+  try {
+    var lines = csv.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l; });
+    if (lines.length < 2) throw new Error('Archivo vacío o sin datos');
+
+    // Detect separator
+    var sep = lines[0].includes('\t') ? '\t' : lines[0].includes(';') ? ';' : ',';
+
+    // Parse header — normalize to uppercase, trim spaces
+    var headers = lines[0].split(sep).map(function(h){ return h.replace(/['"]/g,'').trim().toUpperCase(); });
+
+    // Column map — flexible matching
+    var COL = {};
+    var aliases = {
+      COLEGIO:        ['COLEGIO','SCHOOL','INSTITUCIÓN','INSTITUCION'],
+      CURSO:          ['CURSO','GRADO','GRADE','AÑO'],
+      LETRA:          ['LETRA','SECCIÓN','SECCION','SECTION','AULA'],
+      MAESTRA:        ['MAESTRA','MAESTRO','DOCENTE','TEACHER','PROFESOR','PROFESORA'],
+      NOMBRE_COMPLETO:['NOMBRE_COMPLETO','NOMBRE COMPLETO','NOMBRE','ALUMNO','STUDENT','ESTUDIANTE'],
+      EDAD:           ['EDAD','AGE'],
+      AREA:           ['AREA','ÁREA'],
+      SUBAREA:        ['SUBAREA','SUBÁREA','SUB_AREA','SUBÁREA','DIMENSIÓN','DIMENSION'],
+      RESULTADO:      ['RESULTADO','RESULT','NIVEL','PUNTAJE','SCORE'],
+    };
+    Object.keys(aliases).forEach(function(key) {
+      aliases[key].forEach(function(alias) {
+        var idx = headers.indexOf(alias);
+        if (idx !== -1 && COL[key] === undefined) COL[key] = idx;
+      });
+    });
+
+    // Require at least NOMBRE and RESULTADO
+    if (COL.NOMBRE_COMPLETO === undefined || COL.RESULTADO === undefined) {
+      throw new Error('No se encontraron columnas NOMBRE y RESULTADO. Columnas encontradas: ' + headers.join(', '));
+    }
+
+    // Parse rows
+    var rows = [];
+    for (var i = 1; i < lines.length; i++) {
+      var cols = lines[i].split(sep).map(function(c){ return c.replace(/^["']|["']$/g,'').trim(); });
+      if (!cols[COL.NOMBRE_COMPLETO]) continue;
+      var row = {};
+      Object.keys(COL).forEach(function(key){ row[key] = cols[COL[key]] || ''; });
+      rows.push(row);
+    }
+
+    if (!rows.length) throw new Error('No se encontraron filas con datos');
+
+    // Store globally
+    window.INDI_RESULTS = rows;
+
+    // Build summary
+    var alumnos = [...new Set(rows.map(function(r){ return r.NOMBRE_COMPLETO; }))];
+    var nAlumnos = alumnos.length;
+    var resultCounts = {};
+    rows.forEach(function(r){
+      var res = r.RESULTADO || 'Sin dato';
+      resultCounts[res] = (resultCounts[res]||0) + 1;
+    });
+    var resumen = Object.keys(resultCounts).map(function(k){ return k + ': ' + resultCounts[k]; }).join(' · ');
+
+    // Update button
+    btn.classList.add('loaded');
+    txt.textContent = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
+    stat.textContent = resumen;
+    stat.style.display = 'block';
+    stat.style.color = 'var(--accent2)';
+
+    console.log('[INDI] Cargados', rows.length, 'registros,', nAlumnos, 'alumnos');
+  } catch(err) {
+    var txt2 = document.getElementById('indiLoadBtnText');
+    txt2.textContent = 'Carga tus resultados INDI';
+    var stat2 = document.getElementById('indiLoadStatus');
+    stat2.textContent = '❌ ' + err.message;
+    stat2.style.display = 'block';
+    stat2.style.color = '#e05';
+    console.error('[INDI]', err);
+  }
+}
+
+function _indiGetContext() {
+  if (!window.INDI_RESULTS || !window.INDI_RESULTS.length) return '';
+  var rows = window.INDI_RESULTS;
+  var alumnos = {};
+  rows.forEach(function(r) {
+    var nom = r.NOMBRE_COMPLETO;
+    if (!alumnos[nom]) alumnos[nom] = { areas: [] };
+    alumnos[nom].areas.push((r.AREA||'') + (r.SUBAREA ? '/'+r.SUBAREA : '') + ': ' + (r.RESULTADO||''));
+    if (r.EDAD) alumnos[nom].edad = r.EDAD;
+    if (r.CURSO) alumnos[nom].curso = r.CURSO;
+    if (r.LETRA) alumnos[nom].letra = r.LETRA;
+  });
+  var lines = ['=== RESULTADOS INDI CARGADOS ==='];
+  var meta = rows[0];
+  if (meta.COLEGIO) lines.push('Colegio: ' + meta.COLEGIO);
+  if (meta.CURSO)   lines.push('Curso: ' + meta.CURSO + (meta.LETRA ? ' ' + meta.LETRA : ''));
+  if (meta.MAESTRA) lines.push('Docente: ' + meta.MAESTRA);
+  lines.push('Total alumnos: ' + Object.keys(alumnos).length);
+  lines.push('');
+  Object.keys(alumnos).forEach(function(nom) {
+    var a = alumnos[nom];
+    lines.push('• ' + nom + (a.edad ? ' (' + a.edad + ' años)' : '') + ':');
+    a.areas.forEach(function(ar){ lines.push('  - ' + ar); });
+  });
+  lines.push('=== FIN RESULTADOS INDI ===');
+  return lines.join('\n');
+}
+
 function liaxToggleOpt(btn) {
   btn.classList.toggle('selected');
   var check = btn.querySelector('.opt-check');
@@ -7932,9 +8102,13 @@ async function sendChat(){
     _visualInstr + '\n' +
     '=== FIN ROL ABSOLUTO ===';
 
+  // ── INDI results context ──
+  var indiCtx = (typeof _indiGetContext === 'function') ? _indiGetContext() : '';
+
   var systemRaw =
     agentRoleBlock +
     STYLE_RULES +
+    (indiCtx ? '\n\n' + indiCtx : '') +
     (window._aluCtxExtra || '') +
     (ragCtx ? '\n\n' + ragCtx : '') +
     (memCtx || '') +
