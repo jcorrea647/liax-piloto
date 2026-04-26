@@ -7582,7 +7582,7 @@ function formatMsg(text) {
       i--; // compensate for for-loop i++
       var btns = optLines.map(function(opt) {
         var safe = opt.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-        return '<button class="opt-btn" onclick="this.classList.toggle('selected')">' + opt + '</button>';
+        return '<button class="opt-btn" onclick="this.classList.toggle(&quot;selected&quot;)">' + opt + '</button>';
       }).join('');
       out.push('<div class="opt-btn-wrap">' + btns + '</div>');
     }
