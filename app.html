@@ -7537,15 +7537,23 @@ function formatMsg(text) {
   });
 
   // ── STEP 2: Escape HTML for normal text ──────────────────
-  var lines = text
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .split('\n');
+  // Pre-mark blockquote lines BEFORE escaping so > is not converted to &gt;
+  var rawLines = text.split('\n');
+  var escapedLines = rawLines.map(function(rl) {
+    if (/^> /.test(rl)) {
+      // Store placeholder text raw, escape the rest normally later
+      return '\x00BQ\x00' + rl.slice(2);
+    }
+    return rl.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  });
+  var lines = escapedLines;
   var out = [];
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i];
     // Blockquote: > text  →  editable reply textarea
-    if (/^> /.test(l)) {
-      var ph  = l.replace(/^> /, '').replace(/<[^>]+>/g, '') || 'Escribe tu respuesta aquí...';
+    if (l.indexOf('\x00BQ\x00') === 0) {
+      l = l.slice(5); // strip marker
+      var ph  = l.replace(/_/g,'').replace(/\*\*?/g,'').trim() || 'Escribe tu respuesta aquí...';
       var uid = 'rf' + (++window._rfCount || (window._rfCount=1));
       // Check if nearby lines ask for a file
       var context3 = lines.slice(Math.max(0,i-4), i+1).join(' ').toLowerCase();
