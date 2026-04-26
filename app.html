@@ -910,11 +910,13 @@
   .reply-send-btn{position:absolute;right:6px;bottom:6px;background:var(--accent1);color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;opacity:0;transition:opacity .15s;}
   .reply-field-wrap:focus-within .reply-send-btn{opacity:1;}
   .reply-send-btn{display:none !important;}
-  .opt-btn-wrap{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;}
-  .opt-btn-wrap::before{content:'☑️ Elige una o más opciones';display:block;width:100%;font-size:10px;font-weight:800;color:var(--accent1);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
-  .opt-btn{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:8px 14px;font-size:13px;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;text-align:left;}
-  .opt-btn:hover{border-color:var(--accent1);color:var(--accent1);}
-  .opt-btn.selected{background:var(--accent1)22;border-color:var(--accent1);color:var(--accent1);font-weight:700;}
+  .opt-btn-wrap{display:flex;flex-direction:column;gap:6px;margin:10px 0 14px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;}
+  .opt-btn-wrap-label{font-size:10px;font-weight:800;color:var(--accent1);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px;}
+  .opt-btn{display:flex;align-items:center;gap:12px;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:13px;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;text-align:left;width:100%;}
+  .opt-btn:hover{border-color:var(--accent1);background:var(--surface);}
+  .opt-btn .opt-check{width:18px;height:18px;min-width:18px;border-radius:5px;border:2px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .15s;}
+  .opt-btn.selected{border-color:var(--accent1);background:color-mix(in srgb,var(--accent1) 8%,var(--surface));}
+  .opt-btn.selected .opt-check{background:var(--accent1);border-color:var(--accent1);color:#fff;}
   .msg-h2{font-size:15px;font-weight:800;color:var(--accent2);margin:14px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--accent2)44;}
   .msg-h3{font-size:14px;font-weight:800;color:var(--accent1);margin:10px 0 4px;}
   .msg-hr{border:none;border-top:1px solid var(--border);margin:8px 0;}
@@ -7542,15 +7544,20 @@ function formatMsg(text) {
   });
 
   // ── STEP 2: Escape HTML for normal text ──────────────────
-  var lines = text
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .split('\n');
+  // Pre-marca blockquotes y opciones ANTES del escape para que > no quede como &gt;
+  var rawLines = text.split('\n');
+  var lines = rawLines.map(function(rl) {
+    if (/^>> /.test(rl)) { return '\x00OPT\x00' + rl.slice(3); }
+    if (/^> /.test(rl))  { return '\x00BQ\x00'  + rl.slice(2); }
+    return rl.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  });
   var out = [];
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i];
     // Blockquote: > text  →  editable reply textarea
-    if (/^> /.test(l)) {
-      var ph  = l.replace(/^> /, '').replace(/<[^>]+>/g, '') || 'Escribe tu respuesta aquí...';
+    if (l.indexOf('\x00BQ\x00') === 0) {
+      l = l.slice(5);
+      var ph = l.replace(/_/g,'').replace(/\*\*?/g,'').trim() || 'Escribe tu respuesta aquí...';
       var uid = 'rf' + (++window._rfCount || (window._rfCount=1));
       // Check if nearby lines ask for a file
       var context3 = lines.slice(Math.max(0,i-4), i+1).join(' ').toLowerCase();
@@ -7572,19 +7579,22 @@ function formatMsg(text) {
       );
     }
     // >> A) option  →  option button
-    else if (/^\x00BQ\x00/.test(l) === false && /^>>\s/.test(l)) {
+    else if (l.indexOf('\x00OPT\x00') === 0) {
       // Collect consecutive >> lines into one button group
       var optLines = [];
-      while (i < lines.length && /^>>\s/.test(lines[i])) {
-        optLines.push(lines[i].replace(/^>>\s*/, '').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>'));
+      while (i < lines.length && lines[i].indexOf('\x00OPT\x00') === 0) {
+        optLines.push(lines[i].slice(5).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>'));
         i++;
       }
       i--; // compensate for for-loop i++
       var btns = optLines.map(function(opt) {
         var safe = opt.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-        return '<button class="opt-btn" onclick="this.classList.toggle(&quot;selected&quot;)">' + opt + '</button>';
+        return '<button class="opt-btn" onclick="liaxToggleOpt(this)">' +
+          '<span class="opt-check"></span>' +
+          '<span>' + opt + '</span>' +
+        '</button>';
       }).join('');
-      out.push('<div class="opt-btn-wrap">' + btns + '</div>');
+      out.push('<div class="opt-btn-wrap"><div class="opt-btn-wrap-label">☑️ Elige una o más opciones</div>' + btns + '</div>');
     }
     // ## heading
     else if (/^## /.test(l)) {
@@ -7735,6 +7745,12 @@ function makeBubbleLoading(id) {
 
 
 // ── REPLY FIELD: enviar respuesta desde campo inline ──────
+
+function liaxToggleOpt(btn) {
+  btn.classList.toggle('selected');
+  var check = btn.querySelector('.opt-check');
+  if (check) check.textContent = btn.classList.contains('selected') ? '✓' : '';
+}
 
 async function sendChat(){
   const inp=document.getElementById('chatInput');
