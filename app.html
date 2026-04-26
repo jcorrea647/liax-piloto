@@ -910,13 +910,11 @@
   .reply-send-btn{position:absolute;right:6px;bottom:6px;background:var(--accent1);color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;opacity:0;transition:opacity .15s;}
   .reply-field-wrap:focus-within .reply-send-btn{opacity:1;}
   .reply-send-btn{display:none !important;}
-  .opt-btn-wrap{display:flex;flex-direction:column;gap:6px;margin:10px 0 14px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;}
-  .opt-btn-wrap-label{font-size:10px;font-weight:800;color:var(--accent1);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px;}
-  .opt-btn{display:flex;align-items:center;gap:12px;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:13px;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;text-align:left;width:100%;}
-  .opt-btn:hover{border-color:var(--accent1);background:var(--surface);}
-  .opt-btn .opt-check{width:18px;height:18px;min-width:18px;border-radius:5px;border:2px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .15s;}
-  .opt-btn.selected{border-color:var(--accent1);background:color-mix(in srgb,var(--accent1) 8%,var(--surface));}
-  .opt-btn.selected .opt-check{background:var(--accent1);border-color:var(--accent1);color:#fff;}
+  .opt-btn-wrap{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;}
+  .opt-btn-wrap::before{content:'☑️ Elige una o más opciones';display:block;width:100%;font-size:10px;font-weight:800;color:var(--accent1);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+  .opt-btn{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:8px 14px;font-size:13px;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;text-align:left;}
+  .opt-btn:hover{border-color:var(--accent1);color:var(--accent1);}
+  .opt-btn.selected{background:var(--accent1)22;border-color:var(--accent1);color:var(--accent1);font-weight:700;}
   .msg-h2{font-size:15px;font-weight:800;color:var(--accent2);margin:14px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--accent2)44;}
   .msg-h3{font-size:14px;font-weight:800;color:var(--accent1);margin:10px 0 4px;}
   .msg-hr{border:none;border-top:1px solid var(--border);margin:8px 0;}
@@ -7544,20 +7542,15 @@ function formatMsg(text) {
   });
 
   // ── STEP 2: Escape HTML for normal text ──────────────────
-  // Pre-marca blockquotes y opciones ANTES del escape para que > no quede como &gt;
-  var rawLines = text.split('\n');
-  var lines = rawLines.map(function(rl) {
-    if (/^>> /.test(rl)) { return '\x00OPT\x00' + rl.slice(3); }
-    if (/^> /.test(rl))  { return '\x00BQ\x00'  + rl.slice(2); }
-    return rl.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  });
+  var lines = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .split('\n');
   var out = [];
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i];
     // Blockquote: > text  →  editable reply textarea
-    if (l.indexOf('\x00BQ\x00') === 0) {
-      l = l.slice(5);
-      var ph = l.replace(/_/g,'').replace(/\*\*?/g,'').trim() || 'Escribe tu respuesta aquí...';
+    if (/^> /.test(l)) {
+      var ph  = l.replace(/^> /, '').replace(/<[^>]+>/g, '') || 'Escribe tu respuesta aquí...';
       var uid = 'rf' + (++window._rfCount || (window._rfCount=1));
       // Check if nearby lines ask for a file
       var context3 = lines.slice(Math.max(0,i-4), i+1).join(' ').toLowerCase();
@@ -7579,22 +7572,19 @@ function formatMsg(text) {
       );
     }
     // >> A) option  →  option button
-    else if (l.indexOf('\x00OPT\x00') === 0) {
+    else if (/^\x00BQ\x00/.test(l) === false && /^>>\s/.test(l)) {
       // Collect consecutive >> lines into one button group
       var optLines = [];
-      while (i < lines.length && lines[i].indexOf('\x00OPT\x00') === 0) {
-        optLines.push(lines[i].slice(5).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>'));
+      while (i < lines.length && /^>>\s/.test(lines[i])) {
+        optLines.push(lines[i].replace(/^>>\s*/, '').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>'));
         i++;
       }
       i--; // compensate for for-loop i++
       var btns = optLines.map(function(opt) {
         var safe = opt.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-        return '<button class="opt-btn" onclick="liaxToggleOpt(this)">' +
-          '<span class="opt-check"></span>' +
-          '<span>' + opt + '</span>' +
-        '</button>';
+        return '<button class="opt-btn" onclick="this.classList.toggle('selected')">' + opt + '</button>';
       }).join('');
-      out.push('<div class="opt-btn-wrap"><div class="opt-btn-wrap-label">☑️ Elige una o más opciones</div>' + btns + '</div>');
+      out.push('<div class="opt-btn-wrap">' + btns + '</div>');
     }
     // ## heading
     else if (/^## /.test(l)) {
@@ -7745,12 +7735,6 @@ function makeBubbleLoading(id) {
 
 
 // ── REPLY FIELD: enviar respuesta desde campo inline ──────
-
-function liaxToggleOpt(btn) {
-  btn.classList.toggle('selected');
-  var check = btn.querySelector('.opt-check');
-  if (check) check.textContent = btn.classList.contains('selected') ? '✓' : '';
-}
 
 async function sendChat(){
   const inp=document.getElementById('chatInput');
@@ -11644,6 +11628,7 @@ function renderDocsPanel() {
             <div class="doc-actions">
               <button class="doc-btn" onclick="openDocViewer(${i})">👁️ Ver completo</button>
               <button class="doc-btn" onclick="downloadDocByIndex(${i})">📄 PDF</button>
+              <button class="doc-btn" onclick="downloadDocWordByIndex(${i})">📝 Word</button>
               <button class="doc-btn" onclick="openCalEventModal('','',encodeURIComponent(${JSON.stringify(d.title||'')}||'').replace(/%20/g,' '),'documento')">📅 Calendarizar</button>
               <button class="doc-btn" onclick="calShareDocByMail(${i})">📤 Compartir</button>
               <button class="doc-btn" onclick="editDocNameByIndex(${i})">✏️ Editar</button>
@@ -12516,6 +12501,115 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
     console.error('[Liax] Error generando PDF:', pdfErr);
     showSaveToast('❌ Error generando PDF: ' + (pdfErr.message || pdfErr));
   }
+}
+
+function exportDocToWord(title, rawContent, agentName, savedAt) {
+  var safe = (title || 'documento').replace(/[^a-z0-9áéíóúñ\s]/gi, '_').trim();
+  var fecha = savedAt ? new Date(savedAt).toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+
+  // ── Parse markdown content into structured HTML for Word ──
+  var lines = rawContent.split('\n');
+  var bodyHtml = '';
+  var i = 0;
+  while (i < lines.length) {
+    var l = lines[i].trim();
+    // H1
+    if (/^# (?!#)/.test(l)) {
+      bodyHtml += '<h1>' + l.slice(2).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>') + '</h1>'; i++; continue;
+    }
+    // H2
+    if (/^## /.test(l)) {
+      bodyHtml += '<h2>' + l.slice(3).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>') + '</h2>'; i++; continue;
+    }
+    // H3
+    if (/^### /.test(l)) {
+      bodyHtml += '<h3>' + l.slice(4).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>') + '</h3>'; i++; continue;
+    }
+    // HR
+    if (/^---+$/.test(l)) {
+      bodyHtml += '<hr>'; i++; continue;
+    }
+    // Table
+    if (/^\|.+\|/.test(l)) {
+      var tableLines = [];
+      while (i < lines.length && /^\|.+\|/.test(lines[i].trim())) { tableLines.push(lines[i].trim()); i++; }
+      var rows = tableLines.filter(function(r){ return !/^\|[-:\s|]+\|$/.test(r); });
+      if (rows.length) {
+        var thead = '<thead><tr>' + rows[0].split('|').slice(1,-1).map(function(c){ return '<th>' + c.trim().replace(/\*\*(.+?)\*\*/g,'<b>$1</b>') + '</th>'; }).join('') + '</tr></thead>';
+        var tbody = '<tbody>' + rows.slice(1).map(function(r){ return '<tr>' + r.split('|').slice(1,-1).map(function(c){ return '<td>' + c.trim().replace(/\*\*(.+?)\*\*/g,'<b>$1</b>') + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody>';
+        bodyHtml += '<table>' + thead + tbody + '</table>';
+      }
+      continue;
+    }
+    // Bullet
+    if (/^[\*\-] /.test(l)) {
+      bodyHtml += '<ul>';
+      while (i < lines.length && /^[\*\-] /.test(lines[i].trim())) {
+        bodyHtml += '<li>' + lines[i].trim().slice(2).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\*(.+?)\*/g,'<i>$1</i>') + '</li>';
+        i++;
+      }
+      bodyHtml += '</ul>'; continue;
+    }
+    // Numbered list
+    if (/^\d+\.\s/.test(l)) {
+      bodyHtml += '<ol>';
+      while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+        bodyHtml += '<li>' + lines[i].trim().replace(/^\d+\.\s/,'').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\*(.+?)\*/g,'<i>$1</i>') + '</li>';
+        i++;
+      }
+      bodyHtml += '</ol>'; continue;
+    }
+    // Blockquote (respuesta)
+    if (/^> /.test(l)) { i++; continue; }
+    // Empty line
+    if (!l) { i++; continue; }
+    // Normal paragraph
+    bodyHtml += '<p>' + l.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\*(.+?)\*/g,'<i>$1</i>') + '</p>';
+    i++;
+  }
+
+  var css = `
+    @page { margin: 2.5cm 2.8cm; }
+    body { font-family: Calibri, 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1a1a2e; line-height: 1.6; }
+    h1 { font-size: 18pt; font-weight: 700; color: #1a3a5c; border-bottom: 2.5pt solid #3469dc; padding-bottom: 6pt; margin: 18pt 0 10pt; page-break-after: avoid; }
+    h2 { font-size: 14pt; font-weight: 700; color: #1a3a5c; background: #f0f4fc; border-left: 4pt solid #3469dc; padding: 5pt 10pt; margin: 16pt 0 8pt; page-break-after: avoid; }
+    h3 { font-size: 12pt; font-weight: 700; color: #2a4a7c; margin: 12pt 0 6pt; page-break-after: avoid; }
+    p { margin: 0 0 8pt; text-align: justify; }
+    ul, ol { margin: 4pt 0 10pt 18pt; padding: 0; }
+    li { margin-bottom: 4pt; }
+    table { width: 100%; border-collapse: collapse; margin: 12pt 0; font-size: 10pt; }
+    thead tr { background: #1a3a5c; color: #ffffff; }
+    th { padding: 7pt 10pt; text-align: left; font-weight: 700; font-size: 10pt; }
+    td { padding: 6pt 10pt; border-bottom: 0.5pt solid #d0d8ea; vertical-align: top; }
+    tr:nth-child(even) td { background: #f5f7fc; }
+    hr { border: none; border-top: 1pt solid #c0cce0; margin: 14pt 0; }
+    .header { border-bottom: 2pt solid #1a3a5c; padding-bottom: 10pt; margin-bottom: 18pt; display: flex; justify-content: space-between; align-items: flex-end; }
+    .header-title { font-size: 9pt; color: #5a6a8a; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .doc-title-main { font-size: 22pt; font-weight: 800; color: #1a3a5c; margin: 0 0 4pt; }
+    .meta { font-size: 9pt; color: #7a8aaa; }
+    .footer { margin-top: 24pt; padding-top: 8pt; border-top: 1pt solid #c0cce0; font-size: 8pt; color: #9aabb8; display: flex; justify-content: space-between; }
+  `;
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + css + '</style></head><body>' +
+    '<div class="header">' +
+      '<div>' +
+        '<div class="header-title">Documento generado por Liax IA</div>' +
+        '<div class="doc-title-main">' + (title||'Documento') + '</div>' +
+        '<div class="meta">' + (agentName||'') + (agentName && fecha ? ' · ' : '') + fecha + '</div>' +
+      '</div>' +
+      '<div style="text-align:right"><div style="font-size:22pt;font-weight:900;color:#3469dc;letter-spacing:-1px">LIAX</div><div style="font-size:8pt;color:#9aabb8">Plataforma Educativa IA</div></div>' +
+    '</div>' +
+    bodyHtml +
+    '<div class="footer"><span>Liax · Plataforma Educativa IA</span><span>' + fecha + '</span></div>' +
+    '</body></html>';
+
+  var blob = new Blob([html], { type: 'application/msword;charset=utf-8' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url; a.download = safe + '.doc';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  showSaveToast('✅ Word descargado.');
 }
 
 function deleteDoc(i) {
@@ -14347,6 +14441,7 @@ function renderMisDocs() {
           '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">' +
             '<button onclick="misDocsVer(' + i + ')" style="background:var(--accent2);color:#000;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer">👁️ Ver</button>' +
             '<button class="doc-btn" onclick="misDocsPDF(' + i + ')">📄 PDF</button>' +
+            '<button class="doc-btn" onclick="misDocsWord(' + i + ')">📝 Word</button>' +
             '<button class="doc-btn" onclick="misDocsCalendarizar(' + i + ')">📅 Calendarizar</button>' +
             '<button class="doc-btn" onclick="misDocsCompartir(' + i + ')">📤 Compartir</button>' +
             '<button class="doc-btn" onclick="misDocsEditar(' + i + ')">✏️ Editar</button>' +
@@ -14431,6 +14526,23 @@ function misDocsPDF(i) {
     else { downloadDoc(); }
   };
   setTimeout(wait, 700);
+}
+
+function downloadDocWordByIndex(i) {
+  var d = AGENT_STORE.getDocs(currentAgent.id)[i];
+  if (!d) return;
+  exportDocToWord(d.title, d.content, d.agentName || (currentAgent?.nombre||''), d.savedAt);
+}
+
+function misDocsWord(i) {
+  var d = _misDocsGet(i);
+  if (!d) { showSaveToast('⚠️ Documento no encontrado'); return; }
+  exportDocToWord(d.title, d.content||'', d.agentName, d.savedAt);
+}
+
+function downloadDocWord() {
+  if (!viewingDoc) return;
+  exportDocToWord(viewingDoc.title, viewingDoc.content||'', viewingDoc.agentName||'', viewingDoc.savedAt);
 }
 
 function misDocsCalendarizar(i) {
@@ -21215,7 +21327,8 @@ function renderRepositorioDocs() {
             '<div style="display:flex;gap:5px">' +
               '<button class="doc-btn repo-btn" data-action="ver" style="font-size:10px;padding:3px 8px">👁️ Ver</button>' +
               '<button class="doc-btn repo-btn" data-action="copiar" style="font-size:10px;padding:3px 8px">📋</button>' +
-              '<button class="doc-btn repo-btn" data-action="pdf" style="font-size:10px;padding:3px 8px">PDF</button>' +
+              '<button class="doc-btn repo-btn" data-action="pdf" style="font-size:10px;padding:3px 8px">📄 PDF</button>' +
+              '<button class="doc-btn repo-btn" data-action="word" style="font-size:10px;padding:3px 8px">📝 Word</button>' +
               '<button class="doc-btn danger repo-btn" data-action="eliminar" style="font-size:10px;padding:3px 8px">🗑️</button>' +
             '</div>' +
           '</td>' +
@@ -21253,6 +21366,7 @@ function renderRepositorioDocs() {
           '<button class="doc-btn repo-btn" data-action="ver">👁️ Ver</button>' +
           '<button class="doc-btn repo-btn" data-action="copiar">📋 Copiar</button>' +
           '<button class="doc-btn repo-btn" data-action="pdf">📄 PDF</button>' +
+          '<button class="doc-btn repo-btn" data-action="word">📝 Word</button>' +
           '<button class="doc-btn repo-btn" data-action="calendarizar" data-title="'+titleEsc+'">📅</button>' +
           '<button class="doc-btn danger repo-btn" data-action="eliminar">🗑️</button>' +
         '</div>' +
@@ -21289,6 +21403,9 @@ function renderRepositorioDocs() {
         break;
       case 'pdf':
         exportDocToPDF(doc.title||'Documento', doc.content||'', doc.agentName||agentId, doc.savedAt);
+        break;
+      case 'word':
+        exportDocToWord(doc.title||'Documento', doc.content||'', doc.agentName||agentId, doc.savedAt);
         break;
       case 'calendarizar':
         openCalEventModal('','', doc.title, 'documento');
@@ -38431,6 +38548,7 @@ if (!dataLoaded) {
       <button class="btn btn-primary" id="dvContinuarBtn" onclick="dvContinuarConversacion()" style="font-size:11px;display:none">▶ Continuar conversación</button>
       <button class="btn btn-outline" onclick="copyDoc()" style="font-size:11px">📋 Copiar</button>
       <button class="btn btn-outline" onclick="downloadDoc()" style="font-size:11px">📄 Descargar PDF</button>
+      <button class="btn btn-outline" onclick="downloadDocWord()" style="font-size:11px">📝 Descargar Word</button>
       <button class="btn btn-outline" onclick="closeDocViewer()">Cerrar</button>
     </div>
   </div>
