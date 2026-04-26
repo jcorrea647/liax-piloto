@@ -7284,6 +7284,8 @@ async function _sendRecursoPrompt(prompt, lid, area) {
 
     // ── Mostrar botón guardar como documento ──────────────────
     window._saveDocFullContent = reply;
+    window._lastRecursoAgentId = (currentAgent && currentAgent.id) || 'v1';
+    window._lastRecursoAgentNombre = (currentAgent && currentAgent.nombre) || 'Diseñador de Material';
     var oldBar = document.getElementById('saveDocBar');
     if (oldBar) oldBar.remove();
     var bar = document.createElement('div');
@@ -11581,24 +11583,29 @@ function renderDocsPanel() {
 
 function saveCurrentResponseAsDoc(content) {
   const titleInput = document.getElementById('saveDocTitle');
-  const title = titleInput?.value.trim() || `Documento ${new Date().toLocaleDateString('es-CL')}`;
-  // Always use the full conversation content from window var if available
+  const title = titleInput?.value.trim() || ('Documento ' + new Date().toLocaleDateString('es-CL'));
   var fullContent = window._saveDocFullContent || content;
-  const docs = AGENT_STORE.getDocs(currentAgent.id);
-  // Update existing doc with same title, or create new
+
+  // Determinar agente — currentAgent puede ser undefined en agente Generar Recursos
+  var agId     = (currentAgent && currentAgent.id)     || window._lastRecursoAgentId || 'v1';
+  var agNombre = (currentAgent && currentAgent.nombre) || window._lastRecursoAgentNombre || 'Diseñador de Material';
+
+  const docs = AGENT_STORE.getDocs(agId) || [];
   const existingIdx = docs.findIndex(function(d){ return d.title === title; });
   const existingId  = existingIdx > -1 ? docs[existingIdx].id : null;
-  const docObj = { title, content: fullContent, savedAt: new Date().toISOString(), agentId: currentAgent.id, agentName: currentAgent.nombre, id: existingId };
-  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(currentAgent.id, title, fullContent, existingId).catch(function(){});
+  const newId = existingId || ('doc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6));
+  const docObj = { title: title, content: fullContent, savedAt: new Date().toISOString(), agentId: agId, agentName: agNombre, id: newId };
+
+  if (typeof _supaSaveDocChat === 'function') _supaSaveDocChat(agId, title, fullContent, existingId).catch(function(){});
   if (existingIdx > -1) {
-    docs[existingIdx] = docObj; // update existing
+    docs[existingIdx] = docObj;
   } else {
-    docs.unshift(docObj); // create new
+    docs.unshift(docObj);
   }
-  AGENT_STORE.saveDocs(currentAgent.id, docs);
+  AGENT_STORE.saveDocs(agId, docs);
   const bar = document.getElementById('saveDocBar');
-  if (bar) { bar.style.display='none'; }
-  showSaveToast('✅ Documento guardado completo: "' + title + '"');
+  if (bar) { bar.style.display = 'none'; }
+  showSaveToast('✅ Documento guardado: "' + title + '"');
 }
 
 
