@@ -7281,6 +7281,19 @@ async function _sendRecursoPrompt(prompt, lid, area) {
       document.getElementById(lid).outerHTML = makeBubbleAI(formatMsg(reply), undefined, badge);
     }
     area.scrollTop = area.scrollHeight;
+
+    // ── Mostrar botón guardar como documento ──────────────────
+    window._saveDocFullContent = reply;
+    var oldBar = document.getElementById('saveDocBar');
+    if (oldBar) oldBar.remove();
+    var bar = document.createElement('div');
+    bar.id = 'saveDocBar';
+    bar.className = 'save-doc-bar';
+    bar.innerHTML =
+      '<span style="font-size:11px;color:var(--accent2);font-weight:600;white-space:nowrap">💾 Guardar recurso generado:</span>' +
+      '<input class="save-doc-input" id="saveDocTitle" placeholder="Nombre del documento..." value="">' +
+      '<button class="btn btn-outline" style="font-size:10px;white-space:nowrap;border-color:var(--accent2)44;color:var(--accent2)" onclick="saveCurrentResponseAsDoc(window._saveDocFullContent)">💾 Guardar</button>';
+    if (area.parentElement) area.parentElement.insertBefore(bar, area.nextSibling);
   } catch(e) {
     document.getElementById(lid).outerHTML = makeBubbleAI('<span style="color:var(--accent3)">' + (e.message||'Error al generar el recurso.') + '</span>');
   }
