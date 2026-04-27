@@ -7098,7 +7098,7 @@ function startChat(){
     }
   }
   // ── Aviso INDI si hay resultados cargados y el agente los usa ──
-  var _indiAgentes = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno','informe de desempeno'];
+  var _indiAgentes = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno','informe de desempeno','análisis','analisis','resultado','logros de aprendizaje'];
   var _agNombreLow = (currentAgent.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   var _usaIndi = _indiAgentes.some(function(k){ return _agNombreLow.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,'')); });
   if (_usaIndi && window.INDI_RESULTS && window.INDI_RESULTS.length) {
@@ -13126,8 +13126,9 @@ function renderFilesPanel() {
           <div class="file-card">
             <div class="file-icon">${FILE_EMOJI[f.ext]||'📎'}</div>
             <div style="flex:1;min-width:0">
-              <div class="file-name">${f.name}</div>
+              <div class="file-name">${f.name}${f.isIndi ? ' <span style="background:var(--dim2);color:var(--accent2);font-size:9px;padding:1px 6px;border-radius:5px;font-weight:700;margin-left:4px">CARGADO AUTOMÁTICAMENTE</span>' : ''}</div>
               <div class="file-size">${f.ext.toUpperCase()} · ${f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL') : '—'}</div>
+              ${f.isIndi && f.content ? `<div style="margin-top:4px;font-size:10px;color:var(--accent2);background:var(--dim2);border-radius:6px;padding:5px 8px;line-height:1.5;max-height:56px;overflow:hidden">📊 Datos disponibles en contexto del agente — ${window.INDI_RESULTS ? window.INDI_RESULTS.length + ' registros' : ''} de ${window.INDI_CURSO||''}</div>` : ''}
             </div>
             <button class="doc-btn danger" onclick="deleteFile(${i})">✕</button>
           </div>`).join('')}
@@ -16675,6 +16676,20 @@ async function generarInformeAlumno() {
     });
   });
 
+  // ── Incorporar resultados Excel/INDI si están cargados ──
+  let indiSummary = '';
+  if (window.INDI_RESULTS && window.INDI_RESULTS.length) {
+    // Normalizar nombre para comparación flexible
+    const normNombre = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    const alumnoRows = window.INDI_RESULTS.filter(r => normNombre(r.NOMBRE_COMPLETO) === normNombre(nombre));
+    if (alumnoRows.length) {
+      indiSummary = '\n\nRESULTADOS DEL EXCEL CARGADO (curso: ' + (window.INDI_CURSO||'—') + '):';
+      alumnoRows.forEach(r => {
+        indiSummary += '\n  ' + [r.AREA, r.SUBAREA, r.RESULTADO, r.EDAD ? ('Edad: '+r.EDAD) : ''].filter(Boolean).join(' · ');
+      });
+    }
+  }
+
   const neeInfo = [alumno.nee, alumno.neeT].filter(Boolean).join(', ') || 'Ninguna';
 
   const prompt = `Eres un psicopedagogo y experto en educación chilena. Genera un INFORME PEDAGÓGICO PERSONALIZADO del siguiente alumno.
@@ -16690,15 +16705,15 @@ UMBRALES DEL COLEGIO:
 - Asistencia mínima: ${u.asist}% | Crítica: ${u.asistCrit}%
 - Nivel mínimo evaluaciones: ${u.nivel}
 
-DATOS ACADÉMICOS DEL ALUMNO:${dataSummary || '\n(Sin datos cargados en el sistema)'}
+DATOS ACADÉMICOS DEL ALUMNO:${dataSummary || '\n(Sin datos cargados en el sistema)'}${indiSummary}
 
 Genera un INFORME NARRATIVO PERSONALIZADO con las siguientes secciones:
 1. **RESUMEN DEL PERFIL** — síntesis integral del alumno (2 párrafos)
-2. **ANÁLISIS ACADÉMICO** — rendimiento por área, tendencias, comparación con umbrales del colegio
+2. **ANÁLISIS ACADÉMICO** — rendimiento por área, tendencias, comparación con umbrales del colegio${indiSummary ? '\n   Incluye análisis detallado de los resultados del Excel cargado: áreas evaluadas, subareas y resultados obtenidos.' : ''}
 3. **ANÁLISIS DE ASISTENCIA Y PARTICIPACIÓN** — si hay datos disponibles
 4. **FACTORES DE RIESGO** — alertas específicas basadas en los datos
 5. **FORTALEZAS IDENTIFICADAS** — aspectos positivos del perfil
-6. **RECOMENDACIONES DE INTERVENCIÓN** — estrategias diferenciadas, considerando NEE si aplica
+6. **RECOMENDACIONES DE INTERVENCIÓN** — estrategias diferenciadas por área y subárea, considerando NEE si aplica
 7. **PRÓXIMOS PASOS** — acciones concretas para docente, familia y equipo directivo
 
 Tono profesional, empático y orientado a la acción. Sé específico con los datos numéricos.`;
@@ -36447,9 +36462,26 @@ function _indiRegisterFiles() {
   if (!cursoNombre && window.INDI_RESULTS[0]) {
     cursoNombre = ((window.INDI_RESULTS[0].CURSO||'') + ' ' + (window.INDI_RESULTS[0].LETRA||'')).trim();
   }
-  var fileName = 'Resultados INDI — ' + cursoNombre + '.xlsx';
-  // Broader keywords — match any agent with 'analisis' OR 'informe' in name
-  var keywords = ['analisis','análisis','informe desempe','informe de desempe'];
+  var fileName = 'Resultados Excel — ' + cursoNombre + '.xlsx';
+
+  // Build a plain-text summary of INDI data to inject as content in agents
+  var rows = window.INDI_RESULTS;
+  var alumnos = [...new Set(rows.map(function(r){ return r.NOMBRE_COMPLETO; }))];
+  var areas   = [...new Set(rows.map(function(r){ return r.AREA; }).filter(Boolean))];
+  var resumenLineas = ['Curso: ' + cursoNombre, 'Total alumnos: ' + alumnos.length, 'Áreas evaluadas: ' + (areas.join(', ')||'—'), ''];
+  alumnos.forEach(function(nom) {
+    var misRows = rows.filter(function(r){ return r.NOMBRE_COMPLETO === nom; });
+    resumenLineas.push('Alumno: ' + nom);
+    misRows.forEach(function(r) {
+      resumenLineas.push('  ' + [r.AREA, r.SUBAREA, r.RESULTADO].filter(Boolean).join(' · '));
+    });
+  });
+  var contenidoTexto = resumenLineas.join('\n');
+  // Store globally so prompts can reference it
+  window.INDI_FILE_CONTENT = contenidoTexto;
+
+  // Match ALL agents that involve 'analisis', 'resultado', or 'informe'
+  var keywords = ['analisis','análisis','resultado','informe'];
   var norm = function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
   var agents = (window.AGENTS||[]);
   console.log('[INDI] _indiRegisterFiles — total agents:', agents.length, '| names:', agents.map(function(a){return a.nombre;}).join(', '));
@@ -36459,14 +36491,15 @@ function _indiRegisterFiles() {
     var nameLow = norm(ag.nombre);
     var match = keywords.some(function(k){ return nameLow.includes(norm(k)); });
     if (!match) return;
-    var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !(f.name||'').startsWith('Resultados INDI'); });
-    files.unshift({ name: fileName, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true });
+    var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !(f.name||'').startsWith('Resultados Excel'); });
+    files.unshift({ name: fileName, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true, content: contenidoTexto });
     AGENT_STORE.saveFiles(ag.id, files);
     count++;
     console.log('[INDI] Archivo registrado en agente:', ag.nombre, '| id:', ag.id);
   });
   if (count === 0) console.warn('[INDI] No hubo match. Keywords:', keywords, '| Agentes:', agents.map(function(a){ return norm(a.nombre); }));
   if (currentAgent && typeof renderFilesPanel === 'function') renderFilesPanel();
+  showSaveToast('📊 Excel cargado en Archivos de agentes (' + count + ' agente' + (count!==1?'s':'') + ')');
 }
 
 async function _supaSaveAlumno(alumno) {
