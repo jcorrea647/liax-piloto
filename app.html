@@ -1906,22 +1906,6 @@
           <span id="indiLoadBtnText">Carga tus resultados INDI</span>
         </button>
         <div id="indiLoadStatus" style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center;display:none"></div>
-        <script>
-          (function(){
-            try {
-              var t = sessionStorage.getItem('indi_btn_text');
-              var s = sessionStorage.getItem('indi_btn_stat');
-              if (t) {
-                var b = document.getElementById('indiLoadBtn');
-                var tx = document.getElementById('indiLoadBtnText');
-                var st = document.getElementById('indiLoadStatus');
-                if (b) b.classList.add('loaded');
-                if (tx) tx.textContent = t;
-                if (st && s) { st.textContent = s; st.style.display = 'block'; st.style.color = '#00e5c0'; }
-              }
-            } catch(e){}
-          })();
-        </script>
       </div>
 
       <!-- ══ AGENTES FAVORITOS — compacto ══ -->
@@ -8175,7 +8159,8 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     // Update button
     var _fBtnText = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
     var _fStatText = cursoNombre + ' · ' + resumen;
-    try { sessionStorage.setItem('indi_btn_text', _fBtnText); sessionStorage.setItem('indi_btn_stat', _fStatText); } catch(e){}
+    window._indiBtnText  = _fBtnText;
+    window._indiStatText = _fStatText;
     btn.classList.add('loaded');
     txt.textContent = _fBtnText;
     stat.textContent = _fStatText;
@@ -13984,23 +13969,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Los selects de capacidades se crean dinámicamente en renderCapacidadesPanel()
   // y usan onchange="onCompetChange(id,value)" inline.
 
-  // Restore INDI button state from sessionStorage (visual inmediato mientras Supabase carga)
-  try {
-    var savedText = sessionStorage.getItem('indi_btn_text');
-    var savedStat = sessionStorage.getItem('indi_btn_stat');
-    if (savedText) {
-      var btn2 = document.getElementById('indiLoadBtn');
-      var txt2 = document.getElementById('indiLoadBtnText');
-      var stat2 = document.getElementById('indiLoadStatus');
-      if (btn2) btn2.classList.add('loaded');
-      if (txt2) txt2.textContent = savedText;
-      if (stat2) {
-        stat2.textContent = savedStat || '';
-        stat2.style.display = 'block';
-        stat2.style.color = 'var(--accent2)';
-      }
-    }
-  } catch(e) {}
+  // Restaurar botón INDI si ya hay datos en memoria (cargados por Supabase)
+  // Se ejecuta después de DOMContentLoaded — Supabase puede tardar más, ver _applyIndiBtnState
+  if (window._indiBtnText) {
+    var btn2 = document.getElementById('indiLoadBtn');
+    var txt2 = document.getElementById('indiLoadBtnText');
+    var stat2 = document.getElementById('indiLoadStatus');
+    if (btn2) btn2.classList.add('loaded');
+    if (txt2) txt2.textContent = window._indiBtnText;
+    if (stat2 && window._indiStatText) { stat2.textContent = window._indiStatText; stat2.style.display = 'block'; stat2.style.color = 'var(--accent2)'; }
+  }
 });
 
 // ── Contadores badge ─────────────────────────────────────────
@@ -36462,25 +36440,23 @@ async function _supaLoadIndiResultados() {
         }
       })(16);
 
-      // Update button UI + persist state
-      var _btnText = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
+      // Update button UI — función reutilizable para llamar en cualquier momento
       var resultCounts2 = {};
       data.forEach(function(r){ var res = r.resultado||'Sin dato'; resultCounts2[res]=(resultCounts2[res]||0)+1; });
-      var _statText = window.INDI_CURSO + ' · ' + Object.keys(resultCounts2).map(function(k){ return k+': '+resultCounts2[k]; }).join(' · ');
-      try { sessionStorage.setItem('indi_btn_text', _btnText); sessionStorage.setItem('indi_btn_stat', _statText); } catch(e){}
-      var btn  = document.getElementById('indiLoadBtn');
-      var txt  = document.getElementById('indiLoadBtnText');
-      var stat = document.getElementById('indiLoadStatus');
-      if (btn && txt) {
-        btn.classList.add('loaded');
-        txt.textContent = _btnText;
+      window._indiStatText = window.INDI_CURSO + ' · ' + Object.keys(resultCounts2).map(function(k){ return k+': '+resultCounts2[k]; }).join(' · ');
+      window._indiBtnText  = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
+      function _applyIndiBtnState() {
+        var btn  = document.getElementById('indiLoadBtn');
+        var txt  = document.getElementById('indiLoadBtnText');
+        var stat = document.getElementById('indiLoadStatus');
+        if (btn)  { btn.classList.add('loaded'); }
+        if (txt)  { txt.textContent = window._indiBtnText; }
+        if (stat) { stat.textContent = window._indiStatText; stat.style.display = 'block'; stat.style.color = 'var(--accent2)'; }
       }
-      if (stat) {
-        var resultCounts = resultCounts2;
-        stat.textContent = _statText;
-        stat.style.display = 'block';
-        stat.style.color = 'var(--accent2)';
-      }
+      _applyIndiBtnState();
+      // Re-apply after 500ms and 1500ms in case the DOM wasn't ready
+      setTimeout(_applyIndiBtnState, 500);
+      setTimeout(_applyIndiBtnState, 1500);
     }
   } catch(e) { console.warn('[INDI] Error cargando resultados:', e.message); }
 }
