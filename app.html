@@ -3918,7 +3918,6 @@ async function _supaLoadPerfil() {
     await _supaLoadRags();
     await denLoad();
     await _supaLoadAgentes();
-    _indiRegisterFiles(); // Register INDI file in agents after they're loaded
     await _supaLoadVisualFlags();
     await _loadFavoritesFromSupabase();
     await _supaLoadDatos();
@@ -3929,6 +3928,7 @@ async function _supaLoadPerfil() {
     await _supaLoadNivel();
     await _supaLoadCargos();
     await _supaLoadAreasCurriculares();
+    _indiRegisterFiles(); // Register INDI results in agent files panel (agents + results both loaded now)
   } else {
     // Sin perfil en tabla usuarios — igual cargar agentes y datos básicos
     console.warn('[LIAX] Usuario sin perfil en tabla usuarios — cargando agentes igual');
