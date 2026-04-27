@@ -8017,11 +8017,19 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
       }
     }
 
+    // ── Reload alumnos from Supabase so Mi Aula reflects new data ──
+    if (typeof _supaLoadAlumnos === 'function') {
+      await _supaLoadAlumnos();
+    }
+
     // Refresh UI
     if (typeof renderCursoResumen === 'function') renderCursoResumen();
     if (typeof renderCursoChips === 'function') renderCursoChips();
     if (typeof renderMisCursos === 'function') renderMisCursos();
     if (typeof renderGestionCursos === 'function') renderGestionCursos();
+    // Force re-render of Mi Aula curso chips
+    var chipsEl = document.getElementById('cursoFilterChips');
+    if (chipsEl) renderCursoChips();
 
     // Update button
     btn.classList.add('loaded');
