@@ -5114,18 +5114,21 @@ function getVisibleCursos(visible) {
 function renderCursoChips() {
   const all = DATOS_STORE.getAll();
   let base = all;
+  let chipsFromAlumnos = [];
   if (currentRole === 'docente' && currentDocenteId) {
     const doc = DB.docentes.find(d => d.id === currentDocenteId);
-    const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(c=>CURSOS.includes(c)));
-    // If real Supabase user (no demo cursosAsignados), show all cursos from DB.alumnos
-    if (misCursos.size === 0 && DB.alumnos && DB.alumnos.length) {
-      // Use all courses from Supabase alumnos — docente sees all courses in their colegio
-      base = all; // no filter
-    } else if (misCursos.size > 0) {
-      base = all.filter(d => !d.curso || misCursos.has(d.curso));
+    // Get cursos from cursosAsignados (without CURSOS filter)
+    const misCursosRaw = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(Boolean));
+    // Also get from DB.alumnos by user_id as fallback
+    const cursosDeAlumnos = new Set((DB.alumnos||[]).filter(a=>a.user_id===currentDocenteId).map(a=>a.esp).filter(Boolean));
+    // Merge both
+    const allMisCursos = new Set([...misCursosRaw, ...cursosDeAlumnos]);
+    if (allMisCursos.size > 0) {
+      chipsFromAlumnos = [...allMisCursos].sort();
+      base = all.filter(d => !d.curso || allMisCursos.has(d.curso));
     }
   }
-  const cursos = getVisibleCursos(base);
+  const cursos = chipsFromAlumnos.length ? chipsFromAlumnos : getVisibleCursos(base);
   const chips  = document.getElementById('cursoFilterChips');
   if (!chips) return;
   if (!cursos.length) { chips.innerHTML = ''; return; }
@@ -5184,16 +5187,22 @@ function renderCursoResumen() {
 
   // Which datasets are visible
   let base = all;
+  let cursosDocente = [];
   if (currentRole === 'docente' && currentDocenteId) {
     const doc = DB.docentes.find(d => d.id === currentDocenteId);
-    const misCursos = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(c=>CURSOS.includes(c)));
-    base = all.filter(d => !d.curso || misCursos.has(d.curso));
+    const misCursosRaw = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(Boolean));
+    const cursosDeAlumnos = new Set((DB.alumnos||[]).filter(a=>a.user_id===currentDocenteId).map(a=>a.esp).filter(Boolean));
+    const allMisCursos = new Set([...misCursosRaw, ...cursosDeAlumnos]);
+    if (allMisCursos.size > 0) {
+      cursosDocente = [...allMisCursos].sort();
+      base = all.filter(d => !d.curso || allMisCursos.has(d.curso));
+    }
   }
 
   // Which courses to show
   const cursos = cursosFilter.size > 0
     ? [...cursosFilter].sort()
-    : getVisibleCursos(base);
+    : (cursosDocente.length ? cursosDocente : getVisibleCursos(base));
 
   if (!cursos.length) { el.innerHTML = ''; return; }
 
@@ -23105,8 +23114,15 @@ function mcGetAlumnos() {
   var alumnos = DB.alumnos.slice();
   if (currentRole === 'docente' && currentDocenteId) {
     var doc = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
-    var mc  = new Set((doc ? doc.cursosAsignados||[] : []).map(function(c){ return c.curso; }).filter(function(c){ return CURSOS.indexOf(c)>-1; }));
-    alumnos = alumnos.filter(function(a){ return mc.has(a.esp); });
+    // Use cursosAsignados WITHOUT filtering by CURSOS array
+    // CURSOS array may not be populated yet when this is called
+    var mc = new Set((doc ? doc.cursosAsignados||[] : []).map(function(c){ return c.curso; }).filter(Boolean));
+    // If cursosAsignados empty, fall back to user_id
+    if (mc.size === 0) {
+      alumnos = alumnos.filter(function(a){ return a.user_id === currentDocenteId; });
+    } else {
+      alumnos = alumnos.filter(function(a){ return mc.has(a.esp); });
+    }
   } else if (currentRole === 'director') {
     var estab = typeof getDirectorEstablecimiento==='function' ? getDirectorEstablecimiento() : null;
     if (estab) alumnos = alumnos.filter(function(a){
