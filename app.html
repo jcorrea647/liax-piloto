@@ -7998,7 +7998,32 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     stat.style.display = 'block';
     stat.style.color = 'var(--muted)';
 
-    // 1. Save curso
+    // 1. Limpiar cursos anteriores del docente en Supabase
+    if (_supa && _supaUser) {
+      // Borrar TODOS los docente_cursos anteriores
+      var delDC = await _supa.from('docente_cursos').delete().eq('docente_id', _supaUser.id);
+      if (delDC.error) console.warn('[INDI] Error borrando docente_cursos:', delDC.error.message);
+      else console.log('[INDI] docente_cursos anteriores eliminados');
+      
+      // Borrar TODOS los cursos anteriores del usuario
+      var delC = await _supa.from('cursos').delete().eq('user_id', _supaUser.id);
+      if (delC.error) console.warn('[INDI] Error borrando cursos:', delC.error.message);
+      else console.log('[INDI] Cursos anteriores eliminados');
+
+      // Borrar TODOS los alumnos anteriores del usuario (sin filtrar por curso)
+      var delA = await _supa.from('alumnos').delete().eq('user_id', _supaUser.id);
+      if (delA.error) console.warn('[INDI] Error borrando alumnos:', delA.error.message);
+      else console.log('[INDI] Alumnos anteriores eliminados');
+    }
+
+    // Limpiar DB local también
+    DB.alumnos = DB.alumnos.filter(function(a){ return !a.user_id || a.user_id === 'demo'; });
+    if (DB.docentes) {
+      var docLocal = DB.docentes.find(function(d){ return d.id === (_supaUser && _supaUser.id); });
+      if (docLocal) docLocal.cursosAsignados = [];
+    }
+
+    // 1. Save nuevo curso
     if (typeof _supaSaveCurso === 'function') await _supaSaveCurso(cursoNombre);
 
     // 2. Add to local DB + update CURSOS array dynamically
@@ -8038,12 +8063,7 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     // Save to Supabase if connected
     stat.textContent = '⏳ Guardando ' + alumnos.length + ' alumnos en Supabase...';
     if (_supa && _supaUser) {
-      // Borrar alumnos previos — requiere colegio_id por política RLS
-      var delQuery = _supa.from('alumnos').delete().eq('user_id', _supaUser.id);
-      if (colegioId) delQuery = delQuery.eq('colegio_id', colegioId);
-      var delAll = await delQuery;
-      if (delAll.error) console.warn('[INDI] Error borrando alumnos previos:', delAll.error.message);
-      else console.log('[INDI] Alumnos previos eliminados');
+      // Alumnos ya borrados arriba
 
       var ts = Date.now();
       var inserts = alumnos.map(function(nombre, i) {
