@@ -7961,13 +7961,10 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
   });
   var resumen = Object.keys(resultCounts).map(function(k){ return k+': '+resultCounts[k]; }).join(' · ');
 
-  // ── Preguntar si ya existe nómina para este curso ──
-  // Verificar en DB.alumnos local (ya cargados desde Supabase al inicio)
-  var alumnosExistentes = DB.alumnos.filter(function(a){
-    return a.esp === cursoNombre && a.user_id && a.user_id !== 'demo';
-  });
-  if (alumnosExistentes.length > 0) {
-    var ok = confirm('El curso "' + cursoNombre + '" ya tiene ' + alumnosExistentes.length + ' alumnos registrados. ¿Sobreescribir con los ' + alumnos.length + ' alumnos del archivo INDI?');
+  // ── Preguntar si ya hay resultados INDI cargados ──
+  if (window.INDI_RESULTS && window.INDI_RESULTS.length > 0) {
+    var prevCurso = window.INDI_CURSO || 'curso anterior';
+    var ok = confirm('Ya tienes resultados INDI cargados para "' + prevCurso + '". ¿Reemplazar con los ' + alumnos.length + ' alumnos del nuevo archivo?');
     if (!ok) {
       txt.textContent = 'Carga tus resultados INDI';
       stat.textContent = 'Carga cancelada.';
