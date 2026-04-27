@@ -8064,14 +8064,15 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     // Remove old alumnos for this course from local DB
     DB.alumnos = DB.alumnos.filter(function(a){ return a.esp !== cursoNombre; });
 
-    // Add new alumnos to local DB
+    // Add new alumnos to local DB (marked _fromSupabase so dedup works on reload)
     alumnos.forEach(function(nombre, i) {
       DB.alumnos.push({
         id: 'indi_' + uid + '_' + i + '_' + cursoNombre.replace(/\s/g,''),
         nombre: nombre,
         esp: cursoNombre,
         rut: '', nee: '', neeT: '', notas: [], asistencia: [],
-        user_id: uid
+        user_id: uid,
+        _fromSupabase: true
       });
     });
 
@@ -13123,17 +13124,65 @@ function renderFilesPanel() {
           <button class="btn btn-outline" style="font-size:10px;color:var(--accent3);border-color:var(--accent3)33" onclick="clearAllFiles()">🗑️ Limpiar todos</button>
         </div>
         ${files.map((f,i) => `
-          <div class="file-card">
+          <div class="file-card" style="${f.isIndi ? 'border-color:var(--accent2)44;background:var(--dim2)' : ''}">
             <div class="file-icon">${f.isIndi ? '📊' : (FILE_EMOJI[f.ext]||'📎')}</div>
             <div style="flex:1;min-width:0">
               <div class="file-name">${f.name}${f.isIndi ? ' <span style=\"background:rgba(0,229,192,.15);color:var(--accent2);font-size:9px;padding:1px 6px;border-radius:5px;font-weight:700;margin-left:4px\">AUTO</span>' : ''}</div>
-              <div class="file-size">${f.ext.toUpperCase()} · ${f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL') : '—'}${f.isIndi && window.INDI_RESULTS ? ' · ' + window.INDI_RESULTS.length + ' registros' : ''}</div>
+              <div class="file-size">${f.ext.toUpperCase()} · ${f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL') : '—'}${f.isIndi && window.INDI_RESULTS ? ' · ' + window.INDI_RESULTS.length + ' registros · ' + ([...new Set(window.INDI_RESULTS.map(r=>r.NOMBRE_COMPLETO))].length) + ' alumnos' : ''}</div>
+              ${f.isIndi ? '<button class=\"doc-btn\" style=\"margin-top:5px;font-size:10px;color:var(--accent2)\" onclick=\"showIndiFilePreview()\">👁 Ver datos del Excel</button>' : ''}
             </div>
             <button class="doc-btn danger" onclick="deleteFile(${i})">✕</button>
           </div>`).join('')}
         `
       }
     </div>`;
+}
+
+function showIndiFilePreview() {
+  if (!window.INDI_RESULTS || !window.INDI_RESULTS.length) {
+    showSaveToast('No hay datos del Excel en memoria', false); return;
+  }
+  var rows = window.INDI_RESULTS;
+  var alumnos = [...new Set(rows.map(function(r){ return r.NOMBRE_COMPLETO; }))].sort();
+  var areas   = [...new Set(rows.map(function(r){ return r.AREA; }).filter(Boolean))];
+
+  // Build table HTML grouped by alumno
+  var html = '<div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:10px">📊 ' + alumnos.length + ' alumnos · ' + rows.length + ' registros · Curso: ' + (window.INDI_CURSO||'—') + '</div>';
+  html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+  html += '<thead><tr style="background:var(--surface2)">';
+  html += '<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">Alumno</th>';
+  html += '<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">Área</th>';
+  html += '<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">Subárea</th>';
+  html += '<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">Resultado</th>';
+  html += '</tr></thead><tbody>';
+  rows.forEach(function(r, i) {
+    var bg = i % 2 === 0 ? '' : 'background:var(--surface2)';
+    html += '<tr style="' + bg + '">';
+    html += '<td style="padding:4px 8px;border-bottom:1px solid var(--border)22">' + (r.NOMBRE_COMPLETO||'—') + '</td>';
+    html += '<td style="padding:4px 8px;border-bottom:1px solid var(--border)22">' + (r.AREA||'—') + '</td>';
+    html += '<td style="padding:4px 8px;border-bottom:1px solid var(--border)22">' + (r.SUBAREA||'—') + '</td>';
+    var res = r.RESULTADO || '—';
+    var resColor = res === 'Destacado' ? '#28a86a' : res === 'Esperado' ? 'var(--accent1)' : res === 'Muy descendido' || res === 'Descendido' ? '#e05252' : 'var(--muted)';
+    html += '<td style="padding:4px 8px;border-bottom:1px solid var(--border)22;color:' + resColor + ';font-weight:700">' + res + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // Show in a modal overlay
+  var existing = document.getElementById('indiPreviewModal');
+  if (existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'indiPreviewModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:#00000099;z-index:999;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+  modal.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:860px;max-height:85vh;display:flex;flex-direction:column">' +
+    '<div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0">' +
+      '<span style="font-size:18px">📊</span>' +
+      '<div style="flex:1;font-family:Syne,sans-serif;font-weight:800;font-size:14px">Datos del Excel cargado</div>' +
+      '<button onclick="document.getElementById('indiPreviewModal').remove()" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 12px;cursor:pointer;font-size:12px">✕ Cerrar</button>' +
+    '</div>' +
+    '<div style="flex:1;overflow-y:auto;padding:16px 18px">' + html + '</div>' +
+  '</div>';
+  document.body.appendChild(modal);
 }
 
 function logFileToPanel(name) {
