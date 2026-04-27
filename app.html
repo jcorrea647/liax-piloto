@@ -5097,8 +5097,8 @@ function getVisibleCursos(visible) {
     // Fallback: use cursosAsignados regardless of CURSOS array
     const misCursosFallback = new Set((doc?.cursosAsignados||[]).map(c=>c.curso).filter(Boolean));
     if (misCursosFallback.size > 0) return [...misCursosFallback].sort();
-    // Last resort: derive from DB.alumnos
-    const cursosDeAlumnos = new Set((DB.alumnos||[]).filter(a=>a.user_id===currentDocenteId||a._fromSupabase).map(a=>a.esp).filter(Boolean));
+    // Last resort: derive from DB.alumnos filtered strictly by this docente's user_id
+    const cursosDeAlumnos = new Set((DB.alumnos||[]).filter(a=>a.user_id===currentDocenteId).map(a=>a.esp).filter(Boolean));
     if (cursosDeAlumnos.size > 0) return [...cursosDeAlumnos].sort();
     return [];
   }
@@ -8003,6 +8003,7 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     if (_supa && _supaUser) {
       // Borrar TODOS los docente_cursos anteriores
       var delDC = await _supa.from('docente_cursos').delete().eq('docente_id', _supaUser.id);
+      console.log('[INDI] DELETE docente_cursos result:', JSON.stringify(delDC.error || 'OK'), 'count:', delDC.count);
       if (delDC.error) console.warn('[INDI] Error borrando docente_cursos:', delDC.error.message);
       else console.log('[INDI] docente_cursos anteriores eliminados');
       
