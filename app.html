@@ -36195,8 +36195,14 @@ async function _supaLoadDocenteCursos() {
     }
 
     var docente = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
-    if (!docente) return;
+    console.log('[LIAX] _supaLoadDocenteCursos: docente encontrado:', !!docente, '| DB.docentes count:', DB.docentes.length, '| user:', _supaUser.id);
+    if (!docente) {
+      console.warn('[LIAX] Docente no encontrado en DB — creando entrada temporal');
+      docente = { id: _supaUser.id, nombre: '', cursosAsignados: [], _fromSupabase: true };
+      DB.docentes.push(docente);
+    }
 
+    console.log('[LIAX] _supaLoadDocenteCursos rows:', rows.length, 'docente en DB:', !!docente);
     if (rows.length) {
       docente.cursosAsignados = rows.map(function(dc) {
         return { curso: dc.curso, asignaturas: dc.asignatura ? [dc.asignatura] : [] };
