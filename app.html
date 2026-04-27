@@ -36398,7 +36398,8 @@ async function _supaLoadIndiResultados() {
       var nAlumnos = [...new Set(data.map(function(r){ return r.nombre_alumno; }))].length;
       console.log('[INDI] Resultados cargados desde Supabase:', data.length, 'registros,', nAlumnos, 'alumnos');
 
-      // Files will be registered after agents load via _indiRegisterFiles()
+      // Register files after a delay to ensure agents are loaded
+      setTimeout(function(){ _indiRegisterFiles(); }, 2000);
 
       // Update button UI
       var btn  = document.getElementById('indiLoadBtn');
