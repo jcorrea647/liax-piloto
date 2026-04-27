@@ -8361,7 +8361,10 @@ async function sendChat(){
     'DOCUMENTOS Y COMPLETITUD:',
     '- Si el usuario pide un informe, planificación, guía, rúbrica o cualquier documento:',
     '  ENTREGARLO COMPLETO hasta el final. JAMÁS cortar a la mitad.',
-    '  Tienes hasta 16.000 tokens — úsalos si el documento lo requiere.',
+    '  Tienes hasta 32.000 tokens — úsalos TODOS si el documento lo requiere.',
+    '  Si es una planificación, proyecto, unidad o cualquier documento estructurado:',
+    '  COMPLETAR TODAS LAS SECCIONES sin excepción. No resumir. No acortar.',
+    '  NUNCA terminar con frases como "continuaré" o "¿quieres que siga?" — simplemente CONTINUAR.',
     '  NUNCA incluir la conversación del chat en el documento generado.',
     '',
     'DIAGRAMAS: si el usuario pide un diagrama, esquema o mapa, genera un bloque ```svg:',
@@ -8534,16 +8537,23 @@ async function sendChat(){
   // Detectar tipo de tarea
   var _hasExcel    = _msgLower.includes('excel') || _msgLower.includes('planilla') ||
                      _msgLower.includes('.xlsx') || _msgLower.includes('.csv');
+  // Detectar también por nombre del agente actual
+  var _agentNameLower = (currentAgent && currentAgent.nombre ? currentAgent.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'') : '');
   var _isInforme   = _msgLower.includes('informe') || _msgLower.includes('genera') ||
                      _msgLower.includes('crea el') || _msgLower.includes('redact') ||
-                     _msgLower.includes('escribe') || _msgLower.includes('elabora');
+                     _msgLower.includes('escribe') || _msgLower.includes('elabora') ||
+                     // Agentes que siempre generan documentos largos
+                     /planificaci|proyecto|unidad|secuencia|rubrica|recurso|informe|desempen|instrumento/.test(_agentNameLower);
   var _isDocumento = _msgLower.includes('planificaci') || _msgLower.includes('rúbrica') ||
                      _msgLower.includes('rubrica') || _msgLower.includes('guía') ||
                      _msgLower.includes('guia') || _msgLower.includes('completo') ||
                      _msgLower.includes('evaluación') || _msgLower.includes('evaluacion') ||
                      _msgLower.includes('pauta') || _msgLower.includes('secuencia') ||
                      _msgLower.includes('unidad') || _msgLower.includes('taller') ||
-                     _msgLower.includes('programa') || _msgLower.includes('instrumento');
+                     _msgLower.includes('programa') || _msgLower.includes('instrumento') ||
+                     _msgLower.includes('proyecto') || _msgLower.includes('recurso') ||
+                     // Por nombre de agente
+                     /planificaci|proyecto|unidad|secuencia|rubrica|recurso|instrumento/.test(_agentNameLower);
   var _isNEE       = _msgLower.includes('nee') || _msgLower.includes('dua') ||
                      _msgLower.includes('adaptación') || _msgLower.includes('inclusión');
 
@@ -8564,14 +8574,15 @@ async function sendChat(){
   } else if (_isNEE) {
     // NEE — Gemini Pro (análisis pedagógico complejo)
     _selectedModel  = LIAX_MODELS['gemini-pro'].id;
-    _selectedTokens = 16000;
+    _selectedTokens = 32000;
   } else if (_isInforme || _isDocumento) {
+    // Documentos largos — máximo espacio para no cortar
     _selectedModel  = LIAX_MODELS['gemini-pro'].id;
-    _selectedTokens = 16000;
+    _selectedTokens = 32000;
   } else {
-    // Todo lo demás — Gemini Pro para consistencia de instrucciones
+    // Todo lo demás
     _selectedModel  = LIAX_MODELS['gemini-pro'].id;
-    _selectedTokens = 4000;
+    _selectedTokens = 8000;
   }
 
   // ── Construir historial limpio para enviar ────────────────
