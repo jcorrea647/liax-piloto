@@ -3909,15 +3909,16 @@ async function _supaLoadPerfil() {
     // Cargar cursos del docente DESPUÉS de que CURSOS esté poblado
     if (rol === 'docente') {
       await _supaLoadDocenteCursos();
-      applyDocenteView();
+      applyDocenteView(); // Re-render banner now that cursosAsignados is populated
       await _supaLoadAlumnos();  // DESPUÉS de applyDocenteView para no perder los datos
-    await _supaLoadIndiResultados(); // Cargar resultados INDI persistidos
+      await _supaLoadIndiResultados(); // Cargar resultados INDI persistidos
     } else {
       await _supaLoadAlumnos();
     }
     await _supaLoadRags();
     await denLoad();
     await _supaLoadAgentes();
+    _indiRegisterFiles(); // Register INDI file in agents after they're loaded
     await _supaLoadVisualFlags();
     await _loadFavoritesFromSupabase();
     await _supaLoadDatos();
@@ -8161,26 +8162,8 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     stat.style.color = 'var(--accent2)';
     showSaveToast('✅ Curso "' + cursoNombre + '" creado con ' + nAlumnos + ' alumnos');
 
-    // ── Registrar archivo INDI en panel Archivos de agentes relevantes ──
-    var _indiFileName = 'Resultados INDI — ' + cursoNombre + '.xlsx';
-    var _indiKeywords = ['análisis de resultados', 'analisis de resultados',
-                         'informe desempeño', 'informe de desempeño',
-                         'informe desempeno', 'informe de desempeno'];
-    var _normalize = function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
-    var _allAgents = (window.AGENTS || []).concat(window.customAgents || []);
-    _allAgents.forEach(function(ag) {
-      if (!ag || !ag.id || !ag.nombre) return;
-      var nameLow = _normalize(ag.nombre);
-      var match = _indiKeywords.some(function(k){ return nameLow.includes(_normalize(k)); });
-      if (!match) return;
-      // Remove old INDI file, add new one
-      var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !f.name.startsWith('Resultados INDI'); });
-      files.unshift({ name: _indiFileName, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true });
-      AGENT_STORE.saveFiles(ag.id, files);
-      console.log('[INDI] Archivo registrado en agente:', ag.nombre);
-    });
-    // Refresh files panel if open
-    if (currentAgent && typeof renderFilesPanel === 'function') renderFilesPanel();
+    // Register file in agents panel
+    _indiRegisterFiles();
 
   } catch(e) {
     console.error('[INDI] Error guardando curso:', e);
@@ -36415,18 +36398,7 @@ async function _supaLoadIndiResultados() {
       var nAlumnos = [...new Set(data.map(function(r){ return r.nombre_alumno; }))].length;
       console.log('[INDI] Resultados cargados desde Supabase:', data.length, 'registros,', nAlumnos, 'alumnos');
 
-      // ── Registrar en panel Archivos de agentes relevantes ──
-      var _indiFileNameLoad = 'Resultados INDI — ' + (data[0].curso_nombre || '') + '.xlsx';
-      var _indiKwLoad = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno'];
-      var _normLoad = function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
-      var _allAgentsLoad = (window.AGENTS||[]).concat(window.customAgents||[]);
-      _allAgentsLoad.forEach(function(ag){
-        if (!ag||!ag.id||!ag.nombre) return;
-        if (!_indiKwLoad.some(function(k){ return _normLoad(ag.nombre).includes(_normLoad(k)); })) return;
-        var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !f.name.startsWith('Resultados INDI'); });
-        files.unshift({ name: _indiFileNameLoad, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true });
-        AGENT_STORE.saveFiles(ag.id, files);
-      });
+      // Files will be registered after agents load via _indiRegisterFiles()
 
       // Update button UI
       var btn  = document.getElementById('indiLoadBtn');
@@ -36445,6 +36417,27 @@ async function _supaLoadIndiResultados() {
       }
     }
   } catch(e) { console.warn('[INDI] Error cargando resultados:', e.message); }
+}
+
+function _indiRegisterFiles() {
+  if (!window.INDI_RESULTS || !window.INDI_RESULTS.length) return;
+  var cursoNombre = window.INDI_CURSO || (window.INDI_RESULTS[0] && (window.INDI_RESULTS[0].CURSO||'') + ' ' + (window.INDI_RESULTS[0].LETRA||'')).trim() || '';
+  var fileName = 'Resultados INDI — ' + cursoNombre + '.xlsx';
+  var keywords = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno'];
+  var norm = function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
+  var agents = (window.AGENTS||[]).concat(window.customAgents||[]);
+  var count = 0;
+  agents.forEach(function(ag) {
+    if (!ag||!ag.id||!ag.nombre) return;
+    if (!keywords.some(function(k){ return norm(ag.nombre).includes(norm(k)); })) return;
+    var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !f.name.startsWith('Resultados INDI'); });
+    files.unshift({ name: fileName, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true });
+    AGENT_STORE.saveFiles(ag.id, files);
+    count++;
+    console.log('[INDI] Archivo registrado en agente:', ag.nombre);
+  });
+  if (count === 0) console.warn('[INDI] No se encontraron agentes para registrar archivo. Agentes disponibles:', agents.map(function(a){ return a.nombre; }));
+  if (currentAgent && typeof renderFilesPanel === 'function') renderFilesPanel();
 }
 
 async function _supaSaveAlumno(alumno) {
