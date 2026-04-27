@@ -7939,9 +7939,15 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
   });
   var resumen = Object.keys(resultCounts).map(function(k){ return k+': '+resultCounts[k]; }).join(' · ');
 
-  // ── Check if course already exists ──
-  var existing = DB.alumnos && DB.alumnos.some(function(a){ return a.esp === cursoNombre; });
-  if (existing) {
+  // ── Check if course already exists in Supabase ──
+  var existingInSupa = false;
+  if (_supa && _supaUser) {
+    try {
+      var chk = await _supa.from('alumnos').select('id').eq('curso_nombre', cursoNombre).eq('user_id', _supaUser.id).limit(1);
+      existingInSupa = chk.data && chk.data.length > 0;
+    } catch(e) { existingInSupa = false; }
+  }
+  if (existingInSupa) {
     var ok = confirm('El curso "' + cursoNombre + '" ya existe con nómina. ¿Sobreescribir con los alumnos del archivo INDI?');
     if (!ok) {
       txt.textContent = 'Carga tus resultados INDI';
@@ -7953,6 +7959,22 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
 
   // ── Create course in DB and Supabase ──
   try {
+    // 0. Ensure we have colegio_id — fetch fresh from usuarios if missing
+    var colegioId = (_supaPerfil && _supaPerfil.colegio_id) ? String(_supaPerfil.colegio_id) : null;
+    if (!colegioId && _supa && _supaUser) {
+      var perfilFresh = await _supa.from('usuarios').select('colegio_id').eq('id', _supaUser.id).maybeSingle();
+      if (perfilFresh.data && perfilFresh.data.colegio_id) {
+        colegioId = String(perfilFresh.data.colegio_id);
+        if (_supaPerfil) _supaPerfil.colegio_id = colegioId; // cache it
+      }
+    }
+    if (!colegioId) {
+      showSaveToast('❌ Tu usuario no tiene colegio asignado en Supabase. Contacta al administrador.', false);
+      txt.textContent = 'Carga tus resultados INDI';
+      return;
+    }
+    console.log('[INDI] colegio_id resuelto:', colegioId);
+
     // 1. Save curso
     if (typeof _supaSaveCurso === 'function') await _supaSaveCurso(cursoNombre);
 
@@ -7974,7 +7996,7 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
 
     // 3. Save alumnos (replace nomina)
     var uid = (_supaUser && _supaUser.id) ? _supaUser.id : 'demo';
-    var colegioId = (_supaPerfil && _supaPerfil.colegio_id) ? String(_supaPerfil.colegio_id) : null;
+    // colegioId already resolved above
 
     // Remove old alumnos for this course from local DB
     DB.alumnos = DB.alumnos.filter(function(a){ return a.esp !== cursoNombre; });
@@ -7999,11 +8021,14 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
         if (colegioId) row.colegio_id = colegioId;
         return row;
       });
-      await _supa.from('alumnos').insert(inserts);
+      var insRes = await _supa.from('alumnos').insert(inserts);
+      if (insRes.error) throw new Error('Error insertando alumnos: ' + insRes.error.message);
+      console.log('[INDI] Alumnos insertados en Supabase:', inserts.length);
 
       // Assign course to docente
       if (typeof _guardarDocenteCurso === 'function') {
         await _guardarDocenteCurso(_supaUser.id, cursoNombre, colegioId);
+        console.log('[INDI] Curso asignado a docente:', _supaUser.id, cursoNombre);
       }
     }
 
@@ -8017,7 +8042,10 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
       }
     }
 
-    // ── Reload alumnos from Supabase so Mi Aula reflects new data ──
+    // ── Reload cursos then alumnos from Supabase so Mi Aula reflects new data ──
+    if (typeof _supaLoadCursos === 'function') {
+      await _supaLoadCursos();
+    }
     if (typeof _supaLoadAlumnos === 'function') {
       await _supaLoadAlumnos();
     }
@@ -36137,16 +36165,14 @@ async function _supaDeleteCurso(nombre) {
 async function _supaSaveCurso(nombre) {
   if (!_supaUser) return;
   try {
-    // Para SA sin colegio_id, usar el colegio activo seleccionado
-    var colegioId = _supaPerfil?.colegio_id || _activeColegioId || null;
-    await _supa.from('cursos').upsert({
-      id: 'curso_' + (colegioId || _supaUser.id) + '_' + nombre.toLowerCase().replace(/[^a-z0-9]/g,'_'),
-      nombre: nombre,
-      colegio_id: colegioId,
-      user_id: _supaUser.id,
-    }, { onConflict: 'id' });
-    console.log('[LIAX] Curso guardado en Supabase:', nombre, '| colegio:', colegioId);
-  } catch(e) { console.warn('[Supabase] Error saving curso:', e.message); }
+    var colegioId = (_supaPerfil && _supaPerfil.colegio_id) ? _supaPerfil.colegio_id : (_activeColegioId || null);
+    var cursoId = 'curso_' + (colegioId || _supaUser.id) + '_' + nombre.toLowerCase().replace(/[^a-z0-9áéíóúñ]/g,'_');
+    var row = { id: cursoId, nombre: nombre, user_id: _supaUser.id };
+    if (colegioId) row.colegio_id = colegioId;
+    var res = await _supa.from('cursos').upsert(row, { onConflict: 'id' });
+    if (res.error) throw res.error;
+    console.log('[LIAX] Curso guardado en Supabase:', nombre, '| id:', cursoId);
+  } catch(e) { console.warn('[Supabase] Error saving curso:', e.message, e); }
 }
 
 async function _supaLoadAlumnos() {
