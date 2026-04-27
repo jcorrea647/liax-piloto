@@ -8114,16 +8114,25 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     }
 
     stat.textContent = '⏳ Recargando datos...';
-    // ── Reload cursos then alumnos from Supabase so Mi Aula reflects new data ──
-    if (typeof _supaLoadCursos === 'function') {
-      await _supaLoadCursos();
+    // ── Reload: force cursosAsignados from docente_cursos directly ──
+    if (_supa && _supaUser) {
+      var dcRes = await _supa.from('docente_cursos')
+        .select('curso_nombre, asignatura')
+        .eq('docente_id', _supaUser.id);
+      if (dcRes.data && dcRes.data.length) {
+        var docLocal = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
+        if (docLocal) {
+          docLocal.cursosAsignados = dcRes.data.map(function(dc){
+            return { curso: dc.curso_nombre, asignaturas: dc.asignatura ? [dc.asignatura] : [] };
+          });
+          console.log('[INDI] cursosAsignados:', docLocal.cursosAsignados);
+        }
+      }
     }
-    if (typeof _supaLoadAlumnos === 'function') {
-      await _supaLoadAlumnos();
-    await _supaLoadIndiResultados();
-    }
+    if (typeof _supaLoadCursos === 'function') await _supaLoadCursos();
+    if (typeof _supaLoadAlumnos === 'function') await _supaLoadAlumnos();
 
-    // Refresh UI — full re-render of all course-related panels
+    // Refresh UI
     if (typeof renderGestionCursos === 'function') renderGestionCursos();
     if (typeof initMisCursosPanel === 'function') initMisCursosPanel();
 
