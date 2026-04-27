@@ -14121,7 +14121,8 @@ switchRole = function(r) {
   updateMisCursosLabel(r);
 
   if (r === 'docente') {
-    currentDocenteId = DB.docentes[0]?.id || null;
+    // Use logged-in user's id if available, not DB.docentes[0] which could be another teacher
+    currentDocenteId = (_supaUser && _supaUser.id) ? _supaUser.id : (DB.docentes[0]?.id || null);
     // Update user name with actual docente name
     const doc = DB.docentes.find(d => d.id === currentDocenteId);
     if (doc) {
