@@ -13968,7 +13968,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Los selects de capacidades se crean dinámicamente en renderCapacidadesPanel()
   // y usan onchange="onCompetChange(id,value)" inline.
 
-  // Restore INDI button state from sessionStorage
+  // Restore INDI button state from sessionStorage (visual inmediato mientras Supabase carga)
   try {
     var savedText = sessionStorage.getItem('indi_btn_text');
     var savedStat = sessionStorage.getItem('indi_btn_stat');
@@ -13978,7 +13978,11 @@ document.addEventListener('DOMContentLoaded', () => {
       var stat2 = document.getElementById('indiLoadStatus');
       if (btn2) btn2.classList.add('loaded');
       if (txt2) txt2.textContent = savedText;
-      if (stat2 && savedStat) { stat2.textContent = savedStat; stat2.style.display = 'block'; stat2.style.color = 'var(--accent2)'; }
+      if (stat2) {
+        stat2.textContent = savedStat || '';
+        stat2.style.display = 'block';
+        stat2.style.color = 'var(--accent2)';
+      }
     }
   } catch(e) {}
 });
@@ -36432,8 +36436,15 @@ async function _supaLoadIndiResultados() {
       var nAlumnos = [...new Set(data.map(function(r){ return r.nombre_alumno; }))].length;
       console.log('[INDI] Resultados cargados desde Supabase:', data.length, 'registros,', nAlumnos, 'alumnos');
 
-      // Register files after a delay to ensure agents are loaded
-      setTimeout(function(){ _indiRegisterFiles(); }, 2000);
+      // Register files — esperar a que AGENTS esté cargado (máx 8 intentos x 500ms)
+      (function _waitAndRegister(tries) {
+        var agList = (typeof AGENTS !== 'undefined' ? AGENTS : []);
+        if (agList.length > 0 || tries <= 0) {
+          _indiRegisterFiles();
+        } else {
+          setTimeout(function(){ _waitAndRegister(tries - 1); }, 500);
+        }
+      })(16);
 
       // Update button UI + persist state
       var _btnText = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
