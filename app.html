@@ -7079,6 +7079,15 @@ function startChat(){
       welcome+=` ⚠️ Detecto ${neeAlus.length} alumno(s) con NEE: **${neeAlus.map(a=>a.nombre.split(' ').slice(0,2).join(' ')).join(', ')}**. Al planificar y responder incluiré sugerencias diferenciadas para ellos.`;
     }
   }
+  // ── Aviso INDI si hay resultados cargados y el agente los usa ──
+  var _indiAgentes = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno','informe de desempeno'];
+  var _agNombreLow = (currentAgent.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  var _usaIndi = _indiAgentes.some(function(k){ return _agNombreLow.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,'')); });
+  if (_usaIndi && window.INDI_RESULTS && window.INDI_RESULTS.length) {
+    var _indiAlumnos = [...new Set(window.INDI_RESULTS.map(function(r){ return r.NOMBRE_COMPLETO; }))];
+    var _indiCurso = window.INDI_CURSO || (window.INDI_RESULTS[0] && (window.INDI_RESULTS[0].CURSO||'') + ' ' + (window.INDI_RESULTS[0].LETRA||'')).trim() || '';
+    welcome += '\n\n📊 **Tengo cargados los resultados INDI** de **' + _indiAlumnos.length + ' alumnos**' + (_indiCurso ? ' del curso **' + _indiCurso + '**' : '') + '. Puedo analizar el desempeño de cada alumno, identificar áreas críticas y generar recomendaciones personalizadas basadas en esos datos. ¿Quieres que comience con un análisis general o prefieres enfocarnos en un alumno específico?';
+  }
   welcome+=` ¿Con qué te puedo ayudar?`;
   chatHistory=[{role:'assistant',content:welcome}];
   document.getElementById('mBody').innerHTML=`
@@ -7939,20 +7948,18 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
   });
   var resumen = Object.keys(resultCounts).map(function(k){ return k+': '+resultCounts[k]; }).join(' · ');
 
-  // ── Check if course already exists in Supabase ──
-  var existingInSupa = false;
-  if (_supa && _supaUser) {
-    try {
-      var chk = await _supa.from('alumnos').select('id').eq('curso_nombre', cursoNombre).eq('user_id', _supaUser.id).limit(1);
-      existingInSupa = chk.data && chk.data.length > 0;
-    } catch(e) { existingInSupa = false; }
-  }
-  if (existingInSupa) {
-    var ok = confirm('El curso "' + cursoNombre + '" ya existe con nómina. ¿Sobreescribir con los alumnos del archivo INDI?');
+  // ── Preguntar si ya existe nómina para este curso ──
+  // Verificar en DB.alumnos local (ya cargados desde Supabase al inicio)
+  var alumnosExistentes = DB.alumnos.filter(function(a){
+    return a.esp === cursoNombre && a.user_id && a.user_id !== 'demo';
+  });
+  if (alumnosExistentes.length > 0) {
+    var ok = confirm('El curso "' + cursoNombre + '" ya tiene ' + alumnosExistentes.length + ' alumnos registrados. ¿Sobreescribir con los ' + alumnos.length + ' alumnos del archivo INDI?');
     if (!ok) {
       txt.textContent = 'Carga tus resultados INDI';
-      stat.textContent = 'Carga cancelada';
+      stat.textContent = 'Carga cancelada.';
       stat.style.display = 'block';
+      stat.style.color = 'var(--muted)';
       return;
     }
   }
