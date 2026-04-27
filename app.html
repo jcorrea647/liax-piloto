@@ -4692,32 +4692,55 @@ function _applyIndiBtnStateGlobal() {
 function irAInicio() {
   var modal = document.getElementById('agentModal');
   var agentAbierto = modal && modal.classList.contains('open');
-  if (agentAbierto && currentAgent) {
-    // Mostrar confirmación inline — sin usar confirm() nativo
-    var existing = document.getElementById('_salirAgenteModal');
-    if (existing) existing.remove();
-    var overlay = document.createElement('div');
-    overlay.id = '_salirAgenteModal';
-    overlay.style.cssText = 'position:fixed;inset:0;background:#00000088;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-    overlay.innerHTML =
-      '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px 32px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px #0008">' +
-        '<div style="font-size:32px;margin-bottom:12px">🚪</div>' +
-        '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:16px;margin-bottom:8px">¿Salir del agente?</div>' +
-        '<div style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6">Estás en <strong>' + (currentAgent.nombre||'este agente') + '</strong>.<br>Si sales perderás la conversación actual.</div>' +
-        '<div style="display:flex;gap:10px;justify-content:center">' +
-          '<button onclick="document.getElementById('_salirAgenteModal').remove()" ' +
-            'style="padding:9px 22px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Cancelar</button>' +
-          '<button onclick="document.getElementById('_salirAgenteModal').remove();closeAgent();showPanel('favoritos')" ' +
-            'style="padding:9px 22px;border-radius:8px;border:none;background:var(--accent1);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Sí, salir</button>' +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(overlay);
-    // Close on backdrop click
-    overlay.addEventListener('click', function(e){ if(e.target===overlay){ overlay.remove(); } });
-  } else {
-    showPanel('favoritos');
-  }
+  if (!agentAbierto || !currentAgent) { showPanel('favoritos'); return; }
+
+  var existing = document.getElementById('_salirAgenteModal');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = '_salirAgenteModal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:#00000088;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px 32px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px #0008';
+
+  var icon = document.createElement('div');
+  icon.style.cssText = 'font-size:32px;margin-bottom:12px';
+  icon.textContent = '🚪';
+
+  var title = document.createElement('div');
+  title.style.cssText = 'font-family:Syne,sans-serif;font-weight:800;font-size:16px;margin-bottom:8px;color:var(--text)';
+  title.textContent = '¿Salir del agente?';
+
+  var desc = document.createElement('div');
+  desc.style.cssText = 'font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6';
+  desc.innerHTML = 'Estás en <strong>' + (currentAgent.nombre || 'este agente') + '</strong>.<br>Si sales perderás la conversación actual.';
+
+  var btns = document.createElement('div');
+  btns.style.cssText = 'display:flex;gap:10px;justify-content:center';
+
+  var btnCancel = document.createElement('button');
+  btnCancel.textContent = 'Cancelar';
+  btnCancel.style.cssText = 'padding:9px 22px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif';
+  btnCancel.onclick = function() { overlay.remove(); };
+
+  var btnSalir = document.createElement('button');
+  btnSalir.textContent = 'Sí, salir';
+  btnSalir.style.cssText = 'padding:9px 22px;border-radius:8px;border:none;background:var(--accent1);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif';
+  btnSalir.onclick = function() { overlay.remove(); closeAgent(); showPanel('favoritos'); };
+
+  btns.appendChild(btnCancel);
+  btns.appendChild(btnSalir);
+  box.appendChild(icon);
+  box.appendChild(title);
+  box.appendChild(desc);
+  box.appendChild(btns);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 }
+
 
 function showPanel(id) {
   var tkBar=document.getElementById("tokenBulkBar");
