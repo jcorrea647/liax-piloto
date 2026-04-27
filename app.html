@@ -8038,8 +8038,10 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     // Save to Supabase if connected
     stat.textContent = '⏳ Guardando ' + alumnos.length + ' alumnos en Supabase...';
     if (_supa && _supaUser) {
-      // Borrar TODOS los alumnos previos del usuario (limpiar cargas anteriores)
-      var delAll = await _supa.from('alumnos').delete().eq('user_id', _supaUser.id);
+      // Borrar alumnos previos — requiere colegio_id por política RLS
+      var delQuery = _supa.from('alumnos').delete().eq('user_id', _supaUser.id);
+      if (colegioId) delQuery = delQuery.eq('colegio_id', colegioId);
+      var delAll = await delQuery;
       if (delAll.error) console.warn('[INDI] Error borrando alumnos previos:', delAll.error.message);
       else console.log('[INDI] Alumnos previos eliminados');
 
@@ -8055,7 +8057,9 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
 
       // ── Guardar resultados INDI en tabla indi_resultados ──
       stat.textContent = '⏳ Guardando resultados INDI...';
-      var delIndi = await _supa.from('indi_resultados').delete().eq('user_id', _supaUser.id);
+      var delIndiQ = _supa.from('indi_resultados').delete().eq('user_id', _supaUser.id);
+      if (colegioId) delIndiQ = delIndiQ.eq('colegio_id', colegioId);
+      var delIndi = await delIndiQ;
       if (delIndi.error) console.warn('[INDI] Error borrando resultados previos:', delIndi.error.message);
       var indiRows = rows.map(function(r, i) {
         var row = {
