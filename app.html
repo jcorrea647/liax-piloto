@@ -7880,7 +7880,13 @@ function _indiParseCSV(csv, filename, btn, txt, stat) {
     }
 
     // Course found → create it
-    _indiFinalize(rows, cursoDetectado, btn, txt, stat);
+    _indiFinalize(rows, cursoDetectado, btn, txt, stat).catch(function(e) {
+      console.error('[INDI] Error en _indiFinalize:', e);
+      txt.textContent = 'Carga tus resultados INDI';
+      stat.textContent = '❌ Error: ' + (e.message || e);
+      stat.style.display = 'block';
+      stat.style.color = '#e05';
+    });
 
   } catch(err) {
     var txt2 = document.getElementById('indiLoadBtnText');
@@ -7932,7 +7938,13 @@ function _indiConfirmCourse() {
     window._indiPendingBtn,
     window._indiPendingTxt,
     window._indiPendingStat
-  );
+  ).catch(function(e) {
+    console.error('[INDI] Error en _indiFinalize (form):', e);
+    window._indiPendingTxt.textContent = 'Carga tus resultados INDI';
+    window._indiPendingStat.textContent = '❌ Error: ' + (e.message || e);
+    window._indiPendingStat.style.display = 'block';
+    window._indiPendingStat.style.color = '#e05';
+  });
 }
 
 async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
@@ -7981,6 +7993,9 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
       return;
     }
     console.log('[INDI] colegio_id resuelto:', colegioId);
+    stat.textContent = '⏳ Guardando curso...';
+    stat.style.display = 'block';
+    stat.style.color = 'var(--muted)';
 
     // 1. Save curso
     if (typeof _supaSaveCurso === 'function') await _supaSaveCurso(cursoNombre);
@@ -8020,6 +8035,7 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     });
 
     // Save to Supabase if connected
+    stat.textContent = '⏳ Guardando ' + alumnos.length + ' alumnos en Supabase...';
     if (_supa && _supaUser) {
       await _supa.from('alumnos').delete().eq('curso_nombre', cursoNombre).eq('user_id', _supaUser.id);
       var ts = Date.now();
@@ -8049,6 +8065,7 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
       }
     }
 
+    stat.textContent = '⏳ Recargando datos...';
     // ── Reload cursos then alumnos from Supabase so Mi Aula reflects new data ──
     if (typeof _supaLoadCursos === 'function') {
       await _supaLoadCursos();
