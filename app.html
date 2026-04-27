@@ -7956,8 +7956,20 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     // 1. Save curso
     if (typeof _supaSaveCurso === 'function') await _supaSaveCurso(cursoNombre);
 
-    // 2. Add to local DB
+    // 2. Add to local DB + update CURSOS array dynamically
     if (DB.cursos && !DB.cursos.includes(cursoNombre)) DB.cursos.push(cursoNombre);
+    // Update _CURSOS_CACHE so CURSOS array reflects new course
+    if (typeof _CURSOS_CACHE !== 'undefined' && !_CURSOS_CACHE.includes(cursoNombre)) {
+      _CURSOS_CACHE.push(cursoNombre);
+    }
+    // Recalculate CURSOS global array
+    if (typeof _CURSOS_DEFAULT !== 'undefined' && typeof _isCursoDeleted === 'function') {
+      window.CURSOS = _CURSOS_DEFAULT
+        .filter(function(c){ return !_isCursoDeleted(c); })
+        .concat(_CURSOS_CACHE.filter(function(c){
+          return _CURSOS_DEFAULT.indexOf(c) === -1 && !_isCursoDeleted(c);
+        }));
+    }
     if (typeof _saveCursosCustom === 'function') _saveCursosCustom();
 
     // 3. Save alumnos (replace nomina)
@@ -7995,10 +8007,21 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
       }
     }
 
+    // ── Update docente in-memory with new course assignment ──
+    if (_supaUser && DB.docentes) {
+      var docente = DB.docentes.find(function(d){ return d.id === _supaUser.id; });
+      if (docente) {
+        if (!docente.cursosAsignados) docente.cursosAsignados = [];
+        var yaAsignado = docente.cursosAsignados.some(function(c){ return c.curso === cursoNombre; });
+        if (!yaAsignado) docente.cursosAsignados.push({ curso: cursoNombre, asignaturas: [] });
+      }
+    }
+
     // Refresh UI
     if (typeof renderCursoResumen === 'function') renderCursoResumen();
     if (typeof renderCursoChips === 'function') renderCursoChips();
     if (typeof renderMisCursos === 'function') renderMisCursos();
+    if (typeof renderGestionCursos === 'function') renderGestionCursos();
 
     // Update button
     btn.classList.add('loaded');
