@@ -917,7 +917,7 @@
   .indi-load-btn .indi-icon{font-size:20px;}
   .opt-btn-wrap{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;}
   .opt-btn-wrap::before{content:'☑️ Elige una o más opciones';display:block;width:100%;font-size:10px;font-weight:800;color:var(--accent1);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
-  .opt-btn{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:8px 14px;font-size:13px;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;text-align:left;}
+  .opt-btn{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:8px 14px;font-size:13px;color:var(--text);cursor:pointer;font-family:DM Sans,sans-serif;transition:all .15s;text-align:left;}
   .opt-btn:hover{border-color:var(--accent1);color:var(--accent1);}
   .opt-btn.selected{background:var(--accent1)22;border-color:var(--accent1);color:var(--accent1);font-weight:700;}
   .msg-h2{font-size:15px;font-weight:800;color:var(--accent2);margin:14px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--accent2)44;}
@@ -938,7 +938,7 @@
   .agent-q-card-top:hover .agent-q-text{color:var(--accent1);}
   .agent-q-dot{width:8px;height:8px;border-radius:50%;background:var(--accent1);flex-shrink:0;margin-top:5px;}
   .agent-q-text{font-size:13px;color:var(--text);line-height:1.5;font-weight:500;}
-  .agent-q-answer{width:100%;min-height:38px;height:38px;background:#ffffff;color:#2a2a2a;border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;resize:none;box-sizing:border-box;transition:border-color .15s;}
+  .agent-q-answer{width:100%;min-height:38px;height:38px;background:#ffffff;color:#2a2a2a;border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-family:DM Sans,sans-serif;font-size:12px;outline:none;resize:none;box-sizing:border-box;transition:border-color .15s;}
   .agent-q-answer:focus{border-color:var(--accent1)66;}
   .agent-q-answer::placeholder{color:#aaa;}
   @media(max-width:560px){.agent-q-grid{grid-template-columns:1fr;}}
@@ -6725,7 +6725,7 @@ function renderFavoritos() {
             <div style="font-size:9px;font-weight:700;color:${c.text};margin-top:2px;text-transform:uppercase;letter-spacing:.4px">${DIM_LABELS[a.dim]||dimNames[a.dim]||''}</div>
           </div>
         </div>
-        <div onclick="openAgent('${a.id}')" style="font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:9px;white-space:normal;word-break:break-word">${a.desc}</div>
+        <div onclick="openAgent('${a.id}')" style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:9px;white-space:normal;word-break:break-word">${a.desc}</div>
         <div onclick="openAgent('${a.id}')" style="display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:10px;color:var(--muted)">${a.preguntas.length} preguntas guía</span>
           <span style="font-size:10px;font-weight:700;color:${c.text}">Abrir →</span>
@@ -6779,7 +6779,7 @@ function renderAgents(){
           <div style="font-size:9px;font-weight:700;color:${c.text};margin-top:2px;text-transform:uppercase;letter-spacing:.4px">${dimNames[a.dim]}</div>
         </div>
       </div>
-      <div onclick="openAgent('${a.id}')" style="font-family:'DM Sans',sans-serif;font-size:11px;color:#4A4540;line-height:1.6;margin-bottom:9px;white-space:normal;word-break:break-word">${a.desc}</div>
+      <div onclick="openAgent('${a.id}')" style="font-family:DM Sans,sans-serif;font-size:11px;color:#4A4540;line-height:1.6;margin-bottom:9px;white-space:normal;word-break:break-word">${a.desc}</div>
       <div onclick="openAgent('${a.id}')" style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:10px;color:#6A6460">${a.preguntas.length} preguntas guía</span>
         <span style="font-size:10px;font-weight:700;color:#2A2420">Abrir →</span>
@@ -7807,13 +7807,9 @@ function _indiParseCSV(csv, filename, btn, txt, stat) {
     var lines = csv.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l; });
     if (lines.length < 2) throw new Error('Archivo vacío o sin datos');
 
-    // Detect separator
     var sep = lines[0].includes('\t') ? '\t' : lines[0].includes(';') ? ';' : ',';
-
-    // Parse header — normalize to uppercase, trim spaces
     var headers = lines[0].split(sep).map(function(h){ return h.replace(/['"]/g,'').trim().toUpperCase(); });
 
-    // Column map — flexible matching
     var COL = {};
     var aliases = {
       COLEGIO:        ['COLEGIO','SCHOOL','INSTITUCIÓN','INSTITUCION'],
@@ -7823,7 +7819,7 @@ function _indiParseCSV(csv, filename, btn, txt, stat) {
       NOMBRE_COMPLETO:['NOMBRE_COMPLETO','NOMBRE COMPLETO','NOMBRE','ALUMNO','STUDENT','ESTUDIANTE'],
       EDAD:           ['EDAD','AGE'],
       AREA:           ['AREA','ÁREA'],
-      SUBAREA:        ['SUBAREA','SUBÁREA','SUB_AREA','SUBÁREA','DIMENSIÓN','DIMENSION'],
+      SUBAREA:        ['SUBAREA','SUBÁREA','SUB_AREA','DIMENSIÓN','DIMENSION'],
       RESULTADO:      ['RESULTADO','RESULT','NIVEL','PUNTAJE','SCORE'],
     };
     Object.keys(aliases).forEach(function(key) {
@@ -7833,9 +7829,12 @@ function _indiParseCSV(csv, filename, btn, txt, stat) {
       });
     });
 
-    // Require at least NOMBRE and RESULTADO
-    if (COL.NOMBRE_COMPLETO === undefined || COL.RESULTADO === undefined) {
-      throw new Error('No se encontraron columnas NOMBRE y RESULTADO. Columnas encontradas: ' + headers.join(', '));
+    // ── Críticos: sin estos no se puede trabajar ──
+    var missingCritical = [];
+    if (COL.NOMBRE_COMPLETO === undefined) missingCritical.push('NOMBRE_COMPLETO');
+    if (COL.RESULTADO === undefined) missingCritical.push('RESULTADO');
+    if (missingCritical.length) {
+      throw new Error('Información incompleta — faltan columnas críticas: ' + missingCritical.join(', ') + '. Columnas encontradas: ' + headers.join(', '));
     }
 
     // Parse rows
@@ -7847,38 +7846,176 @@ function _indiParseCSV(csv, filename, btn, txt, stat) {
       Object.keys(COL).forEach(function(key){ row[key] = cols[COL[key]] || ''; });
       rows.push(row);
     }
-
     if (!rows.length) throw new Error('No se encontraron filas con datos');
 
-    // Store globally
+    // Check alumnos have nombres and resultados
+    var sinNombre = rows.filter(function(r){ return !r.NOMBRE_COMPLETO.trim(); }).length;
+    var sinResultado = rows.filter(function(r){ return !r.RESULTADO.trim(); }).length;
+    if (sinNombre > rows.length * 0.5) throw new Error('La mayoría de los alumnos no tienen nombre. Verifica el archivo.');
+    if (sinResultado > rows.length * 0.5) throw new Error('La mayoría de los registros no tienen resultado. Verifica el archivo.');
+
     window.INDI_RESULTS = rows;
 
-    // Build summary
-    var alumnos = [...new Set(rows.map(function(r){ return r.NOMBRE_COMPLETO; }))];
-    var nAlumnos = alumnos.length;
-    var resultCounts = {};
-    rows.forEach(function(r){
-      var res = r.RESULTADO || 'Sin dato';
-      resultCounts[res] = (resultCounts[res]||0) + 1;
+    // ── Detectar curso ──
+    var cursoDetectado = '';
+    if (COL.CURSO !== undefined) {
+      var cursoVal = rows[0].CURSO.trim();
+      var letraVal = (COL.LETRA !== undefined ? rows[0].LETRA.trim() : '');
+      if (cursoVal) cursoDetectado = cursoVal + (letraVal ? ' ' + letraVal : '');
+    }
+
+    // If no course detected → ask inline
+    if (!cursoDetectado) {
+      _indiShowCourseForm(rows, btn, txt, stat);
+      return;
+    }
+
+    // Course found → create it
+    _indiFinalize(rows, cursoDetectado, btn, txt, stat);
+
+  } catch(err) {
+    var txt2 = document.getElementById('indiLoadBtnText');
+    if (txt2) txt2.textContent = 'Carga tus resultados INDI';
+    var stat2 = document.getElementById('indiLoadStatus');
+    if (stat2) { stat2.textContent = '❌ ' + err.message; stat2.style.display = 'block'; stat2.style.color = '#e05'; }
+    console.error('[INDI]', err);
+  }
+}
+
+function _indiShowCourseForm(rows, btn, txt, stat) {
+  txt.textContent = '📊 Resultados cargados — falta el curso';
+  stat.style.display = 'block';
+  stat.style.color = 'var(--muted)';
+
+  // Build inline form
+  var wrap = document.getElementById('indiCourseForm');
+  if (wrap) wrap.remove();
+  var form = document.createElement('div');
+  form.id = 'indiCourseForm';
+  form.style.cssText = 'margin-top:10px;background:var(--surface2);border:1.5px solid var(--accent1);border-radius:10px;padding:12px 14px;';
+  form.innerHTML =
+    '<div style="font-size:11px;font-weight:800;color:var(--accent1);margin-bottom:8px">⚠️ No se detectó el curso en el archivo</div>' +
+    '<div style="font-size:12px;color:var(--text);margin-bottom:8px">¿A qué curso corresponden estos resultados?</div>' +
+    '<input id="indiCourseInput" type="text" placeholder="Ej: Rayitos A, 5° B, Kínder..." ' +
+      'style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;font-family:DM Sans,sans-serif;margin-bottom:8px">' +
+    '<button onclick="_indiConfirmCourse()" ' +
+      'style="width:100%;padding:8px;background:var(--accent1);color:#fff;border:none;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;font-family:DM Sans,sans-serif">' +
+      'Confirmar curso →' +
+    '</button>';
+  var container = document.getElementById('indiLoadStatus').parentNode;
+  container.appendChild(form);
+  stat.textContent = 'Ingresa el nombre del curso para continuar';
+  document.getElementById('indiCourseInput').focus();
+  window._indiPendingRows = rows;
+  window._indiPendingBtn  = btn;
+  window._indiPendingTxt  = txt;
+  window._indiPendingStat = stat;
+}
+
+function _indiConfirmCourse() {
+  var input = document.getElementById('indiCourseInput');
+  var curso = input ? input.value.trim() : '';
+  if (!curso) { input.style.borderColor = '#e05'; return; }
+  document.getElementById('indiCourseForm')?.remove();
+  _indiFinalize(
+    window._indiPendingRows,
+    curso,
+    window._indiPendingBtn,
+    window._indiPendingTxt,
+    window._indiPendingStat
+  );
+}
+
+async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
+  window.INDI_RESULTS = rows;
+  window.INDI_CURSO   = cursoNombre;
+
+  var alumnos = [...new Set(rows.map(function(r){ return r.NOMBRE_COMPLETO; }))];
+  var nAlumnos = alumnos.length;
+  var resultCounts = {};
+  rows.forEach(function(r){
+    var res = r.RESULTADO || 'Sin dato';
+    resultCounts[res] = (resultCounts[res]||0) + 1;
+  });
+  var resumen = Object.keys(resultCounts).map(function(k){ return k+': '+resultCounts[k]; }).join(' · ');
+
+  // ── Check if course already exists ──
+  var existing = DB.alumnos && DB.alumnos.some(function(a){ return a.esp === cursoNombre; });
+  if (existing) {
+    var ok = confirm('El curso "' + cursoNombre + '" ya existe con nómina. ¿Sobreescribir con los alumnos del archivo INDI?');
+    if (!ok) {
+      txt.textContent = 'Carga tus resultados INDI';
+      stat.textContent = 'Carga cancelada';
+      stat.style.display = 'block';
+      return;
+    }
+  }
+
+  // ── Create course in DB and Supabase ──
+  try {
+    // 1. Save curso
+    if (typeof _supaSaveCurso === 'function') await _supaSaveCurso(cursoNombre);
+
+    // 2. Add to local DB
+    if (DB.cursos && !DB.cursos.includes(cursoNombre)) DB.cursos.push(cursoNombre);
+    if (typeof _saveCursosCustom === 'function') _saveCursosCustom();
+
+    // 3. Save alumnos (replace nomina)
+    var uid = (_supaUser && _supaUser.id) ? _supaUser.id : 'demo';
+    var colegioId = (_supaPerfil && _supaPerfil.colegio_id) ? String(_supaPerfil.colegio_id) : null;
+
+    // Remove old alumnos for this course from local DB
+    DB.alumnos = DB.alumnos.filter(function(a){ return a.esp !== cursoNombre; });
+
+    // Add new alumnos to local DB
+    alumnos.forEach(function(nombre, i) {
+      DB.alumnos.push({
+        id: 'indi_' + uid + '_' + i + '_' + cursoNombre.replace(/\s/g,''),
+        nombre: nombre,
+        esp: cursoNombre,
+        rut: '', nee: '', neeT: '', notas: [], asistencia: [],
+        user_id: uid
+      });
     });
-    var resumen = Object.keys(resultCounts).map(function(k){ return k + ': ' + resultCounts[k]; }).join(' · ');
+
+    // Save to Supabase if connected
+    if (_supa && _supaUser) {
+      await _supa.from('alumnos').delete().eq('curso_nombre', cursoNombre).eq('user_id', _supaUser.id);
+      var ts = Date.now();
+      var inserts = alumnos.map(function(nombre, i) {
+        var row = { id: 'indi_' + ts + '_' + i, nombre: nombre, curso_nombre: cursoNombre, rut: '', email: '', nee: '', user_id: _supaUser.id };
+        if (colegioId) row.colegio_id = colegioId;
+        return row;
+      });
+      await _supa.from('alumnos').insert(inserts);
+
+      // Assign course to docente
+      if (typeof _guardarDocenteCurso === 'function') {
+        await _guardarDocenteCurso(_supaUser.id, cursoNombre, colegioId);
+      }
+    }
+
+    // Refresh UI
+    if (typeof renderCursoResumen === 'function') renderCursoResumen();
+    if (typeof renderCursoChips === 'function') renderCursoChips();
+    if (typeof renderMisCursos === 'function') renderMisCursos();
 
     // Update button
     btn.classList.add('loaded');
     txt.textContent = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
-    stat.textContent = resumen;
+    stat.textContent = cursoNombre + ' · ' + resumen;
     stat.style.display = 'block';
     stat.style.color = 'var(--accent2)';
+    showSaveToast('✅ Curso "' + cursoNombre + '" creado con ' + nAlumnos + ' alumnos');
 
-    console.log('[INDI] Cargados', rows.length, 'registros,', nAlumnos, 'alumnos');
-  } catch(err) {
-    var txt2 = document.getElementById('indiLoadBtnText');
-    txt2.textContent = 'Carga tus resultados INDI';
-    var stat2 = document.getElementById('indiLoadStatus');
-    stat2.textContent = '❌ ' + err.message;
-    stat2.style.display = 'block';
-    stat2.style.color = '#e05';
-    console.error('[INDI]', err);
+  } catch(e) {
+    console.error('[INDI] Error guardando curso:', e);
+    // Still mark as loaded even if Supabase failed
+    btn.classList.add('loaded');
+    txt.textContent = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
+    stat.textContent = '⚠️ Datos en memoria (error al guardar en servidor: ' + e.message + ')';
+    stat.style.display = 'block';
+    stat.style.color = '#e05';
   }
 }
 
