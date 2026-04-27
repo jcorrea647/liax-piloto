@@ -7098,7 +7098,7 @@ function startChat(){
     }
   }
   // ── Aviso INDI si hay resultados cargados y el agente los usa ──
-  var _indiAgentes = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno','informe de desempeno'];
+  var _indiAgentes = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno','informe de desempeno','análisis','analisis','resultado','logros de aprendizaje'];
   var _agNombreLow = (currentAgent.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   var _usaIndi = _indiAgentes.some(function(k){ return _agNombreLow.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,'')); });
   if (_usaIndi && window.INDI_RESULTS && window.INDI_RESULTS.length) {
@@ -7969,7 +7969,8 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
   // ── Preguntar si ya hay resultados INDI cargados (ANTES de sobrescribir) ──
   if (window.INDI_RESULTS && window.INDI_RESULTS.length > 0) {
     var prevCurso = window.INDI_CURSO || 'curso anterior';
-    var ok = confirm('Ya tienes resultados cargados para "' + prevCurso + '". ¿Reemplazar con los ' + [...new Set(rows.map(function(r){ return r.NOMBRE_COMPLETO; }))].length + ' alumnos del nuevo archivo?');
+    var newCount = [...new Set(rows.map(function(r){ return r.NOMBRE_COMPLETO; }))].length;
+    var ok = confirm('Ya tienes resultados cargados para "' + prevCurso + '". ¿Reemplazar con los ' + newCount + ' alumnos del nuevo archivo?');
     if (!ok) {
       txt.textContent = 'Carga tus resultados INDI';
       stat.textContent = 'Carga cancelada.';
@@ -8064,7 +8065,7 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     // Remove old alumnos for this course from local DB
     DB.alumnos = DB.alumnos.filter(function(a){ return a.esp !== cursoNombre; });
 
-    // Add new alumnos to local DB (marked _fromSupabase so dedup works on reload)
+    // Add new alumnos to local DB
     alumnos.forEach(function(nombre, i) {
       DB.alumnos.push({
         id: 'indi_' + uid + '_' + i + '_' + cursoNombre.replace(/\s/g,''),
@@ -13124,65 +13125,18 @@ function renderFilesPanel() {
           <button class="btn btn-outline" style="font-size:10px;color:var(--accent3);border-color:var(--accent3)33" onclick="clearAllFiles()">🗑️ Limpiar todos</button>
         </div>
         ${files.map((f,i) => `
-          <div class="file-card" style="${f.isIndi ? 'border-color:var(--accent2)44;background:var(--dim2)' : ''}">
-            <div class="file-icon">${f.isIndi ? '📊' : (FILE_EMOJI[f.ext]||'📎')}</div>
+          <div class="file-card">
+            <div class="file-icon">${FILE_EMOJI[f.ext]||'📎'}</div>
             <div style="flex:1;min-width:0">
-              <div class="file-name">${f.name}${f.isIndi ? ' <span style=\"background:rgba(0,229,192,.15);color:var(--accent2);font-size:9px;padding:1px 6px;border-radius:5px;font-weight:700;margin-left:4px\">AUTO</span>' : ''}</div>
-              <div class="file-size">${f.ext.toUpperCase()} · ${f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL') : '—'}${f.isIndi && window.INDI_RESULTS ? ' · ' + window.INDI_RESULTS.length + ' registros · ' + ([...new Set(window.INDI_RESULTS.map(r=>r.NOMBRE_COMPLETO))].length) + ' alumnos' : ''}</div>
-              ${f.isIndi ? '<button class=\"doc-btn\" style=\"margin-top:5px;font-size:10px;color:var(--accent2)\" onclick=\"showIndiFilePreview()\">👁 Ver datos del Excel</button>' : ''}
+              <div class="file-name">${f.name}${f.isIndi ? ' <span style="background:var(--dim2);color:var(--accent2);font-size:9px;padding:1px 6px;border-radius:5px;font-weight:700;margin-left:4px">CARGADO AUTOMÁTICAMENTE</span>' : ''}</div>
+              <div class="file-size">${f.ext.toUpperCase()} · ${f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL') : '—'}</div>
+              ${f.isIndi && f.content ? `<div style="margin-top:4px;font-size:10px;color:var(--accent2);background:var(--dim2);border-radius:6px;padding:5px 8px;line-height:1.5;max-height:56px;overflow:hidden">📊 Datos disponibles en contexto del agente — ${window.INDI_RESULTS ? window.INDI_RESULTS.length + ' registros' : ''} de ${window.INDI_CURSO||''}</div>` : ''}
             </div>
             <button class="doc-btn danger" onclick="deleteFile(${i})">✕</button>
           </div>`).join('')}
         `
       }
     </div>`;
-}
-
-function showIndiFilePreview() {
-  if (!window.INDI_RESULTS || !window.INDI_RESULTS.length) {
-    showSaveToast('No hay datos del Excel en memoria', false); return;
-  }
-  var rows = window.INDI_RESULTS;
-  var alumnos = [...new Set(rows.map(function(r){ return r.NOMBRE_COMPLETO; }))].sort();
-  var areas   = [...new Set(rows.map(function(r){ return r.AREA; }).filter(Boolean))];
-
-  // Build table HTML grouped by alumno
-  var html = '<div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:10px">📊 ' + alumnos.length + ' alumnos · ' + rows.length + ' registros · Curso: ' + (window.INDI_CURSO||'—') + '</div>';
-  html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
-  html += '<thead><tr style="background:var(--surface2)">';
-  html += '<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">Alumno</th>';
-  html += '<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">Área</th>';
-  html += '<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">Subárea</th>';
-  html += '<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">Resultado</th>';
-  html += '</tr></thead><tbody>';
-  rows.forEach(function(r, i) {
-    var bg = i % 2 === 0 ? '' : 'background:var(--surface2)';
-    html += '<tr style="' + bg + '">';
-    html += '<td style="padding:4px 8px;border-bottom:1px solid var(--border)22">' + (r.NOMBRE_COMPLETO||'—') + '</td>';
-    html += '<td style="padding:4px 8px;border-bottom:1px solid var(--border)22">' + (r.AREA||'—') + '</td>';
-    html += '<td style="padding:4px 8px;border-bottom:1px solid var(--border)22">' + (r.SUBAREA||'—') + '</td>';
-    var res = r.RESULTADO || '—';
-    var resColor = res === 'Destacado' ? '#28a86a' : res === 'Esperado' ? 'var(--accent1)' : res === 'Muy descendido' || res === 'Descendido' ? '#e05252' : 'var(--muted)';
-    html += '<td style="padding:4px 8px;border-bottom:1px solid var(--border)22;color:' + resColor + ';font-weight:700">' + res + '</td>';
-    html += '</tr>';
-  });
-  html += '</tbody></table></div>';
-
-  // Show in a modal overlay
-  var existing = document.getElementById('indiPreviewModal');
-  if (existing) existing.remove();
-  var modal = document.createElement('div');
-  modal.id = 'indiPreviewModal';
-  modal.style.cssText = 'position:fixed;inset:0;background:#00000099;z-index:999;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
-  modal.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:860px;max-height:85vh;display:flex;flex-direction:column">' +
-    '<div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0">' +
-      '<span style="font-size:18px">📊</span>' +
-      '<div style="flex:1;font-family:Syne,sans-serif;font-weight:800;font-size:14px">Datos del Excel cargado</div>' +
-      '<button onclick="document.getElementById('indiPreviewModal').remove()" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 12px;cursor:pointer;font-size:12px">✕ Cerrar</button>' +
-    '</div>' +
-    '<div style="flex:1;overflow-y:auto;padding:16px 18px">' + html + '</div>' +
-  '</div>';
-  document.body.appendChild(modal);
 }
 
 function logFileToPanel(name) {
@@ -16724,11 +16678,12 @@ async function generarInformeAlumno() {
     });
   });
 
-  // ── Incorporar resultados Excel/INDI si están cargados para este alumno ──
+  // ── Incorporar resultados Excel/INDI si están cargados ──
   let indiSummary = '';
   if (window.INDI_RESULTS && window.INDI_RESULTS.length) {
-    const normStr = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-    const alumnoRows = window.INDI_RESULTS.filter(r => normStr(r.NOMBRE_COMPLETO) === normStr(nombre));
+    // Normalizar nombre para comparación flexible
+    const normNombre = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    const alumnoRows = window.INDI_RESULTS.filter(r => normNombre(r.NOMBRE_COMPLETO) === normNombre(nombre));
     if (alumnoRows.length) {
       indiSummary = '\n\nRESULTADOS DEL EXCEL CARGADO (curso: ' + (window.INDI_CURSO||'—') + '):';
       alumnoRows.forEach(r => {
@@ -16756,11 +16711,11 @@ DATOS ACADÉMICOS DEL ALUMNO:${dataSummary || '\n(Sin datos cargados en el siste
 
 Genera un INFORME NARRATIVO PERSONALIZADO con las siguientes secciones:
 1. **RESUMEN DEL PERFIL** — síntesis integral del alumno (2 párrafos)
-2. **ANÁLISIS ACADÉMICO** — rendimiento por área, tendencias, comparación con umbrales del colegio${indiSummary ? '. Analiza en detalle cada área y subárea del Excel cargado con sus resultados.' : ''}
+2. **ANÁLISIS ACADÉMICO** — rendimiento por área, tendencias, comparación con umbrales del colegio${indiSummary ? '\n   Incluye análisis detallado de los resultados del Excel cargado: áreas evaluadas, subareas y resultados obtenidos.' : ''}
 3. **ANÁLISIS DE ASISTENCIA Y PARTICIPACIÓN** — si hay datos disponibles
 4. **FACTORES DE RIESGO** — alertas específicas basadas en los datos
 5. **FORTALEZAS IDENTIFICADAS** — aspectos positivos del perfil
-6. **RECOMENDACIONES DE INTERVENCIÓN** — estrategias diferenciadas por área${indiSummary ? ' (considera los resultados INDI de cada subárea)' : ''}, considerando NEE si aplica
+6. **RECOMENDACIONES DE INTERVENCIÓN** — estrategias diferenciadas por área y subárea, considerando NEE si aplica
 7. **PRÓXIMOS PASOS** — acciones concretas para docente, familia y equipo directivo
 
 Tono profesional, empático y orientado a la acción. Sé específico con los datos numéricos.`;
@@ -36511,7 +36466,7 @@ function _indiRegisterFiles() {
   }
   var fileName = 'Resultados Excel — ' + cursoNombre + '.xlsx';
 
-  // Generar resumen textual del Excel para usar como contexto en agentes
+  // Build a plain-text summary of INDI data to inject as content in agents
   var rows = window.INDI_RESULTS;
   var alumnos = [...new Set(rows.map(function(r){ return r.NOMBRE_COMPLETO; }))];
   var areas   = [...new Set(rows.map(function(r){ return r.AREA; }).filter(Boolean))];
@@ -36524,28 +36479,29 @@ function _indiRegisterFiles() {
     });
   });
   var contenidoTexto = resumenLineas.join('\n');
+  // Store globally so prompts can reference it
   window.INDI_FILE_CONTENT = contenidoTexto;
 
-  // Usar AGENTS directamente (const/let no se exponen en window en scripts modernos)
-  var keywords = ['analisis', 'análisis', 'resultado', 'informe', 'desempe', 'logro'];
+  // Match ALL agents that involve 'analisis', 'resultado', or 'informe'
+  var keywords = ['analisis','análisis','resultado','informe'];
   var norm = function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
-  var agentsList = (typeof AGENTS !== 'undefined' ? AGENTS : (window.AGENTS||[]));
-  console.log('[INDI] _indiRegisterFiles — total agents:', agentsList.length, '| names:', agentsList.map(function(a){return a.nombre;}).join(', '));
+  var agents = (typeof AGENTS !== 'undefined' ? AGENTS : []);
+  console.log('[INDI] _indiRegisterFiles — total agents:', agents.length, '| names:', agents.map(function(a){return a.nombre;}).join(', '));
   var count = 0;
-  agentsList.forEach(function(ag) {
+  agents.forEach(function(ag) {
     if (!ag||!ag.id||!ag.nombre) return;
     var nameLow = norm(ag.nombre);
     var match = keywords.some(function(k){ return nameLow.includes(norm(k)); });
     if (!match) return;
-    var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !(f.name||'').startsWith('Resultados Excel') && !(f.name||'').startsWith('Resultados INDI'); });
+    var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !(f.name||'').startsWith('Resultados Excel'); });
     files.unshift({ name: fileName, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true, content: contenidoTexto });
     AGENT_STORE.saveFiles(ag.id, files);
     count++;
     console.log('[INDI] Archivo registrado en agente:', ag.nombre, '| id:', ag.id);
   });
-  if (count === 0) console.warn('[INDI] No hubo match. Keywords:', keywords, '| Agentes:', agentsList.map(function(a){ return norm(a.nombre); }));
+  if (count === 0) console.warn('[INDI] No hubo match. Keywords:', keywords, '| Agentes:', agents.map(function(a){ return norm(a.nombre); }));
   if (currentAgent && typeof renderFilesPanel === 'function') renderFilesPanel();
-  if (count > 0) showSaveToast('📊 Excel cargado en Archivos de ' + count + ' agente' + (count!==1?'s':''));
+  showSaveToast('📊 Excel cargado en Archivos de agentes (' + count + ' agente' + (count!==1?'s':'') + ')');
 }
 
 async function _supaSaveAlumno(alumno) {
