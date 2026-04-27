@@ -1906,6 +1906,22 @@
           <span id="indiLoadBtnText">Carga tus resultados INDI</span>
         </button>
         <div id="indiLoadStatus" style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center;display:none"></div>
+        <script>
+          (function(){
+            try {
+              var t = sessionStorage.getItem('indi_btn_text');
+              var s = sessionStorage.getItem('indi_btn_stat');
+              if (t) {
+                var b = document.getElementById('indiLoadBtn');
+                var tx = document.getElementById('indiLoadBtnText');
+                var st = document.getElementById('indiLoadStatus');
+                if (b) b.classList.add('loaded');
+                if (tx) tx.textContent = t;
+                if (st && s) { st.textContent = s; st.style.display = 'block'; st.style.color = '#00e5c0'; }
+              }
+            } catch(e){}
+          })();
+        </script>
       </div>
 
       <!-- ══ AGENTES FAVORITOS — compacto ══ -->
