@@ -36421,22 +36421,29 @@ async function _supaLoadIndiResultados() {
 
 function _indiRegisterFiles() {
   if (!window.INDI_RESULTS || !window.INDI_RESULTS.length) return;
-  var cursoNombre = window.INDI_CURSO || (window.INDI_RESULTS[0] && (window.INDI_RESULTS[0].CURSO||'') + ' ' + (window.INDI_RESULTS[0].LETRA||'')).trim() || '';
+  var cursoNombre = window.INDI_CURSO || '';
+  if (!cursoNombre && window.INDI_RESULTS[0]) {
+    cursoNombre = ((window.INDI_RESULTS[0].CURSO||'') + ' ' + (window.INDI_RESULTS[0].LETRA||'')).trim();
+  }
   var fileName = 'Resultados INDI — ' + cursoNombre + '.xlsx';
-  var keywords = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno'];
+  // Broader keywords — match any agent with 'analisis' OR 'informe' in name
+  var keywords = ['analisis','análisis','informe desempe','informe de desempe'];
   var norm = function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
-  var agents = (window.AGENTS||[]).concat(window.customAgents||[]);
+  var agents = (window.AGENTS||[]);
+  console.log('[INDI] _indiRegisterFiles — total agents:', agents.length, '| names:', agents.map(function(a){return a.nombre;}).join(', '));
   var count = 0;
   agents.forEach(function(ag) {
     if (!ag||!ag.id||!ag.nombre) return;
-    if (!keywords.some(function(k){ return norm(ag.nombre).includes(norm(k)); })) return;
-    var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !f.name.startsWith('Resultados INDI'); });
+    var nameLow = norm(ag.nombre);
+    var match = keywords.some(function(k){ return nameLow.includes(norm(k)); });
+    if (!match) return;
+    var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !(f.name||'').startsWith('Resultados INDI'); });
     files.unshift({ name: fileName, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true });
     AGENT_STORE.saveFiles(ag.id, files);
     count++;
-    console.log('[INDI] Archivo registrado en agente:', ag.nombre);
+    console.log('[INDI] Archivo registrado en agente:', ag.nombre, '| id:', ag.id);
   });
-  if (count === 0) console.warn('[INDI] No se encontraron agentes para registrar archivo. Agentes disponibles:', agents.map(function(a){ return a.nombre; }));
+  if (count === 0) console.warn('[INDI] No hubo match. Keywords:', keywords, '| Agentes:', agents.map(function(a){ return norm(a.nombre); }));
   if (currentAgent && typeof renderFilesPanel === 'function') renderFilesPanel();
 }
 
