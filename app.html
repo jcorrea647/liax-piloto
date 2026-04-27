@@ -5210,17 +5210,20 @@ function renderCursoResumen() {
     const dsCurso = base.filter(d => d.curso === curso);
     const nAluCurso = DB.alumnos.filter(a => a.esp === curso).length;
     if (!dsCurso.length) {
-      // Curso sin datos — mostrar tarjeta mínima
+      // Curso sin datos — mostrar tarjeta destacada
       return `<div class="curso-resumen-card" style="margin-bottom:16px">
-        <div class="curso-resumen-header">
-          <span class="curso-badge">${curso}</span>
+        <div class="curso-resumen-header" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--surface2);border-radius:12px;border:1.5px solid var(--border)">
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:900;color:var(--text);letter-spacing:-0.5px;line-height:1.1">${curso}</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:2px;font-weight:600">${nAluCurso} alumnos</div>
+          </div>
           <button onclick="abrirNominaModal('${encodeURIComponent(curso)}')"
-            style="background:var(--dim2);border:1px solid var(--accent2)44;color:var(--accent2);
-                   border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;
-                   font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:4px">
+            style="background:var(--accent2);color:#fff;border:none;
+                   border-radius:10px;padding:10px 18px;font-size:14px;font-weight:800;cursor:pointer;
+                   font-family:'Syne',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap;
+                   box-shadow:0 3px 10px var(--accent2)44;flex-shrink:0">
             📋 Nómina
           </button>
-          <span style="font-size:11px;color:var(--muted)">${nAluCurso} alumno(s)</span>
         </div>
         <div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:8px;margin-top:8px">
           Sin datos cargados aún —
