@@ -16735,8 +16735,65 @@ Genera un INFORME NARRATIVO PERSONALIZADO con las siguientes secciones:
 Tono profesional, empático y orientado a la acción. Sé específico con los datos numéricos.`;
 
   try {
-    const data = await callClaude({ model:'claude-haiku-4-5-20251001', max_tokens:2500, messages:[{role:'user',content:prompt}] });
-    const text = data.content?.find(c=>c.type==='text')?.text || 'No se pudo generar el informe.';
+    // ── PASO 1: Haiku extrae y estructura los datos del alumno (preciso, barato en output) ──
+    btn.textContent = '⏳ Paso 1/2: Extrayendo datos...';
+    const promptExtraccion = `Eres un extractor de datos educativos. Analiza los siguientes datos del alumno y devuelve un JSON estructurado con TODOS los datos relevantes. Solo responde con el JSON, sin explicaciones.
+
+DATOS CRUDOS DEL ALUMNO:
+Nombre: ${nombre}
+Curso: ${alumno.esp || '—'}
+NEE: ${neeInfo}
+${dataSummary || '(Sin fichas cargadas)'}
+${indiSummary || ''}
+
+Umbrales del colegio: nota mínima ${u.nota} (crítica ${u.notaCrit}), asistencia mínima ${u.asist}% (crítica ${u.asistCrit}%), nivel mínimo ${u.nivel}
+
+Devuelve SOLO este JSON (sin markdown):
+{
+  "nombre": "",
+  "curso": "",
+  "nee": "",
+  "areas_evaluadas": [{"area":"","subarea":"","resultado":""}],
+  "notas": [{"asignatura":"","nota":""}],
+  "asistencia_pct": null,
+  "anotaciones_positivas": 0,
+  "anotaciones_negativas": 0,
+  "anotaciones_detalle": [],
+  "alertas": [],
+  "fortalezas": [],
+  "resumen_datos": ""
+}`;
+
+    const paso1 = await callClaude({ model:'claude-haiku-4-5-20251001', max_tokens:1200, messages:[{role:'user',content:promptExtraccion}] });
+    const paso1Text = paso1.content?.find(c=>c.type==='text')?.text || '{}';
+    let datosEstructurados = '';
+    try {
+      const parsed = JSON.parse(paso1Text.replace(/```json|```/g,'').trim());
+      datosEstructurados = JSON.stringify(parsed, null, 2);
+    } catch(e) {
+      datosEstructurados = paso1Text; // usar texto plano si JSON falla
+    }
+
+    // ── PASO 2: Gemini genera el informe narrativo con los datos ya estructurados ──
+    btn.textContent = '⏳ Paso 2/2: Generando informe...';
+    const promptInforme = `Eres un psicopedagogo y experto en educación chilena. Genera un INFORME PEDAGÓGICO PERSONALIZADO completo y detallado basado en los datos estructurados del alumno.
+
+DATOS ESTRUCTURADOS DEL ALUMNO:
+${datosEstructurados}
+
+Genera el INFORME COMPLETO con TODAS estas secciones sin excepción:
+1. **RESUMEN DEL PERFIL** — síntesis integral (2 párrafos)
+2. **ANÁLISIS ACADÉMICO** — rendimiento por área y subárea, tendencias, comparación con umbrales${indiSummary ? '. Analiza CADA área y subárea del Excel con su resultado.' : ''}
+3. **ANÁLISIS DE ASISTENCIA Y PARTICIPACIÓN**
+4. **FACTORES DE RIESGO** — alertas específicas con datos concretos
+5. **FORTALEZAS IDENTIFICADAS** — aspectos positivos observables
+6. **RECOMENDACIONES DE INTERVENCIÓN** — estrategias diferenciadas por área, considerando NEE si aplica
+7. **PRÓXIMOS PASOS** — acciones para docente, familia y equipo directivo
+
+Tono profesional, empático y orientado a la acción. Usa datos numéricos concretos. NO cortes el informe.`;
+
+    const paso2 = await callClaude({ model:'gemini-2.0-flash', max_tokens:4000, messages:[{role:'user',content:promptInforme}] });
+    const text = paso2.content?.find(c=>c.type==='text')?.text || 'No se pudo generar el informe.';
     result.textContent = text;
     result.style.display = 'block';
     actions.style.display = 'flex';
@@ -17009,12 +17066,33 @@ ${docente?`Docente responsable: ${docente.nombre}`:''}
 
 INSTRUCCIONES DE ESTILO: Tono formal pero cercano. Evita tecnicismos. Usa el nombre de pila del alumno. Sé específico con los datos numéricos. Si hay alertas críticas, comunícalas con claridad pero sin alarmismo. Máximo 500 palabras.`;
 
-  const data = await callClaude({
+  // ── PASO 1: Haiku extrae y estructura datos del alumno ──
+  const paso1 = await callClaude({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 2000,
-    messages: [{ role:'user', content: prompt }]
+    max_tokens: 800,
+    messages: [{ role:'user', content:
+      `Extrae y estructura los datos de este alumno en JSON. Solo responde el JSON sin markdown.
+Nombre: ${nombre}, Curso: ${alumno.esp}, NEE: ${neeInfo}
+Datos: ${dataSummary || '(sin datos)'}
+Devuelve: {"nombre":"","curso":"","nee":"","notas":[],"asistencia":null,"anotaciones_positivas":0,"anotaciones_negativas":0,"anotaciones_detalle":[],"alertas":[],"fortalezas":[]}`
+    }]
   });
-  return data.content?.find(c=>c.type==='text')?.text || 'No se pudo generar el informe.';
+  const paso1Text = paso1.content?.find(c=>c.type==='text')?.text || '{}';
+  let datosEstructurados = paso1Text;
+  try { datosEstructurados = JSON.stringify(JSON.parse(paso1Text.replace(/```json|```/g,'').trim()), null, 2); } catch(e) {}
+
+  // ── PASO 2: Gemini genera el informe narrativo ──
+  const paso2 = await callClaude({
+    model: 'gemini-2.0-flash',
+    max_tokens: 3000,
+    messages: [{ role:'user', content: prompt.replace(
+      'INFORMACIÓN ACADÉMICA DEL ALUMNO:' + (dataSummary || '
+(Sin datos cargados para este alumno en las secciones seleccionadas)'),
+      'DATOS ESTRUCTURADOS DEL ALUMNO:
+' + datosEstructurados
+    )}]
+  });
+  return paso2.content?.find(c=>c.type==='text')?.text || 'No se pudo generar el informe.';
 }
 
 // ── Print single ──────────────────────────────────────────────
