@@ -32526,36 +32526,116 @@ async function informeCursoIA(curso) {
     html += '<p style="color:'+C.verde+';font-weight:700;padding:8px;background:'+C.verdeCl+';border-radius:4px">✓ No se detectaron alumnos con alertas críticas en los datos disponibles.</p>';
   }
 
-  // 4. Recomendaciones pedagógicas
-  html += seccion('4', 'RECOMENDACIONES PEDAGÓGICAS');
-  html += '<table style="width:100%;border-collapse:collapse;margin-bottom:10px">';
-  html += thead(['Categoría','Acción concreta','Plazo','Responsable'], C.azul);
-  var recoms = [
-    ['Intervención directa',   'Diseñar adecuaciones curriculares para alumnos con NEE y bajo rendimiento.',    'Inmediato',  'Docente + UTP'],
-    ['Estrategia didáctica',   'Incorporar agrupamiento flexible basado en niveles detectados.',                'Esta semana','Docente'],
-    ['Convivencia',            'Trabajar integración de alumnos aislados con actividades colaborativas.',       '1 semana',   'Orientador'],
-    ['Familia',                'Convocar a entrevistas con apoderados de alumnos de prioridad alta.',           '1 semana',   'Docente + Dir.'],
-    ['Evaluación formativa',   'Implementar evaluaciones cortas quincenales para monitorear el avance.',       'Quincenal',  'Docente'],
-  ];
-  recoms.forEach(function(r,i){ html += trow(r, i%2===0?C.fondo:'#fff'); });
-  html += '</table>';
+  // 4 y 5. Recomendaciones y Plan de acción — generados por IA (pipeline 2 pasos)
+  // Paso 1: Haiku estructura los datos del curso en JSON limpio
+  var datosParaIA = {
+    curso: curso,
+    total_alumnos: alumnos.length,
+    promedio_notas: Object.values(promedios)[0] || null,
+    alumnos_bajo_nota: alumnosBajoNota,
+    promedio_asistencia: promAsist || null,
+    alumnos_bajo_asistencia: alumnosBajoAsist.map(function(a){ return a.nombre + ' (' + a.pct + '%)'; }),
+    niveles_evaluacion: lvls,
+    aislados_sociograma: aisladosArr,
+    nee_count: neeAlus.length,
+    denuncias_activas: denActivas.length,
+    anotaciones_positivas: aPos,
+    anotaciones_negativas: aNeg,
+    umbrales: { nota_min: u.nota, asist_min: u.asist }
+  };
 
-  // 5. Plan de acción
-  html += seccion('5', 'PLAN DE ACCIÓN — PRÓXIMAS 4 SEMANAS');
-  html += '<table style="width:100%;border-collapse:collapse;margin-bottom:10px">';
-  html += thead(['Semana','Acción','Responsable','Recurso'], C.azul);
-  var plan = [
-    ['Semana 1','Diagnóstico diferenciado alumnos prioridad alta',            'Docente',        'Ficha diagnóstica'],
-    ['Semana 1','Reunión con UTP/Orientador para coordinar apoyos',           'Docente + Dir.', 'Este informe'],
-    ['Semana 2','Implementar agrupamiento flexible en clases',                'Docente',        'Sociograma'],
-    ['Semana 2','Diseñar adecuaciones curriculares (Decreto 83)',             'Docente + UTP',  'Normativa'],
-    ['Semana 3','Evaluación formativa N°1 y ajuste de estrategias',           'Docente',        'Rúbrica'],
-    ['Semana 3','Envío de comunicado a apoderados con resultados',            'Docente',        'Carta apoderado'],
-    ['Semana 4','Revisión de avances con equipo directivo',                   'Dir. + Docente', 'Este informe'],
-    ['Semana 4','Re-evaluación de alumnos de prioridad alta',                 'Docente',        'Instrumento'],
-  ];
-  plan.forEach(function(r,i){ html += trow(r, i%2===0?C.fondo:'#fff'); });
-  html += '</table>';
+  var recomsHtml = '';
+  var planHtml = '';
+  try {
+    // Paso 1: Haiku extrae y valida los datos
+    var p1 = await callClaude({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      messages: [{ role:'user', content:
+        'Analiza estos datos de curso educativo y devuelve SOLO un JSON con las alertas principales. Sin markdown.
+' +
+        JSON.stringify(datosParaIA) +
+        '
+Devuelve: {"alertas_criticas":[],"patrones_detectados":[],"areas_prioritarias":[]}'
+      }]
+    });
+    var p1text = p1.content?.find(function(c){return c.type==='text';})?.text || '{}';
+    var analisis = {};
+    try { analisis = JSON.parse(p1text.replace(/```json|```/g,'').trim()); } catch(e) {}
+
+    // Paso 2: Gemini genera recomendaciones y plan reales basados en datos
+    var p2 = await callClaude({
+      model: 'gemini-2.0-flash',
+      max_tokens: 1200,
+      messages: [{ role:'user', content:
+        'Eres un asesor pedagógico experto en educación chilena. Basándote en estos datos reales del curso ' + curso + ', genera recomendaciones y un plan de acción ESPECÍFICOS para este curso (no genéricos).
+
+' +
+        'DATOS: ' + JSON.stringify(datosParaIA) + '
+ANÁLISIS: ' + JSON.stringify(analisis) + '
+
+' +
+        'Responde SOLO con este JSON sin markdown:
+' +
+        '{"recomendaciones":[{"categoria":"","accion":"","plazo":"","responsable":""}],' +
+        '"plan":[{"semana":"Semana 1","accion":"","responsable":"","recurso":""}]}
+' +
+        'Genera 5 recomendaciones y 8 acciones del plan, todas ESPECÍFICAS para los datos de este curso.'
+      }]
+    });
+    var p2text = p2.content?.find(function(c){return c.type==='text';})?.text || '{}';
+    var iaResult = {};
+    try { iaResult = JSON.parse(p2text.replace(/```json|```/g,'').trim()); } catch(e) {}
+
+    if (iaResult.recomendaciones && iaResult.recomendaciones.length) {
+      recomsHtml = '<table style="width:100%;border-collapse:collapse;margin-bottom:10px">';
+      recomsHtml += thead(['Categoría','Acción concreta','Plazo','Responsable'], C.azul);
+      iaResult.recomendaciones.forEach(function(r,i){
+        recomsHtml += trow([r.categoria||'—', r.accion||'—', r.plazo||'—', r.responsable||'—'], i%2===0?C.fondo:'#fff');
+      });
+      recomsHtml += '</table>';
+    }
+    if (iaResult.plan && iaResult.plan.length) {
+      planHtml = '<table style="width:100%;border-collapse:collapse;margin-bottom:10px">';
+      planHtml += thead(['Semana','Acción','Responsable','Recurso'], C.azul);
+      iaResult.plan.forEach(function(r,i){
+        planHtml += trow([r.semana||'—', r.accion||'—', r.responsable||'—', r.recurso||'—'], i%2===0?C.fondo:'#fff');
+      });
+      planHtml += '</table>';
+    }
+  } catch(e) { console.warn('[LIAX] IA recomendaciones falló:', e.message); }
+
+  // Fallback si IA falló
+  if (!recomsHtml) {
+    recomsHtml = '<table style="width:100%;border-collapse:collapse;margin-bottom:10px">';
+    recomsHtml += thead(['Categoría','Acción concreta','Plazo','Responsable'], C.azul);
+    [['Intervención directa','Diseñar adecuaciones para alumnos con NEE y bajo rendimiento','Inmediato','Docente + UTP'],
+     ['Estrategia didáctica','Incorporar agrupamiento flexible según niveles detectados','Esta semana','Docente'],
+     ['Convivencia','Trabajar integración de alumnos aislados','1 semana','Orientador'],
+     ['Familia','Entrevistas con apoderados de prioridad alta','1 semana','Docente + Dir.'],
+     ['Evaluación','Evaluaciones quincenales de seguimiento','Quincenal','Docente']
+    ].forEach(function(r,i){ recomsHtml += trow(r, i%2===0?C.fondo:'#fff'); });
+    recomsHtml += '</table>';
+  }
+  if (!planHtml) {
+    planHtml = '<table style="width:100%;border-collapse:collapse;margin-bottom:10px">';
+    planHtml += thead(['Semana','Acción','Responsable','Recurso'], C.azul);
+    [['Semana 1','Diagnóstico diferenciado prioridad alta','Docente','Ficha diagnóstica'],
+     ['Semana 1','Reunión UTP/Orientador para coordinar apoyos','Docente + Dir.','Este informe'],
+     ['Semana 2','Agrupamiento flexible en clases','Docente','Sociograma'],
+     ['Semana 2','Adecuaciones curriculares Decreto 83','Docente + UTP','Normativa'],
+     ['Semana 3','Evaluación formativa N°1','Docente','Rúbrica'],
+     ['Semana 3','Comunicado a apoderados','Docente','Carta'],
+     ['Semana 4','Revisión con equipo directivo','Dir. + Docente','Este informe'],
+     ['Semana 4','Re-evaluación alumnos prioridad alta','Docente','Instrumento']
+    ].forEach(function(r,i){ planHtml += trow(r, i%2===0?C.fondo:'#fff'); });
+    planHtml += '</table>';
+  }
+
+  html += seccion('4', 'RECOMENDACIONES PEDAGÓGICAS ✨ IA');
+  html += recomsHtml;
+  html += seccion('5', 'PLAN DE ACCIÓN — PRÓXIMAS 4 SEMANAS ✨ IA');
+  html += planHtml;
 
   // Footer
   html += '<div style="margin-top:16px;border-top:2px solid '+C.azul+';padding-top:8px;font-size:9px;color:#888;text-align:center">';
