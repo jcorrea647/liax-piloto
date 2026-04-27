@@ -36272,10 +36272,22 @@ async function _supaLoadAlumnos() {
         data = res.data || [];
         error = res.error;
       } else {
-        // Fallback: si aún no cargaron los cursos, usar user_id
+        // Fallback: cargar por user_id y actualizar cursosAsignados
         var res2 = await _supa.from('alumnos').select('*').eq('user_id', _supaUser.id);
         data = res2.data || [];
         error = res2.error;
+        // Update cursosAsignados from what we found
+        if (data.length && docente) {
+          var cursosEncontrados = [...new Set(data.map(function(a){ return a.curso_nombre; }).filter(Boolean))];
+          if (cursosEncontrados.length) {
+            docente.cursosAsignados = cursosEncontrados.map(function(c){ return { curso: c, asignaturas: [] }; });
+            // Also ensure CURSOS array has them
+            cursosEncontrados.forEach(function(c){
+              if (CURSOS.indexOf(c) === -1) CURSOS.push(c);
+            });
+            console.log('[LIAX] cursosAsignados reconstruidos desde alumnos:', cursosEncontrados);
+          }
+        }
       }
     } else {
       // Otros roles: cargar por colegio_id
