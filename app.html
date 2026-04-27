@@ -3911,6 +3911,7 @@ async function _supaLoadPerfil() {
       await _supaLoadDocenteCursos();
       applyDocenteView();
       await _supaLoadAlumnos();  // DESPUÉS de applyDocenteView para no perder los datos
+    await _supaLoadIndiResultados(); // Cargar resultados INDI persistidos
     } else {
       await _supaLoadAlumnos();
     }
@@ -8037,7 +8038,11 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     // Save to Supabase if connected
     stat.textContent = '⏳ Guardando ' + alumnos.length + ' alumnos en Supabase...';
     if (_supa && _supaUser) {
-      await _supa.from('alumnos').delete().eq('curso_nombre', cursoNombre).eq('user_id', _supaUser.id);
+      // Borrar TODOS los alumnos previos del usuario (limpiar cargas anteriores)
+      var delAll = await _supa.from('alumnos').delete().eq('user_id', _supaUser.id);
+      if (delAll.error) console.warn('[INDI] Error borrando alumnos previos:', delAll.error.message);
+      else console.log('[INDI] Alumnos previos eliminados');
+
       var ts = Date.now();
       var inserts = alumnos.map(function(nombre, i) {
         var row = { id: 'indi_' + ts + '_' + i, nombre: nombre, curso_nombre: cursoNombre, rut: '', email: '', nee: '', user_id: _supaUser.id };
@@ -8047,6 +8052,28 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
       var insRes = await _supa.from('alumnos').insert(inserts);
       if (insRes.error) throw new Error('Error insertando alumnos: ' + insRes.error.message);
       console.log('[INDI] Alumnos insertados en Supabase:', inserts.length);
+
+      // ── Guardar resultados INDI en tabla indi_resultados ──
+      stat.textContent = '⏳ Guardando resultados INDI...';
+      var delIndi = await _supa.from('indi_resultados').delete().eq('user_id', _supaUser.id);
+      if (delIndi.error) console.warn('[INDI] Error borrando resultados previos:', delIndi.error.message);
+      var indiRows = rows.map(function(r, i) {
+        var row = {
+          id:           'indi_res_' + ts + '_' + i,
+          user_id:      _supaUser.id,
+          curso_nombre: cursoNombre,
+          nombre_alumno: r.NOMBRE_COMPLETO || '',
+          edad:         String(r.EDAD || ''),
+          area:         r.AREA || '',
+          subarea:      r.SUBAREA || '',
+          resultado:    r.RESULTADO || '',
+        };
+        if (colegioId) row.colegio_id = colegioId;
+        return row;
+      });
+      var indiRes = await _supa.from('indi_resultados').insert(indiRows);
+      if (indiRes.error) console.warn('[INDI] Error guardando resultados:', indiRes.error.message);
+      else console.log('[INDI] Resultados INDI guardados en Supabase:', indiRows.length);
 
       // Assign course to docente
       if (typeof _guardarDocenteCurso === 'function') {
@@ -8072,16 +8099,12 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     }
     if (typeof _supaLoadAlumnos === 'function') {
       await _supaLoadAlumnos();
+    await _supaLoadIndiResultados();
     }
 
-    // Refresh UI
-    if (typeof renderCursoResumen === 'function') renderCursoResumen();
-    if (typeof renderCursoChips === 'function') renderCursoChips();
-    if (typeof renderMisCursos === 'function') renderMisCursos();
+    // Refresh UI — full re-render of all course-related panels
     if (typeof renderGestionCursos === 'function') renderGestionCursos();
-    // Force re-render of Mi Aula curso chips
-    var chipsEl = document.getElementById('cursoFilterChips');
-    if (chipsEl) renderCursoChips();
+    if (typeof initMisCursosPanel === 'function') initMisCursosPanel();
 
     // Update button
     btn.classList.add('loaded');
@@ -36275,6 +36298,46 @@ async function _supaLoadAlumnos() {
       console.log('[Supabase] Sin alumnos en Supabase para este docente/colegio');
     }
   } catch(e) { console.warn('[Supabase] Error alumnos:', e.message); }
+}
+
+async function _supaLoadIndiResultados() {
+  if (!_supaUser) return;
+  try {
+    var { data, error } = await _supa.from('indi_resultados').select('*').eq('user_id', _supaUser.id);
+    if (error) throw error;
+    if (data && data.length) {
+      window.INDI_RESULTS = data.map(function(r) {
+        return {
+          NOMBRE_COMPLETO: r.nombre_alumno,
+          EDAD:            r.edad,
+          AREA:            r.area,
+          SUBAREA:         r.subarea,
+          RESULTADO:       r.resultado,
+          CURSO:           r.curso_nombre ? r.curso_nombre.split(' ').slice(0,-1).join(' ') : '',
+          LETRA:           r.curso_nombre ? r.curso_nombre.split(' ').slice(-1)[0] : '',
+        };
+      });
+      window.INDI_CURSO = data[0].curso_nombre || '';
+      var nAlumnos = [...new Set(data.map(function(r){ return r.nombre_alumno; }))].length;
+      console.log('[INDI] Resultados cargados desde Supabase:', data.length, 'registros,', nAlumnos, 'alumnos');
+
+      // Update button UI
+      var btn  = document.getElementById('indiLoadBtn');
+      var txt  = document.getElementById('indiLoadBtnText');
+      var stat = document.getElementById('indiLoadStatus');
+      if (btn && txt) {
+        btn.classList.add('loaded');
+        txt.textContent = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
+      }
+      if (stat) {
+        var resultCounts = {};
+        data.forEach(function(r){ var res = r.resultado||'Sin dato'; resultCounts[res]=(resultCounts[res]||0)+1; });
+        stat.textContent = window.INDI_CURSO + ' · ' + Object.keys(resultCounts).map(function(k){ return k+': '+resultCounts[k]; }).join(' · ');
+        stat.style.display = 'block';
+        stat.style.color = 'var(--accent2)';
+      }
+    }
+  } catch(e) { console.warn('[INDI] Error cargando resultados:', e.message); }
 }
 
 async function _supaSaveAlumno(alumno) {
