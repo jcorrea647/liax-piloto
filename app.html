@@ -4675,9 +4675,24 @@ function buildClassContext() {
 }
 
 // ── NAV ──────────────────────────────────────────────────
+function _applyIndiBtnStateGlobal() {
+  if (!window._indiBtnText) return;
+  var btn  = document.getElementById('indiLoadBtn');
+  var txt  = document.getElementById('indiLoadBtnText');
+  var stat = document.getElementById('indiLoadStatus');
+  if (btn && !btn.classList.contains('loaded')) btn.classList.add('loaded');
+  if (txt && txt.textContent !== window._indiBtnText) txt.textContent = window._indiBtnText;
+  if (stat && window._indiStatText) {
+    stat.textContent = window._indiStatText;
+    stat.style.display = 'block';
+    stat.style.color = 'var(--accent2)';
+  }
+}
+
 function showPanel(id) {
   var tkBar=document.getElementById("tokenBulkBar");
   if(tkBar) tkBar.style.display=(currentRole==="superadmin"||currentRole==="sostenedor")?"flex":"none";
+  if (id === 'favoritos') setTimeout(_applyIndiBtnStateGlobal, 80);
 
   // If agent is open, show the panel in a floating drawer OVER the chat
   // Exception: 'agentes' panel should close the drawer and let openAgent handle it
@@ -8161,9 +8176,7 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     var _fStatText = cursoNombre + ' · ' + resumen;
     window._indiBtnText  = _fBtnText;
     window._indiStatText = _fStatText;
-    btn.classList.add('loaded');
-    txt.textContent = _fBtnText;
-    stat.textContent = _fStatText;
+    _applyIndiBtnStateGlobal();
     stat.style.display = 'block';
     stat.style.color = 'var(--accent2)';
     showSaveToast('✅ Curso "' + cursoNombre + '" creado con ' + nAlumnos + ' alumnos');
@@ -13969,16 +13982,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Los selects de capacidades se crean dinámicamente en renderCapacidadesPanel()
   // y usan onchange="onCompetChange(id,value)" inline.
 
-  // Restaurar botón INDI si ya hay datos en memoria (cargados por Supabase)
-  // Se ejecuta después de DOMContentLoaded — Supabase puede tardar más, ver _applyIndiBtnState
-  if (window._indiBtnText) {
-    var btn2 = document.getElementById('indiLoadBtn');
-    var txt2 = document.getElementById('indiLoadBtnText');
-    var stat2 = document.getElementById('indiLoadStatus');
-    if (btn2) btn2.classList.add('loaded');
-    if (txt2) txt2.textContent = window._indiBtnText;
-    if (stat2 && window._indiStatText) { stat2.textContent = window._indiStatText; stat2.style.display = 'block'; stat2.style.color = 'var(--accent2)'; }
-  }
+  // Restaurar botón INDI si ya hay datos en memoria
+  _applyIndiBtnStateGlobal();
 });
 
 // ── Contadores badge ─────────────────────────────────────────
@@ -36445,18 +36450,11 @@ async function _supaLoadIndiResultados() {
       data.forEach(function(r){ var res = r.resultado||'Sin dato'; resultCounts2[res]=(resultCounts2[res]||0)+1; });
       window._indiStatText = window.INDI_CURSO + ' · ' + Object.keys(resultCounts2).map(function(k){ return k+': '+resultCounts2[k]; }).join(' · ');
       window._indiBtnText  = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
-      function _applyIndiBtnState() {
-        var btn  = document.getElementById('indiLoadBtn');
-        var txt  = document.getElementById('indiLoadBtnText');
-        var stat = document.getElementById('indiLoadStatus');
-        if (btn)  { btn.classList.add('loaded'); }
-        if (txt)  { txt.textContent = window._indiBtnText; }
-        if (stat) { stat.textContent = window._indiStatText; stat.style.display = 'block'; stat.style.color = 'var(--accent2)'; }
-      }
-      _applyIndiBtnState();
-      // Re-apply after 500ms and 1500ms in case the DOM wasn't ready
-      setTimeout(_applyIndiBtnState, 500);
-      setTimeout(_applyIndiBtnState, 1500);
+      // Apply button state now and with retries
+      _applyIndiBtnStateGlobal();
+      setTimeout(_applyIndiBtnStateGlobal, 300);
+      setTimeout(_applyIndiBtnStateGlobal, 1000);
+      setTimeout(_applyIndiBtnStateGlobal, 3000);
     }
   } catch(e) { console.warn('[INDI] Error cargando resultados:', e.message); }
 }
