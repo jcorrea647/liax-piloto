@@ -8161,6 +8161,27 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     stat.style.color = 'var(--accent2)';
     showSaveToast('✅ Curso "' + cursoNombre + '" creado con ' + nAlumnos + ' alumnos');
 
+    // ── Registrar archivo INDI en panel Archivos de agentes relevantes ──
+    var _indiFileName = 'Resultados INDI — ' + cursoNombre + '.xlsx';
+    var _indiKeywords = ['análisis de resultados', 'analisis de resultados',
+                         'informe desempeño', 'informe de desempeño',
+                         'informe desempeno', 'informe de desempeno'];
+    var _normalize = function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
+    var _allAgents = (window.AGENTS || []).concat(window.customAgents || []);
+    _allAgents.forEach(function(ag) {
+      if (!ag || !ag.id || !ag.nombre) return;
+      var nameLow = _normalize(ag.nombre);
+      var match = _indiKeywords.some(function(k){ return nameLow.includes(_normalize(k)); });
+      if (!match) return;
+      // Remove old INDI file, add new one
+      var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !f.name.startsWith('Resultados INDI'); });
+      files.unshift({ name: _indiFileName, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true });
+      AGENT_STORE.saveFiles(ag.id, files);
+      console.log('[INDI] Archivo registrado en agente:', ag.nombre);
+    });
+    // Refresh files panel if open
+    if (currentAgent && typeof renderFilesPanel === 'function') renderFilesPanel();
+
   } catch(e) {
     console.error('[INDI] Error guardando curso:', e);
     // Still mark as loaded even if Supabase failed
@@ -36393,6 +36414,19 @@ async function _supaLoadIndiResultados() {
       window.INDI_CURSO = data[0].curso_nombre || '';
       var nAlumnos = [...new Set(data.map(function(r){ return r.nombre_alumno; }))].length;
       console.log('[INDI] Resultados cargados desde Supabase:', data.length, 'registros,', nAlumnos, 'alumnos');
+
+      // ── Registrar en panel Archivos de agentes relevantes ──
+      var _indiFileNameLoad = 'Resultados INDI — ' + (data[0].curso_nombre || '') + '.xlsx';
+      var _indiKwLoad = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno'];
+      var _normLoad = function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
+      var _allAgentsLoad = (window.AGENTS||[]).concat(window.customAgents||[]);
+      _allAgentsLoad.forEach(function(ag){
+        if (!ag||!ag.id||!ag.nombre) return;
+        if (!_indiKwLoad.some(function(k){ return _normLoad(ag.nombre).includes(_normLoad(k)); })) return;
+        var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !f.name.startsWith('Resultados INDI'); });
+        files.unshift({ name: _indiFileNameLoad, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true });
+        AGENT_STORE.saveFiles(ag.id, files);
+      });
 
       // Update button UI
       var btn  = document.getElementById('indiLoadBtn');
