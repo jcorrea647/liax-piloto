@@ -4415,7 +4415,7 @@ const COLORS = {
   recursos:  {bg:'var(--dim4)',text:'var(--accent4)',border:'#ffd16644'},
 };
 
-const AGENTS=[
+var AGENTS=[
   {id:'l1',dim:'liderazgo',nombre:'Visión Estratégica',icon:'🏛️',desc:'Apoya la construcción de una visión compartida del establecimiento.',prompt:`Eres asesor experto en liderazgo educativo estratégico. Orientas al equipo directivo en construir y comunicar la visión institucional. Usas marcos como Liderazgo Distribuido y Marco para la Buena Dirección. Tono profesional y propositivo.`,preguntas:['¿Cuál es la visión actual del establecimiento y qué tan compartida está?','¿Cómo alinear las prácticas docentes con el proyecto educativo?','¿Qué estrategias implementar para fortalecer el liderazgo distribuido?','¿Cómo evalúas la coherencia entre misión declarada y prácticas cotidianas?','¿Qué indicadores usamos para medir el logro de nuestra visión?']},
   {id:'l2',dim:'liderazgo',nombre:'Toma de Decisiones',icon:'⚖️',desc:'Facilita procesos de decisión basada en evidencia institucional.',prompt:`Eres consultor en toma de decisiones institucionales educativas. Guías en análisis de datos para decisiones fundamentadas usando ciclo PDCA y pensamiento sistémico.`,preguntas:['¿Qué datos priorizar para mejores decisiones pedagógicas?','¿Cómo involucrar más actores en las decisiones institucionales?','¿Qué protocolos existen para analizar evaluaciones y generar mejoras?','¿Cómo gestionar la incertidumbre al decidir sin información completa?','¿Qué errores cometemos al decidir y cómo evitarlos?']},
   {id:'l3',dim:'liderazgo',nombre:'Clima Laboral',icon:'🌡️',desc:'Analiza y orienta acciones para mejorar el bienestar del equipo docente.',prompt:`Eres especialista en clima organizacional educativo. Ayudas a diagnosticar y mejorar el ambiente laboral aplicando comunicación asertiva y diagnóstico organizacional.`,preguntas:['¿Cómo describirías el clima actual entre el equipo docente?','¿Qué factores generan mayor malestar en el personal?','¿Qué acciones concretas mejorarían la convivencia laboral esta semana?','¿Cómo reconocemos el trabajo bien hecho de docentes y asistentes?','¿Existe espacio seguro para expresar inquietudes sin consecuencias?']},
@@ -7098,7 +7098,7 @@ function startChat(){
     }
   }
   // ── Aviso INDI si hay resultados cargados y el agente los usa ──
-  var _indiAgentes = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno','informe de desempeno','análisis','analisis','resultado','logros de aprendizaje'];
+  var _indiAgentes = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno','informe de desempeno'];
   var _agNombreLow = (currentAgent.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   var _usaIndi = _indiAgentes.some(function(k){ return _agNombreLow.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,'')); });
   if (_usaIndi && window.INDI_RESULTS && window.INDI_RESULTS.length) {
@@ -7966,6 +7966,19 @@ function _indiConfirmCourse() {
 }
 
 async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
+  // ── Preguntar si ya hay resultados INDI cargados (ANTES de sobrescribir) ──
+  if (window.INDI_RESULTS && window.INDI_RESULTS.length > 0) {
+    var prevCurso = window.INDI_CURSO || 'curso anterior';
+    var ok = confirm('Ya tienes resultados cargados para "' + prevCurso + '". ¿Reemplazar con los ' + [...new Set(rows.map(function(r){ return r.NOMBRE_COMPLETO; }))].length + ' alumnos del nuevo archivo?');
+    if (!ok) {
+      txt.textContent = 'Carga tus resultados INDI';
+      stat.textContent = 'Carga cancelada.';
+      stat.style.display = 'block';
+      stat.style.color = 'var(--muted)';
+      return;
+    }
+  }
+
   window.INDI_RESULTS = rows;
   window.INDI_CURSO   = cursoNombre;
 
@@ -7977,19 +7990,6 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     resultCounts[res] = (resultCounts[res]||0) + 1;
   });
   var resumen = Object.keys(resultCounts).map(function(k){ return k+': '+resultCounts[k]; }).join(' · ');
-
-  // ── Preguntar si ya hay resultados INDI cargados ──
-  if (window.INDI_RESULTS && window.INDI_RESULTS.length > 0) {
-    var prevCurso = window.INDI_CURSO || 'curso anterior';
-    var ok = confirm('Ya tienes resultados INDI cargados para "' + prevCurso + '". ¿Reemplazar con los ' + alumnos.length + ' alumnos del nuevo archivo?');
-    if (!ok) {
-      txt.textContent = 'Carga tus resultados INDI';
-      stat.textContent = 'Carga cancelada.';
-      stat.style.display = 'block';
-      stat.style.color = 'var(--muted)';
-      return;
-    }
-  }
 
   // ── Create course in DB and Supabase ──
   try {
@@ -13124,11 +13124,10 @@ function renderFilesPanel() {
         </div>
         ${files.map((f,i) => `
           <div class="file-card">
-            <div class="file-icon">${FILE_EMOJI[f.ext]||'📎'}</div>
+            <div class="file-icon">${f.isIndi ? '📊' : (FILE_EMOJI[f.ext]||'📎')}</div>
             <div style="flex:1;min-width:0">
-              <div class="file-name">${f.name}${f.isIndi ? ' <span style="background:var(--dim2);color:var(--accent2);font-size:9px;padding:1px 6px;border-radius:5px;font-weight:700;margin-left:4px">CARGADO AUTOMÁTICAMENTE</span>' : ''}</div>
-              <div class="file-size">${f.ext.toUpperCase()} · ${f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL') : '—'}</div>
-              ${f.isIndi && f.content ? `<div style="margin-top:4px;font-size:10px;color:var(--accent2);background:var(--dim2);border-radius:6px;padding:5px 8px;line-height:1.5;max-height:56px;overflow:hidden">📊 Datos disponibles en contexto del agente — ${window.INDI_RESULTS ? window.INDI_RESULTS.length + ' registros' : ''} de ${window.INDI_CURSO||''}</div>` : ''}
+              <div class="file-name">${f.name}${f.isIndi ? ' <span style=\"background:rgba(0,229,192,.15);color:var(--accent2);font-size:9px;padding:1px 6px;border-radius:5px;font-weight:700;margin-left:4px\">AUTO</span>' : ''}</div>
+              <div class="file-size">${f.ext.toUpperCase()} · ${f.loadedAt ? new Date(f.loadedAt).toLocaleDateString('es-CL') : '—'}${f.isIndi && window.INDI_RESULTS ? ' · ' + window.INDI_RESULTS.length + ' registros' : ''}</div>
             </div>
             <button class="doc-btn danger" onclick="deleteFile(${i})">✕</button>
           </div>`).join('')}
@@ -16676,12 +16675,11 @@ async function generarInformeAlumno() {
     });
   });
 
-  // ── Incorporar resultados Excel/INDI si están cargados ──
+  // ── Incorporar resultados Excel/INDI si están cargados para este alumno ──
   let indiSummary = '';
   if (window.INDI_RESULTS && window.INDI_RESULTS.length) {
-    // Normalizar nombre para comparación flexible
-    const normNombre = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-    const alumnoRows = window.INDI_RESULTS.filter(r => normNombre(r.NOMBRE_COMPLETO) === normNombre(nombre));
+    const normStr = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    const alumnoRows = window.INDI_RESULTS.filter(r => normStr(r.NOMBRE_COMPLETO) === normStr(nombre));
     if (alumnoRows.length) {
       indiSummary = '\n\nRESULTADOS DEL EXCEL CARGADO (curso: ' + (window.INDI_CURSO||'—') + '):';
       alumnoRows.forEach(r => {
@@ -16709,11 +16707,11 @@ DATOS ACADÉMICOS DEL ALUMNO:${dataSummary || '\n(Sin datos cargados en el siste
 
 Genera un INFORME NARRATIVO PERSONALIZADO con las siguientes secciones:
 1. **RESUMEN DEL PERFIL** — síntesis integral del alumno (2 párrafos)
-2. **ANÁLISIS ACADÉMICO** — rendimiento por área, tendencias, comparación con umbrales del colegio${indiSummary ? '\n   Incluye análisis detallado de los resultados del Excel cargado: áreas evaluadas, subareas y resultados obtenidos.' : ''}
+2. **ANÁLISIS ACADÉMICO** — rendimiento por área, tendencias, comparación con umbrales del colegio${indiSummary ? '. Analiza en detalle cada área y subárea del Excel cargado con sus resultados.' : ''}
 3. **ANÁLISIS DE ASISTENCIA Y PARTICIPACIÓN** — si hay datos disponibles
 4. **FACTORES DE RIESGO** — alertas específicas basadas en los datos
 5. **FORTALEZAS IDENTIFICADAS** — aspectos positivos del perfil
-6. **RECOMENDACIONES DE INTERVENCIÓN** — estrategias diferenciadas por área y subárea, considerando NEE si aplica
+6. **RECOMENDACIONES DE INTERVENCIÓN** — estrategias diferenciadas por área${indiSummary ? ' (considera los resultados INDI de cada subárea)' : ''}, considerando NEE si aplica
 7. **PRÓXIMOS PASOS** — acciones concretas para docente, familia y equipo directivo
 
 Tono profesional, empático y orientado a la acción. Sé específico con los datos numéricos.`;
@@ -36464,7 +36462,7 @@ function _indiRegisterFiles() {
   }
   var fileName = 'Resultados Excel — ' + cursoNombre + '.xlsx';
 
-  // Build a plain-text summary of INDI data to inject as content in agents
+  // Generar resumen textual del Excel para usar como contexto en agentes
   var rows = window.INDI_RESULTS;
   var alumnos = [...new Set(rows.map(function(r){ return r.NOMBRE_COMPLETO; }))];
   var areas   = [...new Set(rows.map(function(r){ return r.AREA; }).filter(Boolean))];
@@ -36477,29 +36475,28 @@ function _indiRegisterFiles() {
     });
   });
   var contenidoTexto = resumenLineas.join('\n');
-  // Store globally so prompts can reference it
   window.INDI_FILE_CONTENT = contenidoTexto;
 
-  // Match ALL agents that involve 'analisis', 'resultado', or 'informe'
-  var keywords = ['analisis','análisis','resultado','informe'];
+  // Usar AGENTS directamente (const/let no se exponen en window en scripts modernos)
+  var keywords = ['analisis', 'análisis', 'resultado', 'informe', 'desempe', 'logro'];
   var norm = function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
-  var agents = (window.AGENTS||[]);
-  console.log('[INDI] _indiRegisterFiles — total agents:', agents.length, '| names:', agents.map(function(a){return a.nombre;}).join(', '));
+  var agentsList = (typeof AGENTS !== 'undefined' ? AGENTS : (window.AGENTS||[]));
+  console.log('[INDI] _indiRegisterFiles — total agents:', agentsList.length, '| names:', agentsList.map(function(a){return a.nombre;}).join(', '));
   var count = 0;
-  agents.forEach(function(ag) {
+  agentsList.forEach(function(ag) {
     if (!ag||!ag.id||!ag.nombre) return;
     var nameLow = norm(ag.nombre);
     var match = keywords.some(function(k){ return nameLow.includes(norm(k)); });
     if (!match) return;
-    var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !(f.name||'').startsWith('Resultados Excel'); });
+    var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !(f.name||'').startsWith('Resultados Excel') && !(f.name||'').startsWith('Resultados INDI'); });
     files.unshift({ name: fileName, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true, content: contenidoTexto });
     AGENT_STORE.saveFiles(ag.id, files);
     count++;
     console.log('[INDI] Archivo registrado en agente:', ag.nombre, '| id:', ag.id);
   });
-  if (count === 0) console.warn('[INDI] No hubo match. Keywords:', keywords, '| Agentes:', agents.map(function(a){ return norm(a.nombre); }));
+  if (count === 0) console.warn('[INDI] No hubo match. Keywords:', keywords, '| Agentes:', agentsList.map(function(a){ return norm(a.nombre); }));
   if (currentAgent && typeof renderFilesPanel === 'function') renderFilesPanel();
-  showSaveToast('📊 Excel cargado en Archivos de agentes (' + count + ' agente' + (count!==1?'s':'') + ')');
+  if (count > 0) showSaveToast('📊 Excel cargado en Archivos de ' + count + ' agente' + (count!==1?'s':''));
 }
 
 async function _supaSaveAlumno(alumno) {
