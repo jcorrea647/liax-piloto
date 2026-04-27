@@ -8155,9 +8155,12 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     if (typeof initMisCursosPanel === 'function') initMisCursosPanel();
 
     // Update button
+    var _fBtnText = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
+    var _fStatText = cursoNombre + ' · ' + resumen;
+    try { sessionStorage.setItem('indi_btn_text', _fBtnText); sessionStorage.setItem('indi_btn_stat', _fStatText); } catch(e){}
     btn.classList.add('loaded');
-    txt.textContent = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
-    stat.textContent = cursoNombre + ' · ' + resumen;
+    txt.textContent = _fBtnText;
+    stat.textContent = _fStatText;
     stat.style.display = 'block';
     stat.style.color = 'var(--accent2)';
     showSaveToast('✅ Curso "' + cursoNombre + '" creado con ' + nAlumnos + ' alumnos');
@@ -13961,6 +13964,20 @@ function onCompetChange(id, val) {
 document.addEventListener('DOMContentLoaded', () => {
   // Los selects de capacidades se crean dinámicamente en renderCapacidadesPanel()
   // y usan onchange="onCompetChange(id,value)" inline.
+
+  // Restore INDI button state from sessionStorage
+  try {
+    var savedText = sessionStorage.getItem('indi_btn_text');
+    var savedStat = sessionStorage.getItem('indi_btn_stat');
+    if (savedText) {
+      var btn2 = document.getElementById('indiLoadBtn');
+      var txt2 = document.getElementById('indiLoadBtnText');
+      var stat2 = document.getElementById('indiLoadStatus');
+      if (btn2) btn2.classList.add('loaded');
+      if (txt2) txt2.textContent = savedText;
+      if (stat2 && savedStat) { stat2.textContent = savedStat; stat2.style.display = 'block'; stat2.style.color = 'var(--accent2)'; }
+    }
+  } catch(e) {}
 });
 
 // ── Contadores badge ─────────────────────────────────────────
@@ -36401,18 +36418,22 @@ async function _supaLoadIndiResultados() {
       // Register files after a delay to ensure agents are loaded
       setTimeout(function(){ _indiRegisterFiles(); }, 2000);
 
-      // Update button UI
+      // Update button UI + persist state
+      var _btnText = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
+      var resultCounts2 = {};
+      data.forEach(function(r){ var res = r.resultado||'Sin dato'; resultCounts2[res]=(resultCounts2[res]||0)+1; });
+      var _statText = window.INDI_CURSO + ' · ' + Object.keys(resultCounts2).map(function(k){ return k+': '+resultCounts2[k]; }).join(' · ');
+      try { sessionStorage.setItem('indi_btn_text', _btnText); sessionStorage.setItem('indi_btn_stat', _statText); } catch(e){}
       var btn  = document.getElementById('indiLoadBtn');
       var txt  = document.getElementById('indiLoadBtnText');
       var stat = document.getElementById('indiLoadStatus');
       if (btn && txt) {
         btn.classList.add('loaded');
-        txt.textContent = '✅ Resultados cargados — ' + nAlumnos + ' alumnos';
+        txt.textContent = _btnText;
       }
       if (stat) {
-        var resultCounts = {};
-        data.forEach(function(r){ var res = r.resultado||'Sin dato'; resultCounts[res]=(resultCounts[res]||0)+1; });
-        stat.textContent = window.INDI_CURSO + ' · ' + Object.keys(resultCounts).map(function(k){ return k+': '+resultCounts[k]; }).join(' · ');
+        var resultCounts = resultCounts2;
+        stat.textContent = _statText;
         stat.style.display = 'block';
         stat.style.color = 'var(--accent2)';
       }
