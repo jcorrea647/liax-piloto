@@ -2,80 +2,114 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>LIAX Advanced Resource</title>
+    <title>LIAX Advanced Puzzle</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
     <style>
-        .drop-zone { border: 6px dashed #cbd5e1; border-radius: 3rem; min-height: 250px; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
-        .drag-item { cursor: grab; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); transition: 0.3s; }
-        .drag-item:active { cursor: grabbing; scale: 1.2; }
-        .rhyme-card { transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
-        .rhyme-card:hover { transform: translateY(-10px) rotate(2deg); }
+        .canvas-bg { background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%); }
+        .dropzone { border: 4px dashed #cbd5e1; transition: all 0.3s; }
+        .dropzone.active { border-color: #0d9488; background: rgba(20, 184, 166, 0.1); }
+        .draggable { 
+            touch-action: none; 
+            user-select: none; 
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .correct { filter: drop-shadow(0 0 15px #10b981); pointer-events: none; }
     </style>
 </head>
-<body class="bg-slate-100 p-8">
-    <div id="app" class="max-w-5xl mx-auto bg-white rounded-[4rem] shadow-2xl overflow-hidden min-h-[80vh] flex flex-col">
-        </div>
+<body class="bg-slate-900 p-4 md:p-10 font-sans overflow-hidden">
+
+    <div class="max-w-5xl mx-auto bg-white rounded-[3rem] shadow-2xl overflow-hidden min-h-[85vh] flex flex-col">
+        <header class="bg-teal-600 p-6 text-white flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-black italic uppercase tracking-tighter">LIAX Puzzle Pro</h1>
+                <p class="text-[10px] font-bold opacity-80 uppercase">Reto: Rotación y Ensamble • Nivel Destacado</p>
+            </div>
+            <div id="timer" class="text-2xl font-mono font-bold bg-black/20 px-4 py-2 rounded-2xl">00:00</div>
+        </header>
+
+        <main class="flex-1 flex flex-col md:flex-row p-8 gap-10 canvas-bg">
+            
+            <div class="flex-1 flex items-center justify-center">
+                <div id="outer-target" class="dropzone w-80 h-80 flex items-center justify-center relative">
+                    <div id="inner-target" class="text-[12rem] opacity-10 select-none">⭐</div>
+                    <p class="absolute bottom-4 text-slate-400 font-bold text-xs">COLOCA Y ROTATE AQUÍ</p>
+                </div>
+            </div>
+
+            <div class="w-full md:w-64 bg-white/50 backdrop-blur-sm rounded-3xl p-6 border border-slate-200 flex flex-wrap md:flex-col items-center justify-center gap-8">
+                <div id="piece-1" 
+                     class="draggable text-8xl cursor-grab active:cursor-grabbing" 
+                     data-type="star" 
+                     data-angle="0">
+                    ⭐
+                </div>
+                <p class="text-[10px] text-slate-400 text-center font-bold uppercase italic">Toca para rotar<br>Arrastra para encajar</p>
+            </div>
+        </main>
+
+        <footer class="p-6 bg-slate-50 border-t flex justify-between items-center">
+            <div class="flex gap-4">
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Estado Zeus Abad</span>
+                    <span id="feedback" class="text-sm font-black text-slate-700 italic underline decoration-teal-500">Esperando movimiento...</span>
+                </div>
+            </div>
+            <button onclick="location.reload()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold text-sm">REINICIAR RETO</button>
+        </footer>
+    </div>
 
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const logro = params.get('logro');
-        const tipo = params.get('tipo');
-        const app = document.getElementById('app');
+        let correctRotation = 0; // Ángulo correcto para encajar
+        const piece = document.getElementById('piece-1');
+        const feedback = document.getElementById('feedback');
 
-        // LOGICA DE RECURSOS
-        if (logro === 'destacado') {
-            // JUEGO DE PUZZLE LÓGICO
-            app.innerHTML = `
-                <div class="bg-teal-600 p-8 text-white flex justify-between items-center">
-                    <h2 class="text-3xl font-black italic uppercase">Desafío Puzzle LIAX</h2>
-                    <span class="bg-white/20 px-4 py-1 rounded-full text-xs font-bold">NIVEL: AVANZADO</span>
-                </div>
-                <div class="p-12 grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div class="drop-zone bg-slate-50" ondragover="event.preventDefault()">
-                        <div class="text-slate-300 font-black text-8xl opacity-20">?</div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="drag-item text-8xl text-center bg-white p-6 rounded-3xl shadow-xl">🧩</div>
-                        <div class="drag-item text-8xl text-center bg-white p-6 rounded-3xl shadow-xl">🔺</div>
-                        <div class="drag-item text-8xl text-center bg-white p-6 rounded-3xl shadow-xl">🟣</div>
-                        <div class="drag-item text-8xl text-center bg-white p-6 rounded-3xl shadow-xl">⭐</div>
-                    </div>
-                </div>
-            `;
-        } else if (logro === 'esperado') {
-            // TARJETAS DE RIMAS
-            app.innerHTML = `
-                <div class="bg-orange-500 p-8 text-white flex justify-between items-center">
-                    <h2 class="text-3xl font-black italic uppercase">Laboratorio de Rimas</h2>
-                    <span class="bg-white/20 px-4 py-1 rounded-full text-xs font-bold">AREA: COMUNICACIÓN</span>
-                </div>
-                <div class="p-12 text-center">
-                    <p class="text-slate-400 font-bold mb-8 uppercase tracking-widest">¿Qué palabra rima con el dibujo principal?</p>
-                    <div class="flex flex-col items-center gap-8">
-                        <div class="text-9xl bg-slate-50 w-64 h-64 flex items-center justify-center rounded-[3rem] shadow-inner border-4 border-orange-100">🐱</div>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
-                            <div class="rhyme-card bg-white p-8 rounded-3xl shadow-lg border-2 border-slate-100 text-6xl" onclick="alert('¡GATO rima con ZAPATO!')">👞</div>
-                            <div class="rhyme-card bg-white p-8 rounded-3xl shadow-lg border-2 border-slate-100 text-6xl">🚗</div>
-                            <div class="rhyme-card bg-white p-8 rounded-3xl shadow-lg border-2 border-slate-100 text-6xl">🍦</div>
-                            <div class="rhyme-card bg-white p-8 rounded-3xl shadow-lg border-2 border-slate-100 text-6xl" onclick="alert('¡GATO rima con PATO!')">🦆</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else {
-            // MEMORIA SENSORIAL
-            app.innerHTML = `
-                <div class="bg-rose-500 p-8 text-white flex justify-between items-center">
-                    <h2 class="text-3xl font-black italic uppercase">Gimnasio Mental</h2>
-                    <span class="bg-white/20 px-4 py-1 rounded-full text-xs font-bold">NIVEL: REFUERZO</span>
-                </div>
-                <div class="p-12 grid grid-cols-3 md:grid-cols-4 gap-4">
-                    ${Array(8).fill('?').map(i => `
-                        <div class="h-40 bg-rose-50 rounded-3xl border-4 border-rose-100 flex items-center justify-center text-4xl font-black text-rose-300 cursor-pointer hover:bg-white transition-all">?</div>
-                    `).join('')}
-                </div>
-            `;
-        }
+        // Lógica de Rotación (Tocar la pieza)
+        piece.addEventListener('click', () => {
+            let angle = parseInt(piece.getAttribute('data-angle')) + 90;
+            if (angle >= 360) angle = 0;
+            piece.setAttribute('data-angle', angle);
+            piece.style.transform = `rotate(${angle}deg)`;
+            feedback.innerText = `Rotando pieza: ${angle}°`;
+        });
+
+        // Lógica de Arrastrar (Interact.js)
+        interact('.draggable').draggable({
+            listeners: {
+                move (event) {
+                    const { target } = event;
+                    const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                    const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+                    const angle = target.getAttribute('data-angle');
+
+                    target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg)`;
+                    target.setAttribute('data-x', x);
+                    target.setAttribute('data-y', y);
+                }
+            }
+        });
+
+        // Lógica de Encastre (Dropzone)
+        interact('.dropzone').dropzone({
+            accept: '.draggable',
+            overlap: 0.5,
+            ondragenter: (e) => e.target.classList.add('active'),
+            ondragleave: (e) => e.target.classList.remove('active'),
+            ondrop: (event) => {
+                const targetPiece = event.relatedTarget;
+                const angle = parseInt(targetPiece.getAttribute('data-angle'));
+                
+                // VALIDACIÓN: ¿Está en el ángulo correcto (0 o 360)?
+                if (angle === 0) {
+                    targetPiece.classList.add('correct');
+                    feedback.innerText = "¡LOGRADO! Zeus resolvió el patrón.";
+                    event.target.style.background = "#d1fae5";
+                    event.target.style.borderColor = "#10b981";
+                } else {
+                    feedback.innerText = "Pieza en posición, pero la rotación es incorrecta.";
+                }
+            }
+        });
     </script>
 </body>
 </html>
