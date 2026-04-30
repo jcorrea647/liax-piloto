@@ -3,196 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIAX - Sistema de Progresión Pedagógica</title>
+    <title>LIAX Engine - Sistema de Generación Universal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Outfit', sans-serif; background-color: #f8fafc; }
-        .sidebar { width: 280px; background: white; border-right: 1px solid #e2e8f0; position: sticky; top: 0; height: 100vh; }
-        .card-recurso { background: white; border-radius: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #e2e8f0; }
-        
-        /* Estilos de Puzzle */
-        .puzzle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 300px; height: 300px; background: #f1f5f9; border-radius: 1rem; padding: 10px; position: relative; }
-        .slot { border: 2px dashed #cbd5e1; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; background: white; }
-        .piece { width: 130px; height: 130px; cursor: grab; display: flex; align-items: center; justify-content: center; font-size: 3rem; background: white; border-radius: 0.5rem; shadow: lg; border: 1px solid #e2e8f0; z-index: 10; touch-action: none; }
-        .dropzone-active { background: #d1fae5 !important; border-color: #10b981 !important; }
-        
-        @media print { .no-print { display: none !important; } .sidebar { display: none; } body { background: white; padding: 0; } .card-recurso { box-shadow: none; border: 1px solid #eee; margin: 0; width: 100%; } }
+        :root { --primary: #1e3a8a; --secondary: #0d9488; --accent: #f43f5e; }
+        body { font-family: 'Outfit', sans-serif; background: #f1f5f9; }
+        .engine-container { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; }
+        .canvas-area { background: white; border-radius: 3rem 0 0 3rem; box-shadow: -20px 0 50px rgba(0,0,0,0.05); }
+        .grad-5 { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
+        .grad-17 { background: linear-gradient(135deg, #1e293b, #334155); }
+        @media print { .no-print { display: none !important; } .canvas-area { border-radius: 0; box-shadow: none; } }
     </style>
 </head>
-<body class="flex min-h-screen">
+<body>
 
-    <aside class="sidebar p-6 flex flex-col gap-6 no-print">
-        <div class="flex items-center gap-2 mb-4">
-            <div class="bg-blue-900 text-white px-3 py-1 rounded-lg font-black italic">LIAX</div>
-            <span class="text-[10px] font-bold text-blue-600 tracking-widest uppercase">Piura Pro</span>
+<div class="engine-container">
+    <aside class="p-6 no-print space-y-8">
+        <div class="mb-10 text-center">
+            <h1 class="text-3xl font-black italic text-blue-900 tracking-tighter">LIAX CORE</h1>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Generador Parametrizado</p>
         </div>
-        <div class="space-y-2">
-            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aula: Rayitos A</h3>
-            <div class="p-3 rounded-xl bg-rose-50 border border-rose-100 text-[11px] font-bold text-rose-700">⚠️ Apoyo: 7 Alumnos</div>
-            <div class="p-3 rounded-xl bg-teal-50 border border-teal-100 text-[11px] font-bold text-teal-700">✅ Esperado: 15 Alumnos</div>
+
+        <div class="space-y-4">
+            <label class="text-[10px] font-black text-slate-500 uppercase">1. Nivel Educativo</label>
+            <select id="param-edad" class="w-full p-3 rounded-xl border-2 border-slate-200 font-bold text-sm outline-none focus:border-blue-500 transition-all">
+                <option value="5">Inicial (5 años)</option>
+                <option value="12">Primaria / Media (12 años)</option>
+                <option value="17">Secundaria / Bachillerato (17 años)</option>
+            </select>
         </div>
+
+        <div class="space-y-4">
+            <label class="text-[10px] font-black text-slate-500 uppercase">2. Área de Conocimiento</label>
+            <select id="param-area" class="w-full p-3 rounded-xl border-2 border-slate-200 font-bold text-sm outline-none focus:border-teal-500 transition-all">
+                <option value="com">Comunicación / Lengua</option>
+                <option value="mat">Matemática / Física</option>
+                <option value="per">Personal Social / Historia</option>
+            </select>
+        </div>
+
+        <div class="space-y-4">
+            <label class="text-[10px] font-black text-slate-500 uppercase">3. Diferenciación (INDI)</label>
+            <div class="grid grid-cols-1 gap-2">
+                <button onclick="setLogro('apoyo')" class="p-3 rounded-xl border-2 border-rose-200 bg-rose-50 text-rose-700 font-bold text-xs hover:bg-rose-100">ZONA DE APOYO</button>
+                <button onclick="setLogro('destacado')" class="p-3 rounded-xl border-2 border-blue-200 bg-blue-50 text-blue-700 font-bold text-xs hover:bg-blue-100">LOGRO DESTACADO</button>
+            </div>
+        </div>
+
+        <button onclick="renderizarMotor()" class="w-full py-4 grad-5 text-white rounded-2xl font-black shadow-xl hover:scale-105 transition-all mt-10">
+            GENERAR RECURSO
+        </button>
     </aside>
 
-    <main class="flex-1 p-8">
-        
-        <header class="flex justify-between items-center mb-10 no-print bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="text-sm font-bold text-slate-500">Selector de Recursos Secuenciales</div>
-            <div class="flex gap-4">
-                <div class="relative group">
-                    <button class="bg-blue-900 text-white px-6 py-2.5 rounded-xl text-xs font-black shadow-lg">
-                        SELECCIONAR ACTIVIDAD ▼
-                    </button>
-                    <div class="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-2xl hidden group-hover:block z-50 overflow-hidden">
-                        <button onclick="iniciarPuzzle(1)" class="w-full text-left p-4 text-xs hover:bg-indigo-50 border-b flex gap-3"><span>🧩</span> <strong>Puzzle de 4 Piezas</strong></button>
-                        <button onclick="iniciarRima(1)" class="w-full text-left p-4 text-xs hover:bg-teal-50 border-b flex gap-3"><span>🎤</span> <strong>Tarjetas de Rimas</strong></button>
-                        <button onclick="generarFichaMaestra()" class="w-full text-left p-4 text-xs hover:bg-rose-50 flex gap-3"><span>📄</span> <strong>Ficha Completa (Imprimir)</strong></button>
-                    </div>
-                </div>
-                <button onclick="window.print()" class="bg-slate-800 text-white px-6 py-2.5 rounded-xl text-xs font-black">IMPRIMIR</button>
-            </div>
-        </header>
-
-        <div id="escenario" class="mx-auto max-w-4xl">
-            <div class="p-20 text-center bg-white rounded-[3rem] border-4 border-dashed border-slate-100 text-slate-300 font-bold italic">
-                Carga un recurso para comenzar la secuencia...
+    <main class="canvas-area p-10 overflow-y-auto">
+        <div id="render-target">
+            <div class="flex flex-col items-center justify-center h-full text-slate-300">
+                <div class="text-8xl mb-4">⚙️</div>
+                <p class="font-black italic uppercase">Configura los parámetros para iniciar la generación</p>
             </div>
         </div>
     </main>
+</div>
 
-    <script>
-        const escenario = document.getElementById('escenario');
-        let piezasEncajadas = 0;
+<script>
+    let currentLogro = 'apoyo';
+    function setLogro(val) { currentLogro = val; alert('Nivel de logro fijado: ' + val.toUpperCase()); }
 
-        // --- LÓGICA DE PUZZLE ---
-        function iniciarPuzzle(nivel) {
-            piezasEncajadas = 0;
-            const iconos = nivel === 1 ? ['🥭', '🌊', '🐦', '☀️'] : ['🦀', '🌴', '🐟', '⛵'];
-            
-            escenario.innerHTML = `
-                <div class="card-recurso p-12 text-center animate-in fade-in zoom-in duration-300">
-                    <h2 class="text-2xl font-black text-indigo-900 mb-2 uppercase italic">Puzzle Lógico - Nivel ${nivel}</h2>
-                    <p class="text-sm text-slate-400 mb-8 font-bold italic uppercase">Arrastra las 4 piezas para completar el cuadro</p>
-                    
-                    <div class="flex flex-col md:flex-row gap-12 items-center justify-center">
-                        <div class="puzzle-grid" id="puzzle-target">
-                            <div class="slot" data-slot="0"></div><div class="slot" data-slot="1"></div>
-                            <div class="slot" data-slot="2"></div><div class="slot" data-slot="3"></div>
+    function renderizarMotor() {
+        const edad = document.getElementById('param-edad').value;
+        const area = document.getElementById('param-area').value;
+        const target = document.getElementById('render-target');
+
+        // Lógica de Selección de Componente Maestro
+        if (edad == "5") {
+            renderFicha5Anos(area, target);
+        } else if (edad == "17") {
+            renderFicha17Anos(area, target);
+        } else {
+            target.innerHTML = `<div class="p-20 text-center font-black">NIVEL INTERMEDIO EN DESARROLLO...</div>`;
+        }
+    }
+
+    // --- COMPONENTE: INICIAL 5 AÑOS ---
+    function renderFicha5Anos(area, target) {
+        target.innerHTML = `
+            <div class="max-w-4xl mx-auto border-4 border-teal-500 rounded-[3rem] overflow-hidden bg-white shadow-2xl">
+                <div class="bg-teal-600 p-8 text-white flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-black uppercase italic tracking-tighter">Recurso LIAX Junior</h2>
+                        <p class="text-xs font-bold opacity-80 uppercase tracking-widest">Nivel 5 Años • ${currentLogro}</p>
+                    </div>
+                    <span class="text-6xl">🎨</span>
+                </div>
+                <div class="p-10 space-y-8 text-center">
+                    <div class="grid grid-cols-2 gap-8">
+                        <div class="p-10 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
+                             <p class="text-[10px] font-black text-slate-400 mb-4 uppercase">Actividad: Puzzle de Encastre</p>
+                             <div class="text-6xl mb-4">🐦</div>
+                             <p class="font-bold">Segmentación del Chilalo</p>
                         </div>
-                        
-                        <div class="flex flex-wrap md:flex-col gap-4" id="piezas-container">
-                            ${iconos.map((ico, i) => `<div class="piece draggable shadow-xl" data-id="${i}">${ico}</div>`).join('')}
-                        </div>
-                    </div>
-                    <div id="btn-next-puzzle" class="mt-10 hidden">
-                        <button onclick="iniciarPuzzle(${nivel + 1})" class="bg-green-500 text-white px-10 py-4 rounded-full font-black shadow-xl hover:bg-green-600">¡LOGRADO! HACER OTRO PUZZLE →</button>
-                    </div>
-                </div>`;
-            initInteractPuzzle();
-        }
-
-        function initInteractPuzzle() {
-            interact('.draggable').draggable({
-                listeners: { move(event) {
-                    const t = event.target;
-                    const x = (parseFloat(t.getAttribute('data-x')) || 0) + event.dx;
-                    const y = (parseFloat(t.getAttribute('data-y')) || 0) + event.dy;
-                    t.style.transform = `translate(${x}px, ${y}px)`;
-                    t.setAttribute('data-x', x); t.setAttribute('data-y', y);
-                }}
-            });
-
-            interact('.slot').dropzone({
-                accept: '.draggable', overlap: 0.6,
-                ondragenter: e => e.target.classList.add('dropzone-active'),
-                ondragleave: e => e.target.classList.remove('dropzone-active'),
-                ondrop: e => {
-                    const p = e.relatedTarget;
-                    const s = e.target;
-                    if(p.getAttribute('data-id') === s.getAttribute('data-slot')) {
-                        s.innerHTML = p.innerHTML;
-                        s.classList.remove('dropzone-active');
-                        s.classList.add('bg-green-50', 'border-green-500');
-                        p.style.display = 'none';
-                        piezasEncajadas++;
-                        if(piezasEncajadas === 4) document.getElementById('btn-next-puzzle').classList.remove('hidden');
-                    }
-                }
-            });
-        }
-
-        // --- LÓGICA DE RIMAS ---
-        function iniciarRima(n) {
-            const rimas = [
-                {q: "MANGO", a: "FANDANGO", ico: "🥭"},
-                {q: "CHILALO", a: "PALO", ico: "🐦"},
-                {q: "MAR", a: "JUGAR", ico: "🌊"}
-            ];
-            const r = rimas[n-1] || rimas[0];
-            
-            escenario.innerHTML = `
-                <div class="card-recurso p-12 text-center bg-white border-4 border-teal-500">
-                    <span class="text-xs font-black text-teal-600 uppercase tracking-widest">Tarjeta de Rima #${n}</span>
-                    <div class="text-9xl my-8">${r.ico}</div>
-                    <h3 class="text-3xl font-black text-slate-800 mb-8 uppercase italic underline decoration-teal-300">¿Qué rima con ${r.q}?</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <button onclick="checkRima(true, ${n})" class="p-6 bg-slate-50 border-2 border-slate-200 rounded-3xl text-xl font-bold hover:bg-teal-500 hover:text-white transition-all">${r.a}</button>
-                        <button onclick="alert('¡Inténtalo de nuevo!')" class="p-6 bg-slate-50 border-2 border-slate-200 rounded-3xl text-xl font-bold">PIZZA</button>
-                    </div>
-                    <div id="next-rima" class="mt-8 hidden">
-                        <button onclick="iniciarRima(${n+1})" class="bg-blue-600 text-white px-8 py-3 rounded-full font-bold">SIGUIENTE RIMA →</button>
-                    </div>
-                </div>`;
-        }
-
-        function checkRima(win, n) {
-            if(win) {
-                alert("¡Genial!");
-                document.getElementById('next-rima').classList.remove('hidden');
-            }
-        }
-
-        // --- GENERACIÓN DE FICHA MAESTRA (IMPRIMIBLE) ---
-        function generarFichaMaestra() {
-            escenario.innerHTML = `
-                <div class="card-recurso bg-white border border-slate-300">
-                    <div class="bg-blue-800 p-8 text-white flex justify-between items-center">
-                        <h2 class="text-3xl font-black italic">FICHA MAESTRA LIAX</h2>
-                        <div class="text-right text-[10px] uppercase font-bold tracking-widest">Contenido: 4 Puzzles + 6 Rimas</div>
-                    </div>
-                    
-                    <div class="p-8 space-y-10">
-                        <div>
-                            <h4 class="bg-indigo-100 text-indigo-800 p-2 text-xs font-black uppercase mb-6 rounded-lg italic">🧩 Bloque 1: Recortables de Razonamiento (16 piezas)</h4>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                ${[1,2,3,4].map(i => `
-                                    <div class="border-2 border-dashed border-slate-200 p-2 rounded-xl text-center">
-                                        <div class="grid grid-cols-2 gap-1 mb-2">
-                                            <div class="h-10 bg-slate-50 border border-slate-100"></div><div class="h-10 bg-slate-50 border border-slate-100"></div>
-                                            <div class="h-10 bg-slate-50 border border-slate-100"></div><div class="h-10 bg-slate-50 border border-slate-100"></div>
-                                        </div>
-                                        <span class="text-[8px] font-bold text-slate-400">PUZZLE #${i}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h4 class="bg-teal-100 text-teal-800 p-2 text-xs font-black uppercase mb-6 rounded-lg italic">🎤 Bloque 2: Conciencia Fonológica Piurana (6 Tarjetas)</h4>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
-                                ${['Chilalo', 'Mango', 'Algarrobo', 'Paita', 'Sol', 'Mar'].map(item => `
-                                    <div class="border-2 border-teal-500 rounded-2xl p-4 text-center">
-                                        <div class="h-20 bg-slate-50 mb-3 flex items-center justify-center text-4xl">🖼️</div>
-                                        <p class="text-[10px] font-black uppercase">${item}</p>
-                                        <div class="mt-2 h-4 border-b border-slate-200"></div>
-                                    </div>
-                                `).join('')}
-                            </div>
+                        <div class="p-10 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
+                             <p class="text-[10px] font-black text-slate-400 mb-4 uppercase">Actividad: Conciencia Fonológica</p>
+                             <div class="text-6xl mb-4">🥭</div>
+                             <p class="font-bold">Rimas de Tambogrande</p>
                         </div>
                     </div>
-                </div>`;
-        }
-    </script>
+                    <button class="no-print bg-slate-900 text-white px-8 py-3 rounded-full font-bold">DESCARGAR SET COMPLETO (16 PIEZAS)</button>
+                </div>
+            </div>`;
+    }
+
+    // --- COMPONENTE: SECUNDARIA 17 AÑOS ---
+    function renderFicha17Anos(area, target) {
+        const contenido = area === 'mat' 
+            ? { t: "Análisis de Mecánica Cuántica", sub: "Cálculo de Probabilidad de Onda", ico: "⚛️" }
+            : { t: "Ensayo Argumentativo Crítico", sub: "Sociología en la Era Digital", ico: "🖋️" };
+
+        target.innerHTML = `
+            <div class="max-w-4xl mx-auto border-4 border-slate-800 rounded-[2rem] overflow-hidden bg-white shadow-2xl">
+                <div class="bg-slate-900 p-8 text-white flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-black uppercase tracking-tighter">${contenido.t}</h2>
+                        <p class="text-xs font-bold opacity-80 uppercase tracking-widest">Secundaria Superior • 17 Años • ${currentLogro}</p>
+                    </div>
+                    <span class="text-5xl">${contenido.ico}</span>
+                </div>
+                <div class="p-10">
+                    <div class="bg-slate-50 p-6 rounded-xl border-l-8 border-slate-900 mb-8">
+                        <h4 class="font-black text-sm uppercase mb-2">Desafío Cognitivo Complejo:</h4>
+                        <p class="text-slate-600 text-sm leading-relaxed">${contenido.sub}. Desarrolla una hipótesis basada en los datos adjuntos y propón una solución sistémica.</p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4">
+                        <div class="h-32 border border-slate-200 rounded-xl p-4 text-[10px] text-slate-300 font-mono">
+                            // Módulo de Simulación / Entrada de Datos Académicos
+                            [Escribe aquí tu análisis crítico...]
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Rúbrica de Evaluación: Pensamiento Crítico 4.0</span>
+                            <button class="bg-blue-600 text-white px-6 py-2 rounded-lg text-[10px] font-black uppercase">Generar Caso de Estudio</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+    }
+</script>
 </body>
 </html>
