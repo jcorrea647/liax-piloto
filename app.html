@@ -857,14 +857,6 @@
   /* ── Agent welcome screen ────────────────────────── */
   /* ── Selector de recursos (agente v1) ─────────────── */
   .rec-selector { width:100%;max-width:680px;margin:0 auto 12px; }
-  /* ── Generador INDI (agente gr1) ───────────────────── */
-  .gr-lbl { font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:4px; }
-  .gr-sel { width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;outline:none;cursor:pointer; }
-  .gr-sel:focus { border-color:var(--accent1); }
-  .gr-tipo-btn { background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:7px 6px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;transition:.12s;text-align:center;width:100%; }
-  .gr-tipo-btn:hover { border-color:var(--accent1);color:var(--text); }
-  .gr-tipo-active { border-color:var(--accent1)!important;background:var(--dim1)!important;color:var(--accent1)!important;font-weight:700; }
-
   .rec-cat-label { font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:14px 0 7px;padding-left:2px; }
   .rec-grid { display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:4px; }
   .rec-btn {
@@ -1306,6 +1298,17 @@
   .assign-chip-school{background:#0d2a44;color:#60a5fa;border:1px solid #1d4ed844;}
   .assign-chip-user{background:#0d4040;color:var(--accent2);border:1px solid var(--accent2)33;}
   .assign-summary{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+  /* ── Assignment Context (pais + tipo_usuario) ─── */
+  .asgn-ctx-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;}
+  .asgn-ctx-bar label{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;display:block;}
+  .asgn-ctx-sel{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;outline:none;cursor:pointer;}
+  .asgn-ctx-sel:focus{border-color:var(--accent1);}
+  .pais-badge-CL{background:#1a3560;color:#60a5fa;border:1px solid #1d4ed855;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;}
+  .pais-badge-PE{background:#3a1a1a;color:#f87171;border:1px solid #ef444455;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;}
+  .tipo-badge-red{background:#2d1a5a;color:#c084fc;border:1px solid #a855f755;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;}
+  .tipo-badge-director{background:#1a3a6b;color:var(--accent1);border:1px solid var(--accent1)44;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;}
+  .tipo-badge-docente{background:#0d3a3a;color:var(--accent2);border:1px solid var(--accent2)44;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;}
+  .ua-ctx-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;}
   /* user-assign modal list */
   .ua-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;border:1px solid transparent;transition:all .15s;}
   .ua-item:hover{background:var(--surface2);}
@@ -1313,6 +1316,10 @@
   .ua-check{width:15px;height:15px;border-radius:4px;border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;}
   .ua-item.sel .ua-check{background:var(--accent1);border-color:var(--accent1);color:#fff;}
   .ua-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+  /* ── Assign meta buttons (País / Tipo) ── */
+  .assign-meta-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px 4px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;transition:.12s;text-align:center;}
+  .assign-meta-btn:hover{border-color:var(--accent1);color:var(--text);}
+  .assign-meta-active{border-color:var(--accent1)!important;background:var(--dim1)!important;color:var(--accent1)!important;font-weight:700;}
   /* new agent form */
   .dim-picker{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px;}
   .dim-pick-opt{padding:8px 10px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:11px;font-weight:600;transition:all .15s;text-align:center;}
@@ -2739,7 +2746,33 @@
       </div>
       <!-- Por Usuario -->
       <div id="assign-usuario-panel" style="display:none">
-        <div style="display:grid;grid-template-columns:220px 1fr 200px;gap:16px">
+
+        <!-- ── BARRA DE CONTEXTO OBLIGATORIA ── -->
+        <div class="asgn-ctx-bar">
+          <div>
+            <label>🌎 País <span style="color:var(--accent3)">*</span></label>
+            <select id="asgn-pais" class="asgn-ctx-sel" onchange="asgnUpdateCtxSummary()">
+              <option value="">— Seleccionar —</option>
+              <option value="CL">🇨🇱 Chile</option>
+              <option value="PE">🇵🇪 Perú</option>
+            </select>
+          </div>
+          <div>
+            <label>👤 Tipo de usuario <span style="color:var(--accent3)">*</span></label>
+            <select id="asgn-tipo" class="asgn-ctx-sel" onchange="asgnUpdateCtxSummary()">
+              <option value="">— Seleccionar —</option>
+              <option value="red">🏛️ Red (Sostenedor)</option>
+              <option value="director">🎓 Director</option>
+              <option value="docente">👩‍🏫 Docente</option>
+            </select>
+          </div>
+          <div>
+            <label>📋 Resumen de contexto</label>
+            <div id="asgn-ctx-preview" style="font-size:11px;color:var(--muted);padding-top:4px;line-height:1.6">Selecciona país y tipo para continuar.</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:220px 1fr 220px;gap:16px">
           <div>
             <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Usuarios</div>
             <div style="display:flex;gap:3px;margin-bottom:7px">
@@ -2756,6 +2789,7 @@
           </div>
           <div>
             <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Agentes a asignar</div>
+            <div id="asgn-agent-ctx-note" style="display:none;font-size:10px;padding:6px 10px;border-radius:7px;margin-bottom:8px;background:var(--dim2);color:var(--accent2);border:1px solid var(--accent2)33"></div>
             <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px" id="assignUserFilter"></div>
             <div id="assignAgentUserList" style="display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto"></div>
             <div style="display:flex;gap:5px;margin-top:7px">
@@ -2764,7 +2798,33 @@
             </div>
           </div>
           <div>
-            <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Resumen</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Configuración de la asignación</div>
+
+            <!-- País -->
+            <div style="margin-bottom:10px">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:4px">🌎 País <span style="color:var(--accent3)">*</span></div>
+              <div style="display:flex;gap:5px" id="assign-pais-btns">
+                <button class="assign-meta-btn assign-meta-active" data-val="Chile"   onclick="setAssignMeta('pais','Chile',this)"  style="flex:1">🇨🇱 Chile</button>
+                <button class="assign-meta-btn"                    data-val="Perú"    onclick="setAssignMeta('pais','Perú',this)"   style="flex:1">🇵🇪 Perú</button>
+              </div>
+            </div>
+
+            <!-- Tipo de usuario -->
+            <div style="margin-bottom:10px">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:4px">👤 Tipo de usuario <span style="color:var(--accent3)">*</span></div>
+              <div style="display:flex;gap:5px" id="assign-tipo-btns">
+                <button class="assign-meta-btn" data-val="Red"      onclick="setAssignMeta('tipo','Red',this)"      style="flex:1;font-size:10px">🏛 Red</button>
+                <button class="assign-meta-btn" data-val="Director" onclick="setAssignMeta('tipo','Director',this)" style="flex:1;font-size:10px">🎓 Director</button>
+                <button class="assign-meta-btn" data-val="Docente"  onclick="setAssignMeta('tipo','Docente',this)"  style="flex:1;font-size:10px">👩‍🏫 Docente</button>
+              </div>
+            </div>
+
+            <!-- Preview contextual -->
+            <div id="assign-meta-preview" style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:10px;color:var(--muted);line-height:1.7;margin-bottom:10px">
+              Selecciona país y tipo para ver cómo se cargará el agente.
+            </div>
+
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:4px;margin-top:4px">📊 Resumen</div>
             <div id="userAssignSummary" style="font-size:11px;color:var(--muted);line-height:1.8"></div>
             <button class="btn btn-primary" style="margin-top:10px;width:100%;font-size:11px" onclick="saveUserAssignment()">💾 Guardar asignación</button>
             <div id="assignUserResult" style="margin-top:8px"></div>
@@ -3931,6 +3991,7 @@ async function _supaLoadPerfil() {
     await _supaLoadNivel();
     await _supaLoadCargos();
     await _supaLoadAreasCurriculares();
+    await _supaLoadAssignment(); // Load pais + tipo_usuario + assigned agents
     _indiRegisterFiles(); // Register INDI results in agent files panel (agents + results both loaded now)
   } else {
     // Sin perfil en tabla usuarios — igual cargar agentes y datos básicos
@@ -4173,8 +4234,9 @@ async function _supaLoadAreasCurriculares() {
   if (!_supaUser || !_supa) return;
   try {
     // 1. Áreas curriculares
-    var { data: areasData, error: e1 } = await _supa
-      .from('areas_curriculares').select('nombre').order('orden');
+    var areasQ = _supa.from('areas_curriculares').select('nombre').order('orden');
+    areasQ = _supaQueryWithPais(areasQ);
+    var { data: areasData, error: e1 } = await areasQ;
     if (!e1 && areasData && areasData.length) {
       ASIGS.length = 0;
       areasData.forEach(function(r){ ASIGS.push(r.nombre); });
@@ -4184,8 +4246,9 @@ async function _supaLoadAreasCurriculares() {
     }
 
     // 2. Competencias → poblar COMPETENCIAS_POR_AREA
-    var { data: compData, error: e2 } = await _supa
-      .from('competencias').select('area_curricular,nombre').order('orden');
+    var compQ = _supa.from('competencias').select('area_curricular,nombre').order('orden');
+    compQ = _supaQueryWithPais(compQ);
+    var { data: compData, error: e2 } = await compQ;
     if (!e2 && compData && compData.length) {
       Object.keys(COMPETENCIAS_POR_AREA).forEach(function(k){ delete COMPETENCIAS_POR_AREA[k]; });
       compData.forEach(function(r){
@@ -4201,8 +4264,9 @@ async function _supaLoadAreasCurriculares() {
     }
 
     // 3. Capacidades → poblar CAPACIDADES_POR_COMPETENCIA
-    var { data: capData, error: e3 } = await _supa
-      .from('capacidades').select('competencia,label,descripcion').order('orden');
+    var capQ = _supa.from('capacidades').select('competencia,label,descripcion').order('orden');
+    capQ = _supaQueryWithPais(capQ);
+    var { data: capData, error: e3 } = await capQ;
     if (!e3 && capData && capData.length) {
       Object.keys(CAPACIDADES_POR_COMPETENCIA).forEach(function(k){ delete CAPACIDADES_POR_COMPETENCIA[k]; });
       capData.forEach(function(r){
@@ -4215,8 +4279,9 @@ async function _supaLoadAreasCurriculares() {
     }
 
     // 4. Desempeños → poblar DESEMP_TABLA
-    var { data: despData, error: e4 } = await _supa
-      .from('desempenos').select('capacidad,edad,descripcion');
+    var despQ = _supa.from('desempenos').select('capacidad,edad,descripcion');
+    despQ = _supaQueryWithPais(despQ);
+    var { data: despData, error: e4 } = await despQ;
     if (!e4 && despData && despData.length) {
       Object.keys(DESEMP_TABLA).forEach(function(k){ delete DESEMP_TABLA[k]; });
       despData.forEach(function(r){
@@ -4474,8 +4539,8 @@ REGLAS DE DISEÑO:
    ]},
 
   {id:'gr1',dim:'pedagogica',nombre:'Genera Recursos Pedagógicos',icon:'🎓',
-   desc:'Genera recursos diferenciados para tus 33 alumnos de RAYITOS usando los resultados INDI: fichas A4, actividades digitales, juegos y más.',
-   prompt:`Eres una maestra experta en educación inicial del Perú (CNE/MINEDU), especializada en el currículo de nivel inicial peruano. Generas recursos pedagógicos diferenciados, concretos y listos para usar, alineados a las competencias del CNEB. Cuando la docente especifica una competencia, capacidad y grupo de alumnos, creas el recurso completo adaptado a cada nivel de desempeño.`,
+   desc:'Genera recursos diferenciados para tus alumnos usando resultados INDI: fichas A4, actividades digitales, juegos y más. Se adapta al currículo de Chile (OA) o Perú (Competencias) según tu perfil.',
+   prompt:`Eres una maestra experta en educación inicial. Generas recursos pedagógicos diferenciados, concretos y listos para usar, alineados al currículo del país asignado (MINEDUC Chile o MINEDU Perú). Cuando la docente especifica una competencia/OA, capacidad/indicador y grupo de alumnos, creas el recurso completo adaptado a cada nivel de desempeño.`,
    preguntas:[
      'Generar ficha imprimible A4 para toda la clase',
      'Crear actividad digital interactiva',
@@ -7111,6 +7176,7 @@ function _buildChatView() {
       '<div class="agent-welcome-title">' + currentAgent.nombre + '</div>' +
       '<div class="agent-welcome-sub">¿Qué quieres hacer hoy?</div>' +
       '<div class="agent-q-grid">' + gridCards + '</div>' +
+      (window._userAssignmentMeta ? _injectAgentContextBanner() : '') +
       (currentAgent.id === 'v1' ? buildRecursoSelector() : '') +
       (currentAgent.id === 'gr1' ? buildGeneradorINDI() : '') +
       (customQs.length
@@ -7136,8 +7202,8 @@ function _buildChatView() {
       '</div>' +
       '<div style="font-size:9px;color:var(--muted);margin-top:3px">📎 Word, Excel, PPT, PDF, imágenes · Enter para enviar</div>' +
     '</div>';
-  // Init INDI generator selects if gr1 agent
-  if (currentAgent && currentAgent.id === 'gr1') setTimeout(grInitSelects, 80);
+  // Init gr1 INDI generator selects after DOM is ready
+  if (currentAgent && currentAgent.id === 'gr1') setTimeout(function(){ grInitSelects(); _updateCurriculumLabelsUI(); }, 80);
 }
 
 function buildAgentDetail(){
@@ -7229,171 +7295,6 @@ function startChat(){
 }
 
 // ══════════════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════════════
-// GENERADOR INDI — Agente Genera Recursos Pedagógicos (gr1)
-// ══════════════════════════════════════════════════════════════
-var _GR_COMPS=[{"area_curricular":"Personal Social","competencia":"Construye su identidad","capacidades":["Se valora a sí mismo","Autorregula sus emociones"],"desempenos":{"3_anos":"Reconoce sus necesidades, sensaciones e intereses; se reconoce como miembro de su familia y aula.","4_anos":"Reconoce sus intereses, preferencias y características; las diferencia de las de los otros.","5_anos":"Reconoce sus cualidades, características y capacidades, y las diferencia de las de los otros. Se siente orgulloso de sus logros."}},{"area_curricular":"Personal Social","competencia":"Convive y participa democráticamente en la búsqueda del bien común","capacidades":["Interactúa con todas las personas","Construye normas y asume acuerdos y leyes","Participa en acciones que promueven el bienestar común"],"desempenos":{"3_anos":"Se relaciona con adultos y niños jugando en grupos pequeños.","4_anos":"Se integra en actividades grupales y juegos con sus pares. Propone ideas de juego y sus reglas.","5_anos":"Propone reglas de juego y las cumple. Realiza actividades cotidianas con sus compañeros."}},{"area_curricular":"Psicomotriz","competencia":"Se desenvuelve de manera autónoma a través de su motricidad","capacidades":["Comprende su cuerpo","Se expresa corporalmente"],"desempenos":{"3_anos":"Realiza movimientos como correr, saltar y trepar explorando su cuerpo.","4_anos":"Realiza acciones motrices básicas coordinando movimientos con seguridad.","5_anos":"Combina habilidades motrices básicas en diversos juegos."}},{"area_curricular":"Comunicación","competencia":"Se comunica oralmente en su lengua materna","capacidades":["Obtiene información","Infiere e interpreta","Adecúa, organiza y desarrolla","Utiliza recursos no verbales","Interactúa estratégicamente","Reflexiona y evalúa"],"desempenos":{"3_anos":"Expresa necesidades y emociones con palabras de uso frecuente.","4_anos":"Expresa experiencias e ideas en torno a un tema.","5_anos":"Desarrolla ideas de manera coherente. Mantiene el hilo de la conversación."}},{"area_curricular":"Comunicación","competencia":"Lee diversos tipos de textos escritos en su lengua materna","capacidades":["Obtiene información","Infiere e interpreta","Reflexiona y evalúa"],"desempenos":{"3_anos":"Identifica características de personajes en ilustraciones.","4_anos":"Identifica características de personas o animales en ilustraciones de textos.","5_anos":"Identifica palabras conocidas y siluetas en textos de su entorno."}},{"area_curricular":"Comunicación","competencia":"Crea proyectos desde los lenguajes artísticos","capacidades":["Explora y experimenta","Aplica procesos creativos","Socializa sus procesos y proyectos"],"desempenos":{"3_anos":"Explora materiales libremente descubriendo sus posibilidades.","4_anos":"Descubre efectos al combinar materiales. Representa sus ideas.","5_anos":"Explora materiales individualmente o en grupo."}},{"area_curricular":"Matemática","competencia":"Resuelve problemas de cantidad","capacidades":["Traduce cantidades","Comunica su comprensión","Usa estrategias y procedimientos"],"desempenos":{"3_anos":"Compara y agrupa objetos por características similares. Usa 'muchos' o 'pocos'.","4_anos":"Agrupa objetos y realiza conteo hasta 5. Usa 'más que', 'menos que'.","5_anos":"Establece el criterio para agrupar objetos. Realiza el conteo hasta 10."}},{"area_curricular":"Ciencia y Tecnología","competencia":"Indaga mediante métodos científicos para construir sus conocimientos","capacidades":["Problematiza situaciones","Diseña estrategias","Genera y registra datos","Analiza datos e interpreta información","Evalúa y comunica"],"desempenos":{"3_anos":"Hace preguntas sobre objetos o seres vivos. Obtiene información a través de sus sentidos.","4_anos":"Pregunta sobre el ambiente y seres vivos. Propone posibles explicaciones.","5_anos":"Plantea posibles explicaciones y predicciones. Registra sus observaciones mediante dibujos."}}];
-
-var _GR_STUDENTS=[{n:"Zeus de Piero Abad Rebolledo",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Thayza Julie Acaro Silva",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Maria Fernanda Arevalo Garcia",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Eymi Arely Arraiza Cordova",r:{C:"Esperado",D:"Esperado",M:"Esperado",S:"Esperado"}},{n:"Franchesca Raquel Abigail Balarezo Vargas",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Derek Mateo Bruno Atoche",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Eithan Yadiel Castro Cordova",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"David Daniel Coral Pingo",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Gael David Coronado Garcia",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Maria Julia Escobar Herrera",r:{C:"Esperado",D:"Esperado",M:"Esperado",S:"Esperado"}},{n:"Hansel Joshua Estrada Carcamo",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Luis Angel Imán Palomino",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Rebeca Naemi Jimenez Zeta",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Caleb Emmanuel Lopez Landa",r:{C:"Esperado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Vianca Nicol Mayo Guerrero",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Yocelin Kristell Ogoña López",r:{C:"Destacado",D:"Muy descendido",M:"Esperado",S:"Esperado"}},{n:"Sara Juliet Ojeda Benites",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Camila Sofia Palacios Castro",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Thiago Alexis Pangalima Salcedo",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Muy descendido"}},{n:"Leilany Mailen Paucar Castillo",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Mateo Alonso Paucar Peña",r:{C:"Esperado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Thiago Ismael Periche Guevara",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Tiana Zuleyka Periche Guevara",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Eithan Matheus Periche Gómez",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Cristian Junior Ramirez Bruno",r:{C:"Destacado",D:"Esperado",M:"Esperado",S:"Descendido"}},{n:"Abby Dayli Ruiz Ipanaque",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Kayla Jazzel Ruiz Sánchez",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Lohana Mercedes Salar Porras",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Luciana Santamaria Fernanadez",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Lucianan Scarlett Silbaña Remigio",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Milenka Nayeli Sosa Ayala",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Erik Alexander Zeta Morante",r:{C:"Destacado",D:"Muy descendido",M:"Esperado",S:"Muy descendido"}},{n:"Pedro Juaquin Zeta Tineo",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}}];
-
-var _grTipo = 'Imprimible';
-
-function buildGeneradorINDI() {
-  return '<div class="gr-indi-wrap" id="grIndiWrap" style="width:100%;max-width:680px;margin-top:12px">' +
-
-    // Fila 1: Edad / Área curricular / Área datos
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">' +
-      '<div><div class="gr-lbl">🎂 Edad</div>' +
-        '<select id="gr-edad" class="gr-sel"><option value="5_anos">5 años</option><option value="4_anos">4 años</option><option value="3_anos">3 años</option></select></div>' +
-      '<div><div class="gr-lbl">📚 Área curricular</div>' +
-        '<select id="gr-area" class="gr-sel" onchange="grUpdateComps()"></select></div>' +
-      '<div><div class="gr-lbl">📊 Área para grupos</div>' +
-        '<select id="gr-area-datos" class="gr-sel" onchange="grRenderGroups()">' +
-          '<option value="C">Comunicación (C)</option><option value="M">Matemática (M)</option><option value="D">Desarrollo (D)</option><option value="S">Social (S)</option>' +
-        '</select></div>' +
-    '</div>' +
-
-    // Fila 2: Competencia / Capacidad
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
-      '<div><div class="gr-lbl">🎯 Competencia</div><select id="gr-comp" class="gr-sel" onchange="grUpdateCaps()"></select></div>' +
-      '<div><div class="gr-lbl">⚡ Capacidad</div><select id="gr-cap" class="gr-sel"></select></div>' +
-    '</div>' +
-
-    // Tipo de recurso
-    '<div class="gr-lbl" style="margin-bottom:6px">📋 Tipo de recurso</div>' +
-    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">' +
-      '<button class="gr-tipo-btn gr-tipo-active" data-tipo="Imprimible" onclick="grSelectTipo(this)">🖨️ Imprimible A4</button>' +
-      '<button class="gr-tipo-btn" data-tipo="Digital" onclick="grSelectTipo(this)">💻 Digital</button>' +
-      '<button class="gr-tipo-btn" data-tipo="Ficha de trabajo" onclick="grSelectTipo(this)">📝 Ficha</button>' +
-      '<button class="gr-tipo-btn" data-tipo="Juego" onclick="grSelectTipo(this)">🎲 Juego</button>' +
-    '</div>' +
-
-    // Grupos
-    '<div class="gr-lbl" style="margin-bottom:6px">👥 Grupos de trabajo (según resultados INDI)</div>' +
-    '<div id="gr-groups" style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px"></div>' +
-
-    // Botón generar
-    '<button id="gr-gen-btn" onclick="grGenerate()" style="width:100%;padding:11px;background:var(--accent1);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;letter-spacing:.3px;transition:.15s">✨ Generar recurso con IA</button>' +
-
-    // Output
-    '<div id="gr-output" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;color:var(--text);white-space:pre-wrap;line-height:1.7;max-height:460px;overflow-y:auto"></div>' +
-
-  '</div>';
-}
-
-function grInitSelects() {
-  // Populate Área curricular
-  var areas = [...new Set(_GR_COMPS.map(function(c){return c.area_curricular}))];
-  var asel = document.getElementById('gr-area');
-  if (!asel || asel.options.length) return; // already populated
-  areas.forEach(function(a){ var o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o); });
-  grUpdateComps();
-  grRenderGroups();
-}
-
-function grUpdateComps() {
-  var asel = document.getElementById('gr-area'); if(!asel) return;
-  var area = asel.value;
-  var sel = document.getElementById('gr-comp'); if(!sel) return;
-  sel.innerHTML = '';
-  _GR_COMPS.filter(function(c){return c.area_curricular===area}).forEach(function(c){
-    var o=document.createElement('option');o.value=c.competencia;
-    o.textContent=c.competencia.length>52?c.competencia.slice(0,52)+'…':c.competencia;
-    sel.appendChild(o);
-  });
-  grUpdateCaps();
-}
-
-function grUpdateCaps() {
-  var asel=document.getElementById('gr-area'); if(!asel) return;
-  var csel=document.getElementById('gr-comp'); if(!csel) return;
-  var sel=document.getElementById('gr-cap'); if(!sel) return;
-  sel.innerHTML='';
-  var found=_GR_COMPS.find(function(c){return c.area_curricular===asel.value&&c.competencia===csel.value});
-  if(found)found.capacidades.forEach(function(cap){var o=document.createElement('option');o.value=cap;o.textContent=cap;sel.appendChild(o);});
-  grRenderGroups();
-}
-
-function grRenderGroups() {
-  var adsel=document.getElementById('gr-area-datos'); if(!adsel) return;
-  var areaDatos=adsel.value;
-  var groups={Destacado:[],Esperado:[],Descendido:[],'Muy descendido':[]};
-  _GR_STUDENTS.forEach(function(s){var r=s.r[areaDatos]||'Esperado';if(groups[r])groups[r].push(s.n.split(' ').slice(0,2).join(' '));});
-  var labels={Destacado:'🌟 Grupo Estrella (Destacado)',Esperado:'✅ Grupo en Camino (Esperado)',Descendido:'🤝 Grupo con Apoyo (Descendido)','Muy descendido':'🆘 Grupo con Apoyo Reforzado (Muy descendido)'};
-  var colors={Destacado:'var(--accent1)',Esperado:'var(--accent2)',Descendido:'var(--accent4)','Muy descendido':'var(--accent3)'};
-  var container=document.getElementById('gr-groups'); if(!container) return;
-  container.innerHTML='';
-  Object.entries(groups).forEach(function(entry){
-    var nivel=entry[0],names=entry[1]; if(!names.length)return;
-    var div=document.createElement('div');
-    div.style.cssText='padding:6px 10px;border-radius:7px;font-size:11px;border:1px solid var(--border);background:var(--surface2)';
-    div.innerHTML='<strong style="color:'+colors[nivel]+';font-size:10px;display:block;margin-bottom:2px">'+labels[nivel]+'</strong><span style="color:var(--muted)">'+names.join(', ')+'</span>';
-    container.appendChild(div);
-  });
-}
-
-function grSelectTipo(el) {
-  document.querySelectorAll('.gr-tipo-btn').forEach(function(b){b.classList.remove('gr-tipo-active')});
-  el.classList.add('gr-tipo-active');
-  _grTipo=el.dataset.tipo;
-}
-
-async function grGenerate() {
-  var edad=(document.getElementById('gr-edad')||{}).value||'5_anos';
-  var area=(document.getElementById('gr-area')||{}).value||'';
-  var comp=(document.getElementById('gr-comp')||{}).value||'';
-  var cap=(document.getElementById('gr-cap')||{}).value||'';
-  var areaDatos=(document.getElementById('gr-area-datos')||{}).value||'C';
-  var tipo=_grTipo;
-  var compObj=_GR_COMPS.find(function(c){return c.area_curricular===area&&c.competencia===comp});
-  var desempeno=compObj?compObj.desempenos[edad]:'';
-  var edadLabel=edad==='5_anos'?'5 años':edad==='4_anos'?'4 años':'3 años';
-  var groups={Destacado:[],Esperado:[],Descendido:[],'Muy descendido':[]};
-  _GR_STUDENTS.forEach(function(s){var r=s.r[areaDatos]||'Esperado';if(groups[r])groups[r].push(s.n.split(' ').slice(0,2).join(' '));});
-  var groupText=Object.entries(groups).filter(function(e){return e[1].length}).map(function(e){return '- '+e[0]+': '+e[1].join(', ')}).join('\n');
-  var printInstr=tipo==='Imprimible'?'Formato ficha imprimible A4 con encabezado (colegio Nuestra Señora de las Mercedes, nombre maestra, fecha, nombre del niño), recuadros diferenciados por grupo con consignas visuales claras y sección de reflexión.':
-    tipo==='Digital'?'Actividad digital interactiva con botones de respuesta, retroalimentación inmediata y efecto de celebración. Instrucciones cortas. Grupos en sección visible.':
-    tipo==='Ficha de trabajo'?'Ficha diferenciada con 3 niveles (básico, intermedio, avanzado), 2-3 consignas por nivel con espacios para dibujar/escribir. Grupos asignados a cada nivel.':
-    'Juego o dinámica grupal: nombre, materiales, pasos detallados, rol de cada grupo según su nivel y criterios de éxito.';
-  var prompt='Eres una maestra experta en educación inicial del Perú (CNE/MINEDU). Genera un recurso pedagógico completo y listo para usar.\n\nCONTEXTO:\n- Edad: '+edadLabel+'\n- Área curricular: '+area+'\n- Competencia: '+comp+'\n- Capacidad: '+cap+'\n- Desempeño esperado ('+edadLabel+'): '+desempeno+'\n- Tipo de recurso: '+tipo+'\n\nGRUPOS DE TRABAJO (basados en resultados INDI, área '+areaDatos+'):\n'+groupText+'\n\nINSTRUCCIONES DEL RECURSO:\n'+printInstr+'\n\nREGLAS:\n1. Incluye los nombres reales de los alumnos en cada grupo dentro del recurso.\n2. Lenguaje apropiado para niños de '+edadLabel+'.\n3. Actividades concretas, manipulativas y lúdicas.\n4. Alineado al currículo peruano CNEB.\n5. Recurso completo y listo para usar sin edición adicional.';
-
-  var btn=document.getElementById('gr-gen-btn');
-  var out=document.getElementById('gr-output');
-  btn.disabled=true; btn.textContent='⏳ Generando recurso…';
-  out.style.display='block'; out.textContent='Generando con IA…';
-
-  try {
-    var endpoint = (typeof getApiEndpoint==='function') ? getApiEndpoint() : 'https://api.anthropic.com/v1/messages';
-    var resp=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})});
-    var data=await resp.json();
-    var text=data.content&&data.content.map(function(b){return b.text||''}).join('')||'No se pudo generar el recurso.';
-    out.textContent=text;
-    // Offer to save to docs
-    var saveBar=document.createElement('div');
-    saveBar.style.cssText='display:flex;gap:8px;margin-top:10px;justify-content:flex-end';
-    saveBar.innerHTML='<button onclick="grSaveDoc(this)" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">💾 Guardar en documentos</button><button onclick="navigator.clipboard.writeText(document.getElementById(\'gr-output\').textContent)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">📋 Copiar</button>';
-    out.parentNode.insertBefore(saveBar,out.nextSibling);
-  } catch(e) {
-    out.textContent='Error al generar: '+e.message;
-  }
-  btn.disabled=false; btn.textContent='✨ Generar recurso con IA';
-}
-
-function grSaveDoc(btn) {
-  var text=(document.getElementById('gr-output')||{}).textContent||'';
-  if(!text||text==='Generando con IA…') return;
-  var edad=(document.getElementById('gr-edad')||{}).value||'5_anos';
-  var comp=(document.getElementById('gr-comp')||{}).value||'Recurso';
-  var tipo=_grTipo;
-  var edadLabel=edad==='5_anos'?'5 años':edad==='4_anos'?'4 años':'3 años';
-  if(typeof saveDocToRepo==='function'){
-    saveDocToRepo({titulo:tipo+' · '+comp.slice(0,40)+' · '+edadLabel, contenido:text, tipo:'guia', agente:'Genera Recursos Pedagógicos'});
-    btn.textContent='✅ Guardado';btn.disabled=true;
-  } else {
-    alert('Función de guardado no disponible en este contexto.');
-  }
-}
-
 // RECURSO SELECTOR — Agente Diseñador de Material (v1)
 // ══════════════════════════════════════════════════════════════
 var _recState = { tipo: null, formato: null };
@@ -11462,99 +11363,336 @@ function saveSchoolAssignment(){
   renderAssignSchoolList();
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// GENERADOR INDI — Agente Genera Recursos Pedagógicos (gr1)
+// ══════════════════════════════════════════════════════════════
+var _GR_COMPS=[{"area_curricular":"Personal Social","competencia":"Construye su identidad","capacidades":["Se valora a sí mismo","Autorregula sus emociones"],"desempenos":{"3_anos":"Reconoce sus necesidades, sensaciones e intereses; se reconoce como miembro de su familia y aula.","4_anos":"Reconoce sus intereses, preferencias y características; las diferencia de las de los otros.","5_anos":"Reconoce sus cualidades, características y capacidades, y las diferencia de las de los otros. Se siente orgulloso de sus logros."}},{"area_curricular":"Personal Social","competencia":"Convive y participa democráticamente en la búsqueda del bien común","capacidades":["Interactúa con todas las personas","Construye normas y asume acuerdos y leyes","Participa en acciones que promueven el bienestar común"],"desempenos":{"3_anos":"Se relaciona con adultos y niños jugando en grupos pequeños.","4_anos":"Se integra en actividades grupales y juegos con sus pares. Propone ideas de juego y sus reglas.","5_anos":"Propone reglas de juego y las cumple. Realiza actividades cotidianas con sus compañeros."}},{"area_curricular":"Psicomotriz","competencia":"Se desenvuelve de manera autónoma a través de su motricidad","capacidades":["Comprende su cuerpo","Se expresa corporalmente"],"desempenos":{"3_anos":"Realiza movimientos como correr, saltar y trepar explorando su cuerpo.","4_anos":"Realiza acciones motrices básicas coordinando movimientos con seguridad.","5_anos":"Combina habilidades motrices básicas en diversos juegos."}},{"area_curricular":"Comunicación","competencia":"Se comunica oralmente en su lengua materna","capacidades":["Obtiene información","Infiere e interpreta","Adecúa, organiza y desarrolla","Utiliza recursos no verbales","Interactúa estratégicamente","Reflexiona y evalúa"],"desempenos":{"3_anos":"Expresa necesidades y emociones con palabras de uso frecuente.","4_anos":"Expresa experiencias e ideas en torno a un tema.","5_anos":"Desarrolla ideas de manera coherente. Mantiene el hilo de la conversación."}},{"area_curricular":"Comunicación","competencia":"Lee diversos tipos de textos escritos en su lengua materna","capacidades":["Obtiene información","Infiere e interpreta","Reflexiona y evalúa"],"desempenos":{"3_anos":"Identifica características de personajes en ilustraciones.","4_anos":"Identifica características de personas o animales en ilustraciones de textos.","5_anos":"Identifica palabras conocidas y siluetas en textos de su entorno."}},{"area_curricular":"Comunicación","competencia":"Crea proyectos desde los lenguajes artísticos","capacidades":["Explora y experimenta","Aplica procesos creativos","Socializa sus procesos y proyectos"],"desempenos":{"3_anos":"Explora materiales libremente descubriendo sus posibilidades.","4_anos":"Descubre efectos al combinar materiales. Representa sus ideas.","5_anos":"Explora materiales individualmente o en grupo."}},{"area_curricular":"Matemática","competencia":"Resuelve problemas de cantidad","capacidades":["Traduce cantidades","Comunica su comprensión","Usa estrategias y procedimientos"],"desempenos":{"3_anos":"Compara y agrupa objetos por características similares. Usa 'muchos' o 'pocos'.","4_anos":"Agrupa objetos y realiza conteo hasta 5. Usa 'más que', 'menos que'.","5_anos":"Establece el criterio para agrupar objetos. Realiza el conteo hasta 10."}},{"area_curricular":"Ciencia y Tecnología","competencia":"Indaga mediante métodos científicos para construir sus conocimientos","capacidades":["Problematiza situaciones","Diseña estrategias","Genera y registra datos","Analiza datos e interpreta información","Evalúa y comunica"],"desempenos":{"3_anos":"Hace preguntas sobre objetos o seres vivos. Obtiene información a través de sus sentidos.","4_anos":"Pregunta sobre el ambiente y seres vivos de su entorno. Propone posibles explicaciones.","5_anos":"Plantea posibles explicaciones y predicciones. Registra sus observaciones mediante dibujos."}}];
+
+var _GR_STUDENTS=[{n:"Zeus de Piero Abad Rebolledo",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Thayza Julie Acaro Silva",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Maria Fernanda Arevalo Garcia",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Eymi Arely Arraiza Cordova",r:{C:"Esperado",D:"Esperado",M:"Esperado",S:"Esperado"}},{n:"Franchesca Raquel Abigail Balarezo Vargas",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Derek Mateo Bruno Atoche",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Eithan Yadiel Castro Cordova",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"David Daniel Coral Pingo",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Gael David Coronado Garcia",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Maria Julia Escobar Herrera",r:{C:"Esperado",D:"Esperado",M:"Esperado",S:"Esperado"}},{n:"Hansel Joshua Estrada Carcamo",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Luis Angel Imán Palomino",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Rebeca Naemi Jimenez Zeta",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Caleb Emmanuel Lopez Landa",r:{C:"Esperado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Vianca Nicol Mayo Guerrero",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Yocelin Kristell Ogoña López",r:{C:"Destacado",D:"Muy descendido",M:"Esperado",S:"Esperado"}},{n:"Sara Juliet Ojeda Benites",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Camila Sofia Palacios Castro",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Thiago Alexis Pangalima Salcedo",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Muy descendido"}},{n:"Leilany Mailen Paucar Castillo",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Mateo Alonso Paucar Peña",r:{C:"Esperado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Thiago Ismael Periche Guevara",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Tiana Zuleyka Periche Guevara",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Eithan Matheus Periche Gómez",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Cristian Junior Ramirez Bruno",r:{C:"Destacado",D:"Esperado",M:"Esperado",S:"Descendido"}},{n:"Abby Dayli Ruiz Ipanaque",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Kayla Jazzel Ruiz Sánchez",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Lohana Mercedes Salar Porras",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Luciana Santamaria Fernanadez",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Lucianan Scarlett Silbaña Remigio",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Milenka Nayeli Sosa Ayala",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Erik Alexander Zeta Morante",r:{C:"Destacado",D:"Muy descendido",M:"Esperado",S:"Muy descendido"}},{n:"Pedro Juaquin Zeta Tineo",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}}];
+
+var _grTipo = 'Imprimible';
+
+function buildGeneradorINDI() {
+  // Directors / Red → supervision panel
+  if (typeof _getAgentToolMode === 'function' && _getAgentToolMode() === 'supervision') {
+    return typeof _buildSupervisionPanel === 'function' ? _buildSupervisionPanel() : '';
+  }
+  var labels = window._curriculumLabels || {};
+  var compLabel = labels.competencia || 'Competencia';
+  var capLabel  = labels.capacidad   || 'Capacidad';
+  var areaLabel = labels.area        || 'Área Curricular';
+  return '<div class="gr-indi-wrap" id="grIndiWrap" style="width:100%;max-width:680px;margin-top:12px">' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">' +
+      '<div><div class="gr-lbl">🎂 Edad</div>' +
+        '<select id="gr-edad" class="gr-sel"><option value="5_anos">5 años</option><option value="4_anos">4 años</option><option value="3_anos">3 años</option></select></div>' +
+      '<div><div class="gr-lbl">📚 ' + areaLabel + '</div>' +
+        '<select id="gr-area" class="gr-sel" onchange="grUpdateComps()"></select></div>' +
+      '<div><div class="gr-lbl">📊 Área para grupos</div>' +
+        '<select id="gr-area-datos" class="gr-sel" onchange="grRenderGroups()">' +
+          '<option value="C">Comunicación (C)</option><option value="M">Matemática (M)</option><option value="D">Desarrollo (D)</option><option value="S">Social (S)</option>' +
+        '</select></div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
+      '<div><div class="gr-lbl">🎯 ' + compLabel + '</div><select id="gr-comp" class="gr-sel" onchange="grUpdateCaps()"></select></div>' +
+      '<div><div class="gr-lbl">⚡ ' + capLabel + '</div><select id="gr-cap" class="gr-sel"></select></div>' +
+    '</div>' +
+    '<div class="gr-lbl" style="margin-bottom:6px">📋 Tipo de recurso</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">' +
+      '<button class="gr-tipo-btn gr-tipo-active" data-tipo="Imprimible" onclick="grSelectTipo(this)">🖨️ Imprimible A4</button>' +
+      '<button class="gr-tipo-btn" data-tipo="Digital" onclick="grSelectTipo(this)">💻 Digital</button>' +
+      '<button class="gr-tipo-btn" data-tipo="Ficha de trabajo" onclick="grSelectTipo(this)">📝 Ficha</button>' +
+      '<button class="gr-tipo-btn" data-tipo="Juego" onclick="grSelectTipo(this)">🎲 Juego</button>' +
+    '</div>' +
+    '<div class="gr-lbl" style="margin-bottom:6px">👥 Grupos de trabajo (según resultados INDI)</div>' +
+    '<div id="gr-groups" style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px"></div>' +
+    '<button id="gr-gen-btn" onclick="grGenerate()" style="width:100%;padding:11px;background:var(--accent1);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;letter-spacing:.3px;transition:.15s">✨ Generar recurso con IA</button>' +
+    '<div id="gr-output" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;color:var(--text);white-space:pre-wrap;line-height:1.7;max-height:460px;overflow-y:auto"></div>' +
+  '</div>';
+}
+
+function grInitSelects() {
+  var areas = [...new Set(_GR_COMPS.map(function(c){return c.area_curricular}))];
+  var asel = document.getElementById('gr-area');
+  if (!asel || asel.options.length) return;
+  areas.forEach(function(a){ var o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o); });
+  grUpdateComps(); grRenderGroups();
+}
+function grUpdateComps() {
+  var asel=document.getElementById('gr-area'); if(!asel) return;
+  var sel=document.getElementById('gr-comp'); if(!sel) return;
+  sel.innerHTML='';
+  _GR_COMPS.filter(function(c){return c.area_curricular===asel.value}).forEach(function(c){
+    var o=document.createElement('option');o.value=c.competencia;
+    o.textContent=c.competencia.length>52?c.competencia.slice(0,52)+'…':c.competencia;
+    sel.appendChild(o);
+  });
+  grUpdateCaps();
+}
+function grUpdateCaps() {
+  var asel=document.getElementById('gr-area'); if(!asel) return;
+  var csel=document.getElementById('gr-comp'); if(!csel) return;
+  var sel=document.getElementById('gr-cap'); if(!sel) return;
+  sel.innerHTML='';
+  var found=_GR_COMPS.find(function(c){return c.area_curricular===asel.value&&c.competencia===csel.value});
+  if(found)found.capacidades.forEach(function(cap){var o=document.createElement('option');o.value=cap;o.textContent=cap;sel.appendChild(o);});
+  grRenderGroups();
+}
+function grRenderGroups() {
+  var adsel=document.getElementById('gr-area-datos'); if(!adsel) return;
+  var groups={Destacado:[],Esperado:[],Descendido:[],'Muy descendido':[]};
+  _GR_STUDENTS.forEach(function(s){var r=s.r[adsel.value]||'Esperado';if(groups[r])groups[r].push(s.n.split(' ').slice(0,2).join(' '));});
+  var labels={Destacado:'🌟 Grupo Estrella (Destacado)',Esperado:'✅ Grupo en Camino (Esperado)',Descendido:'🤝 Grupo con Apoyo','Muy descendido':'🆘 Apoyo Reforzado'};
+  var colors={Destacado:'var(--accent1)',Esperado:'var(--accent2)',Descendido:'var(--accent4)','Muy descendido':'var(--accent3)'};
+  var container=document.getElementById('gr-groups'); if(!container) return;
+  container.innerHTML='';
+  Object.entries(groups).forEach(function(e){
+    var nivel=e[0],names=e[1]; if(!names.length)return;
+    var div=document.createElement('div');
+    div.style.cssText='padding:6px 10px;border-radius:7px;font-size:11px;border:1px solid var(--border);background:var(--surface2)';
+    div.innerHTML='<strong style="color:'+colors[nivel]+';font-size:10px;display:block;margin-bottom:2px">'+labels[nivel]+'</strong><span style="color:var(--muted)">'+names.join(', ')+'</span>';
+    container.appendChild(div);
+  });
+}
+function grSelectTipo(el) {
+  document.querySelectorAll('.gr-tipo-btn').forEach(function(b){b.classList.remove('gr-tipo-active')});
+  el.classList.add('gr-tipo-active'); _grTipo=el.dataset.tipo;
+}
+async function grGenerate() {
+  var edad=(document.getElementById('gr-edad')||{}).value||'5_anos';
+  var area=(document.getElementById('gr-area')||{}).value||'';
+  var comp=(document.getElementById('gr-comp')||{}).value||'';
+  var cap=(document.getElementById('gr-cap')||{}).value||'';
+  var areaDatos=(document.getElementById('gr-area-datos')||{}).value||'C';
+  var tipo=_grTipo;
+  var labels=window._curriculumLabels||{competencia:'Competencia',capacidad:'Capacidad'};
+  var compObj=_GR_COMPS.find(function(c){return c.area_curricular===area&&c.competencia===comp});
+  var desempeno=compObj?compObj.desempenos[edad]:'';
+  var edadLabel=edad==='5_anos'?'5 años':edad==='4_anos'?'4 años':'3 años';
+  var groups={Destacado:[],Esperado:[],Descendido:[],'Muy descendido':[]};
+  _GR_STUDENTS.forEach(function(s){var r=s.r[areaDatos]||'Esperado';if(groups[r])groups[r].push(s.n.split(' ').slice(0,2).join(' '));});
+  var groupText=Object.entries(groups).filter(function(e){return e[1].length}).map(function(e){return '- '+e[0]+': '+e[1].join(', ')}).join('\n');
+  var printInstr=tipo==='Imprimible'?'Formato ficha imprimible A4 con encabezado (colegio Nuestra Señora de las Mercedes), recuadros diferenciados por grupo y sección de reflexión.':
+    tipo==='Digital'?'Actividad digital interactiva con botones de respuesta, retroalimentación inmediata y efecto de celebración.':
+    tipo==='Ficha de trabajo'?'Ficha diferenciada con 3 niveles (básico, intermedio, avanzado), 2-3 consignas por nivel.':
+    'Juego o dinámica grupal: nombre, materiales, pasos detallados, roles por grupo y criterios de éxito.';
+  var prompt='Eres una maestra experta en educación inicial del Perú (CNE/MINEDU). Genera un recurso pedagógico completo.\n\nCONTEXTO:\n- Edad: '+edadLabel+'\n- Área curricular: '+area+'\n- '+labels.competencia+': '+comp+'\n- '+labels.capacidad+': '+cap+'\n- Desempeño: '+desempeno+'\n- Tipo: '+tipo+'\n\nGRUPOS (área '+areaDatos+'):\n'+groupText+'\n\nINSTRUCCIONES: '+printInstr+'\n\nIncluye los nombres reales de los alumnos. Recurso completo, listo para usar.';
+  var btn=document.getElementById('gr-gen-btn');
+  var out=document.getElementById('gr-output');
+  btn.disabled=true; btn.textContent='⏳ Generando recurso…';
+  out.style.display='block'; out.textContent='Generando con IA…';
+  try{
+    var endpoint=(typeof getApiEndpoint==='function')?getApiEndpoint():'https://api.anthropic.com/v1/messages';
+    var resp=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})});
+    var data=await resp.json();
+    var text=data.content&&data.content.map(function(b){return b.text||''}).join('')||'No se pudo generar.';
+    out.textContent=text;
+    var bar=document.createElement('div');
+    bar.style.cssText='display:flex;gap:8px;margin-top:10px;justify-content:flex-end';
+    bar.innerHTML='<button onclick="grSaveDoc(this)" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">💾 Guardar</button><button onclick="navigator.clipboard.writeText(document.getElementById(\'gr-output\').textContent)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">📋 Copiar</button>';
+    out.parentNode.insertBefore(bar,out.nextSibling);
+  }catch(e){out.textContent='Error: '+e.message;}
+  btn.disabled=false; btn.textContent='✨ Generar recurso con IA';
+}
+function grSaveDoc(btn){
+  var text=(document.getElementById('gr-output')||{}).textContent||''; if(!text||text==='Generando con IA…') return;
+  var comp=(document.getElementById('gr-comp')||{}).value||'Recurso';
+  if(typeof saveDocToRepo==='function'){ saveDocToRepo({titulo:_grTipo+' · '+comp.slice(0,40),contenido:text,tipo:'guia',agente:'Genera Recursos Pedagógicos'}); btn.textContent='✅ Guardado'; btn.disabled=true; }
+  else alert('Función de guardado no disponible.');
+}
+
 // ── ASSIGN BY USER ────────────────────────────────────────
-// userAgents[userId] = Set of agentIds
+// agentAssignments[userId] = { agentIds: Set, pais, tipo_usuario }
 const userAgents = {};
+const agentAssignments = {};
 [...DB.directores,...DB.docentes,...DB.alumnos].forEach(u=>{ userAgents[u.id]=new Set(AGENTS.map(a=>a.id)); });
 let userAssignType = 'docentes';
 let selectedUsers = new Set();
 let selectedAgentsForUsers = new Set();
 let userAgentDimFilter = 'all';
 
-function renderAssignUserPanel(){
-  setUserAssignType('docentes');
-  renderAssignAgentUserFilter();
+// ── Labels per country ─────────────────────────────────────
+const LABELS_BY_PAIS = {
+  CL: { competencia:'OA (Objetivo de Aprendizaje)', capacidad:'Indicador de Logro', area:'Asignatura', desempeno:'Descripción del OA' },
+  PE: { competencia:'Competencia', capacidad:'Capacidad', area:'Área Curricular', desempeno:'Desempeño esperado' },
+};
+// ── Agent visibility rules by tipo_usuario ──────────────────
+const AGENTS_BY_TIPO = {
+  red:      { dims:['liderazgo','recursos'],                             extra:[] },
+  director: { dims:['liderazgo','pedagogica','formacion','recursos'],    extra:[] },
+  docente:  { dims:['pedagogica','formacion'],                           extra:['v1','gr1'] },
+};
+
+// ── Context bar preview ────────────────────────────────────
+function asgnUpdateCtxSummary() {
+  var pais  = (document.getElementById('asgn-pais') ||{}).value||'';
+  var tipo  = (document.getElementById('asgn-tipo') ||{}).value||'';
+  var prev  = document.getElementById('asgn-ctx-preview');
+  var note  = document.getElementById('asgn-agent-ctx-note');
+  if (!pais || !tipo) {
+    if(prev)  prev.innerHTML  = 'Selecciona país y tipo para continuar.';
+    if(note)  note.style.display='none';
+    return;
+  }
+  var paisLabel = pais==='CL'?'🇨🇱 Chile':'🇵🇪 Perú';
+  var tipoLabel = tipo==='red'?'🏛️ Red':tipo==='director'?'🎓 Director':'👩‍🏫 Docente';
+  if(prev) prev.innerHTML = '<span class="pais-badge-'+pais+'">'+paisLabel+'</span> <span class="tipo-badge-'+tipo+'">'+tipoLabel+'</span>';
+  var rules={red:'Solo Liderazgo y Recursos.',director:'Acceso completo.',docente:'Solo Pedagógica, Formación y Recursos de Aula.'};
+  var curric=pais==='CL'?'Selectores: OA / Indicadores (MINEDUC Chile).':'Selectores: Competencias / Capacidades (MINEDU Perú).';
+  if(note){ note.style.display='block'; note.innerHTML='<strong>'+tipoLabel+'</strong> · '+rules[tipo]+' '+curric; }
   renderAssignAgentUserList();
-  updateUserAssignSummary();
 }
+
+function renderAssignUserPanel(){ setUserAssignType('docentes'); renderAssignAgentUserFilter(); renderAssignAgentUserList(); updateUserAssignSummary(); }
 function setUserAssignType(t){
   userAssignType=t;
   ['docentes','directores','alumnos'].forEach(x=>document.getElementById('utab-'+x).classList.toggle('active',x===t));
-  selectedUsers.clear();
-  renderUserAssignList();
-  updateUserAssignSummary();
+  selectedUsers.clear(); renderUserAssignList(); updateUserAssignSummary();
 }
 function renderUserAssignList(){
-  const q=(document.getElementById('userAssignSearch')?.value||'').toLowerCase();
-  const data=DB[userAssignType].filter(u=>u.nombre.toLowerCase().includes(q));
-  const clr={docente:'#0d4040',director:'#1a3a6b',alumno:'#3d2a00'};
-  document.getElementById('userAssignList').innerHTML=data.map(u=>{
-    const sel=selectedUsers.has(u.id);
-    const aCount=userAgents[u.id]?.size||0;
-    return `<div class="ua-item ${sel?'sel':''}" onclick="toggleUser('${u.id}',this)">
-      <div class="ua-check">${sel?'✓':''}</div>
-      <div class="ua-av" style="background:${clr[u.rol]||'#1a3a6b'};color:var(--text)">${u.avatar}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:11px;font-weight:600;line-height:1.3">${u.nombre}</div>
-        <div style="font-size:9px;color:var(--muted)">${u.esp||u.establecimiento||''} · ${aCount} agentes</div>
-      </div>
-    </div>`;
-  }).join('')||`<div style="color:var(--muted);font-size:11px;padding:10px">Sin resultados</div>`;
+  var q=(document.getElementById('userAssignSearch')?.value||'').toLowerCase();
+  var data=DB[userAssignType].filter(u=>u.nombre.toLowerCase().includes(q));
+  var clr={docente:'#0d4040',director:'#1a3a6b',alumno:'#3d2a00'};
+  document.getElementById('userAssignList').innerHTML=data.map(function(u){
+    var sel=selectedUsers.has(u.id);
+    var aCount=userAgents[u.id]?.size||0;
+    var asgn=agentAssignments[u.id];
+    var ctxChips=asgn?('<div class="ua-ctx-chips"><span class="pais-badge-'+asgn.pais+'">'+(asgn.pais==='CL'?'🇨🇱 CL':'🇵🇪 PE')+'</span><span class="tipo-badge-'+asgn.tipo_usuario+'">'+asgn.tipo_usuario+'</span></div>'):'';
+    return '<div class="ua-item '+(sel?'sel':'')+'" onclick="toggleUser(\''+u.id+'\',this)"><div class="ua-check">'+(sel?'✓':'')+'</div><div class="ua-av" style="background:'+( clr[u.rol]||'#1a3a6b')+';color:var(--text)">'+u.avatar+'</div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;line-height:1.3">'+u.nombre+'</div><div style="font-size:9px;color:var(--muted)">'+(u.esp||u.establecimiento||'')+' · '+aCount+' agentes</div>'+ctxChips+'</div></div>';
+  }).join('')||'<div style="color:var(--muted);font-size:11px;padding:10px">Sin resultados</div>';
 }
-function toggleUser(id,el){
-  selectedUsers.has(id)?(selectedUsers.delete(id),el.classList.remove('sel'),el.querySelector('.ua-check').textContent='')
-    :(selectedUsers.add(id),el.classList.add('sel'),el.querySelector('.ua-check').textContent='✓');
-  updateUserAssignSummary();
-}
-function selectAllUsers(){
-  DB[userAssignType].forEach(u=>selectedUsers.add(u.id));
-  renderUserAssignList(); updateUserAssignSummary();
-}
+function toggleUser(id,el){ selectedUsers.has(id)?(selectedUsers.delete(id),el.classList.remove('sel'),el.querySelector('.ua-check').textContent=''):(selectedUsers.add(id),el.classList.add('sel'),el.querySelector('.ua-check').textContent='✓'); updateUserAssignSummary(); }
+function selectAllUsers(){ DB[userAssignType].forEach(u=>selectedUsers.add(u.id)); renderUserAssignList(); updateUserAssignSummary(); }
 function clearUserSel(){ selectedUsers.clear(); renderUserAssignList(); updateUserAssignSummary(); }
 
 function renderAssignAgentUserFilter(){
-  const dims=[{k:'all',l:'Todos'},{k:'liderazgo',l:'🏛️ Liderazgo'},{k:'pedagogica',l:'📚 Pedagógica'},{k:'formacion',l:'🤝 Formación'},{k:'recursos',l:'⚙️ Recursos'}];
-  document.getElementById('assignUserFilter').innerHTML=dims.map(d=>
-    `<button class="btn btn-outline" style="font-size:10px;padding:2px 8px;${userAgentDimFilter===d.k?'border-color:var(--accent1);color:var(--accent1)':''}" onclick="userAgentDimFilter='${d.k}';renderAssignAgentUserFilter();renderAssignAgentUserList()">${d.l}</button>`
-  ).join('');
+  var dims=[{k:'all',l:'Todos'},{k:'liderazgo',l:'🏛️ Liderazgo'},{k:'pedagogica',l:'📚 Pedagógica'},{k:'formacion',l:'🤝 Formación'},{k:'recursos',l:'⚙️ Recursos'}];
+  document.getElementById('assignUserFilter').innerHTML=dims.map(function(d){ return '<button class="btn btn-outline" style="font-size:10px;padding:2px 8px;'+(userAgentDimFilter===d.k?'border-color:var(--accent1);color:var(--accent1)':'')+'" onclick="userAgentDimFilter=\''+d.k+'\';renderAssignAgentUserFilter();renderAssignAgentUserList()">'+d.l+'</button>'; }).join('');
 }
 function renderAssignAgentUserList(){
-  const agents=userAgentDimFilter==='all'?AGENTS:AGENTS.filter(a=>a.dim===userAgentDimFilter);
-  document.getElementById('assignAgentUserList').innerHTML=agents.map(a=>{
-    const c=COLORS[a.dim]; const sel=selectedAgentsForUsers.has(a.id);
-    return `<div class="ua-item ${sel?'sel':''}" onclick="toggleAgentUser('${a.id}',this)">
-      <div class="ua-check">${sel?'✓':''}</div>
-      <div style="width:24px;height:24px;border-radius:6px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">${a.icon}</div>
-      <div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600">${a.nombre}</div><div style="font-size:9px;color:${c.text}">${dimNames[a.dim]}</div></div>
-    </div>`;
+  var tipo=(document.getElementById('asgn-tipo')||{}).value||'';
+  var allowedDims=tipo&&AGENTS_BY_TIPO[tipo]?AGENTS_BY_TIPO[tipo].dims:null;
+  var extraIds  =tipo&&AGENTS_BY_TIPO[tipo]?AGENTS_BY_TIPO[tipo].extra:[];
+  var agents=AGENTS.filter(function(a){
+    if(userAgentDimFilter!=='all'&&a.dim!==userAgentDimFilter) return false;
+    if(allowedDims) return allowedDims.includes(a.dim)||extraIds.includes(a.id);
+    return true;
+  });
+  document.getElementById('assignAgentUserList').innerHTML=agents.map(function(a){
+    var c=COLORS[a.dim]; var sel=selectedAgentsForUsers.has(a.id);
+    return '<div class="ua-item '+(sel?'sel':'')+'" onclick="toggleAgentUser(\''+a.id+'\',this)"><div class="ua-check">'+(sel?'✓':'')+'</div><div style="width:24px;height:24px;border-radius:6px;background:'+c.bg+';display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">'+a.icon+'</div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600">'+a.nombre+'</div><div style="font-size:9px;color:'+c.text+'">'+dimNames[a.dim]+'</div></div></div>';
   }).join('');
 }
-function toggleAgentUser(id,el){
-  selectedAgentsForUsers.has(id)?(selectedAgentsForUsers.delete(id),el.classList.remove('sel'),el.querySelector('.ua-check').textContent='')
-    :(selectedAgentsForUsers.add(id),el.classList.add('sel'),el.querySelector('.ua-check').textContent='✓');
-  updateUserAssignSummary();
-}
+function toggleAgentUser(id,el){ selectedAgentsForUsers.has(id)?(selectedAgentsForUsers.delete(id),el.classList.remove('sel'),el.querySelector('.ua-check').textContent=''):(selectedAgentsForUsers.add(id),el.classList.add('sel'),el.querySelector('.ua-check').textContent='✓'); updateUserAssignSummary(); }
 function selectAllAgentsUser(){ AGENTS.forEach(a=>selectedAgentsForUsers.add(a.id)); renderAssignAgentUserList(); updateUserAssignSummary(); }
 function clearAgentUserSel(){ selectedAgentsForUsers.clear(); renderAssignAgentUserList(); updateUserAssignSummary(); }
 
 function updateUserAssignSummary(){
-  const uCount=selectedUsers.size, aCount=selectedAgentsForUsers.size;
-  document.getElementById('userAssignSummary').innerHTML=`
-    <div style="margin-bottom:6px">👥 <strong style="color:var(--text)">${uCount}</strong> usuario${uCount!==1?'s':''} seleccionado${uCount!==1?'s':''}</div>
-    <div style="margin-bottom:6px">🤖 <strong style="color:var(--text)">${aCount}</strong> agente${aCount!==1?'s':''} seleccionado${aCount!==1?'s':''}</div>
-    ${uCount&&aCount?`<div style="color:var(--accent2);font-size:10px;margin-top:8px;padding:6px 8px;background:var(--dim2);border-radius:6px">✅ Se asignarán <strong>${aCount}</strong> agentes a <strong>${uCount}</strong> usuario${uCount!==1?'s':''}.</div>`:
-    '<div style="font-size:10px;color:var(--muted)">Selecciona usuarios y agentes para continuar.</div>'}`;
+  var uCount=selectedUsers.size, aCount=selectedAgentsForUsers.size;
+  var pais=(document.getElementById('asgn-pais')||{}).value||'';
+  var tipo=(document.getElementById('asgn-tipo')||{}).value||'';
+  var ctxOk=pais&&tipo;
+  var paisLabel=pais==='CL'?'🇨🇱 Chile':pais==='PE'?'🇵🇪 Perú':'—';
+  var tipoLabel=tipo==='red'?'🏛️ Red':tipo==='director'?'🎓 Director':tipo==='docente'?'👩‍🏫 Docente':'—';
+  document.getElementById('userAssignSummary').innerHTML=
+    '<div style="margin-bottom:5px">🌎 País: <strong style="color:var(--text)">'+paisLabel+'</strong></div>'+
+    '<div style="margin-bottom:5px">👤 Tipo: <strong style="color:var(--text)">'+tipoLabel+'</strong></div>'+
+    '<div style="margin-bottom:5px">👥 <strong style="color:var(--text)">'+uCount+'</strong> usuario'+(uCount!==1?'s':'')+' seleccionado'+(uCount!==1?'s':'')+'</div>'+
+    '<div style="margin-bottom:5px">🤖 <strong style="color:var(--text)">'+aCount+'</strong> agente'+(aCount!==1?'s':'')+' seleccionado'+(aCount!==1?'s':'')+'</div>'+
+    (!ctxOk?'<div style="color:var(--accent3);font-size:10px;margin-top:6px;padding:6px 8px;background:var(--dim3);border-radius:6px">⚠️ Debes seleccionar País y Tipo de usuario.</div>':
+      uCount&&aCount?'<div style="color:var(--accent2);font-size:10px;margin-top:8px;padding:6px 8px;background:var(--dim2);border-radius:6px">✅ Se asignarán <strong>'+aCount+'</strong> agentes a <strong>'+uCount+'</strong> usuario'+(uCount!==1?'s':'')+'.</div>':
+      '<div style="font-size:10px;color:var(--muted)">Selecciona usuarios y agentes para continuar.</div>');
 }
-function saveUserAssignment(){
+
+async function saveUserAssignment(){
+  var pais=(document.getElementById('asgn-pais')||{}).value||'';
+  var tipo=(document.getElementById('asgn-tipo')||{}).value||'';
+  if(!pais||!tipo){ alert('⚠️ Debes seleccionar País y Tipo de usuario antes de guardar'); return; }
   if(!selectedUsers.size||!selectedAgentsForUsers.size){ alert('Selecciona al menos un usuario y un agente'); return; }
-  let count=0;
-  selectedUsers.forEach(uid=>{
+  var agentIdsArr=[...selectedAgentsForUsers];
+  var rows=[];
+  selectedUsers.forEach(function(uid){
     if(!userAgents[uid]) userAgents[uid]=new Set();
-    selectedAgentsForUsers.forEach(aid=>{ userAgents[uid].add(aid); count++; });
+    selectedAgentsForUsers.forEach(function(aid){ userAgents[uid].add(aid); });
+    agentAssignments[uid]={ agentIds:new Set(agentIdsArr), pais:pais, tipo_usuario:tipo };
+    rows.push({ user_id:uid, agent_ids:agentIdsArr, pais:pais, tipo_usuario:tipo, updated_at:new Date().toISOString() });
   });
-  document.getElementById('assignUserResult').innerHTML=`<div style="background:var(--dim2);border:1px solid var(--accent2)44;border-radius:7px;padding:8px 12px;font-size:11px;color:var(--accent2)">✅ Asignación completada: ${selectedAgentsForUsers.size} agentes → ${selectedUsers.size} usuarios (${count} relaciones creadas)</div>`;
+  if(_supa){
+    try{
+      var res=await _supa.from('agentes_asignados').upsert(rows,{onConflict:'user_id'});
+      if(res.error) throw res.error;
+      document.getElementById('assignUserResult').innerHTML='<div style="background:var(--dim2);border:1px solid var(--accent2)44;border-radius:7px;padding:8px 12px;font-size:11px;color:var(--accent2)">✅ Guardado en Supabase: '+agentIdsArr.length+' agentes → '+rows.length+' usuarios · País: '+pais+' · Tipo: '+tipo+'</div>';
+    }catch(e){
+      document.getElementById('assignUserResult').innerHTML='<div style="background:var(--dim3);border:1px solid var(--accent3)44;border-radius:7px;padding:8px 12px;font-size:11px;color:var(--accent3)">⚠️ Guardado localmente (Supabase: '+e.message+')<br><small>Ejecuta el SQL de migración para crear la tabla <code>agentes_asignados</code></small></div>';
+    }
+  } else {
+    document.getElementById('assignUserResult').innerHTML='<div style="background:var(--dim2);border:1px solid var(--accent2)44;border-radius:7px;padding:8px 12px;font-size:11px;color:var(--accent2)">✅ Asignación guardada localmente: '+agentIdsArr.length+' agentes → '+rows.length+' usuarios</div>';
+  }
   renderUserAssignList(); updateUserAssignSummary();
 }
+
+// ═══════════════════════════════════════════════════════════
+// INTELLIGENT AGENT CONTEXT — load from Supabase on login
+// ═══════════════════════════════════════════════════════════
+
+async function _supaLoadAssignment(){
+  if(!_supaUser||!_supa) return;
+  try{
+    var res=await _supa.from('agentes_asignados').select('*').eq('user_id',_supaUser.id).maybeSingle();
+    if(res.error||!res.data) return;
+    window._userAssignment=res.data;
+    console.log('[LIAX] Assignment loaded:',res.data.pais,res.data.tipo_usuario,res.data.agent_ids?.length,'agents');
+    _applyAssignmentContext(res.data);
+  }catch(e){ console.warn('[LIAX] _supaLoadAssignment:',e.message); }
+}
+
+function _applyAssignmentContext(assignment){
+  if(!assignment) return;
+  var pais=assignment.pais||'PE';
+  var tipo=assignment.tipo_usuario||'docente';
+  window._userPais=pais;
+  window._userTipoUsuario=tipo;
+  window._curriculumLabels=LABELS_BY_PAIS[pais]||LABELS_BY_PAIS['PE'];
+  var rules=AGENTS_BY_TIPO[tipo]||AGENTS_BY_TIPO['docente'];
+  if(assignment.agent_ids&&assignment.agent_ids.length){
+    window._assignedAgentIds=new Set(assignment.agent_ids);
+  } else {
+    window._assignedAgentIds=new Set(AGENTS.filter(function(a){ return rules.dims.includes(a.dim)||rules.extra.includes(a.id); }).map(function(a){ return a.id; }));
+  }
+  window._ragPaisFilter=pais;
+  setTimeout(_updateCurriculumLabelsUI, 400);
+  console.log('[LIAX] Context applied — País:',pais,'| Tipo:',tipo,'| Agents:',window._assignedAgentIds.size);
+}
+
+function _updateCurriculumLabelsUI(){
+  var labels=window._curriculumLabels; if(!labels) return;
+  var areaLbl=document.getElementById('ctxAsigLabel');
+  if(areaLbl) areaLbl.textContent='📖 '+labels.area+'…';
+  var compLbl=document.getElementById('ctxCompLabel');
+  if(compLbl) compLbl.textContent='🎯 '+labels.competencia+'…';
+  var grCompLbl=document.querySelector('label[for="gr-comp"], #gr-comp')?.closest('div')?.querySelector('div');
+  if(grCompLbl&&grCompLbl.textContent.includes('Competencia')) grCompLbl.textContent='🎯 '+labels.competencia;
+  var grCapLbl=document.querySelector('#gr-cap')?.closest('div')?.querySelector('div');
+  if(grCapLbl&&grCapLbl.textContent.includes('Capacidad')) grCapLbl.textContent='⚡ '+labels.capacidad;
+}
+
+function _getAgentToolMode(){ return (window._userTipoUsuario==='director'||window._userTipoUsuario==='red')?'supervision':'aula'; }
+
+function _buildSupervisionPanel(){
+  var paisLabel=window._userPais==='CL'?'🇨🇱 Chile':'🇵🇪 Perú';
+  var cl=window._curriculumLabels||LABELS_BY_PAIS['PE'];
+  return '<div style="width:100%;max-width:680px;margin-top:12px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">'+
+    '<div style="font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">🔭 Herramientas de Supervisión — '+paisLabel+'</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+      _sBtn('📊 Reporte de avance por aula','Genera un reporte de avance curricular por aula con los resultados disponibles.')+
+      _sBtn('👥 Distribución de grupos','Muestra la distribución de niveles de desempeño de todos los cursos.')+
+      _sBtn('📋 Plan de acompañamiento','Diseña un plan de acompañamiento docente basado en los resultados del equipo.')+
+      _sBtn('🎯 Brechas de '+cl.competencia,'Analiza el cumplimiento de '+cl.competencia+'s y genera alertas de brecha.')+
+    '</div></div>';
+}
+function _sBtn(t,p){ return '<div onclick="sendChatMsg(\''+p.replace(/'/g,"\\'")+'\')" style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;line-height:1.4;transition:.15s" onmouseover="this.style.borderColor=\'var(--accent1)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'+t+'</div>'; }
+function sendChatMsg(text){ var inp=document.getElementById('chatInput'); if(inp){ inp.value=text; if(typeof sendChat==='function') sendChat(); } }
+
 
 // ── OVERRIDE showPanel FOR SA CHECK ──────────────────────
 const _origShowPanel = showPanel;
