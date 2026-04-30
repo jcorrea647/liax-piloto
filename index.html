@@ -2,121 +2,130 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>LIAX GENERATOR PRO - Full Content</title>
+    <title>LIAX AI - Generador Real Time</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Outfit', sans-serif; background: #0f172a; color: white; }
-        .canvas { background: white; color: #1e293b; min-height: 80vh; border-radius: 2rem; }
-        .print-only { display: none; }
-        @media print { .no-print { display: none; } .print-only { display: block; } .canvas { box-shadow: none; border: none; } }
+        .canvas { background: white; color: #1e293b; min-height: 85vh; border-radius: 2rem; position: relative; border: 1px solid #e2e8f0; }
+        .loader { border-top-color: #3b82f6; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Evita que el contenido de la IA rompa el diseño */
+        #content img { max-width: 100%; border-radius: 1rem; }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body class="p-6">
 
-    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
         
-        <aside class="no-print space-y-6">
-            <div class="bg-blue-600 p-6 rounded-3xl shadow-2xl">
-                <h2 class="text-2xl font-black italic">LIAX PRO</h2>
-                <p class="text-[10px] uppercase tracking-widest opacity-70">Motor de Generación 2026</p>
+        <aside class="space-y-6 no-print">
+            <div class="bg-gradient-to-br from-blue-700 to-indigo-900 p-6 rounded-3xl shadow-2xl">
+                <h2 class="text-2xl font-black italic">LIAX ENGINE</h2>
+                <p class="text-[10px] uppercase tracking-widest opacity-70">Power by Together AI</p>
+                <div class="mt-4 p-2 bg-blue-800/50 rounded text-[9px] font-mono break-all opacity-50">Key: key_CaG2...NReM</div>
             </div>
 
             <div class="bg-slate-800 p-6 rounded-3xl space-y-4">
                 <div>
-                    <label class="text-[10px] font-bold uppercase text-slate-400">Estudiante / Edad</label>
-                    <select id="edad" class="w-full bg-slate-700 p-3 rounded-xl mt-1 text-sm font-bold outline-none">
-                        <option value="5">Rayitos A (5 años) - Inicial</option>
-                        <option value="17">Promoción (17 años) - Secundaria</option>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Edad del Estudiante</label>
+                    <select id="edad" class="w-full bg-slate-700 p-3 rounded-xl mt-1 font-bold text-sm outline-none">
+                        <option value="5">Rayitos A (5 años)</option>
+                        <option value="12">Primaria (12 años)</option>
+                        <option value="17">Secundaria / Bachillerato (17 años)</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="text-[10px] font-bold uppercase text-slate-400">Nivel de Logro (INDI)</label>
-                    <select id="logro" class="w-full bg-slate-700 p-3 rounded-xl mt-1 text-sm font-bold outline-none border-l-4 border-rose-500">
-                        <option value="apoyo">⚠️ Zona de Apoyo (Descendido)</option>
-                        <option value="destacado">🌟 Logro Destacado</option>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Área Curricular</label>
+                    <select id="materia" class="w-full bg-slate-700 p-3 rounded-xl mt-1 font-bold text-sm outline-none">
+                        <option value="Comunicación y Lenguaje">Comunicación</option>
+                        <option value="Matemática y Pensamiento Lógico">Matemática</option>
+                        <option value="Ciencia y Tecnología">Ciencia</option>
                     </select>
                 </div>
 
-                <button onclick="generar()" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black hover:bg-blue-400 hover:text-white transition-all shadow-xl">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Nivel INDI</label>
+                    <select id="logro" class="w-full bg-slate-700 p-3 rounded-xl mt-1 font-bold text-sm border-l-4 border-rose-500 outline-none">
+                        <option value="Apoyo (Requiere nivelación)">⚠️ Zona de Apoyo</option>
+                        <option value="Destacado (Reto avanzado)">🌟 Logro Destacado</option>
+                    </select>
+                </div>
+
+                <button onclick="generarConIA()" id="btnGenerar" class="w-full bg-blue-500 py-4 rounded-2xl font-black hover:bg-blue-400 active:scale-95 transition-all shadow-xl">
                     GENERAR RECURSO YA
                 </button>
             </div>
+            
+            <button onclick="window.print()" class="w-full bg-slate-700 py-3 rounded-xl text-xs font-bold uppercase tracking-widest">🖨️ Imprimir Resultado</button>
         </aside>
 
-        <main class="lg:col-span-3 canvas p-8 shadow-2xl" id="display">
-            <div class="flex flex-col items-center justify-center h-full text-slate-300 italic">
-                <p>Configura los parámetros y presiona "GENERAR RECURSO YA"</p>
+        <main class="lg:col-span-3 canvas p-8 shadow-2xl overflow-y-auto" id="display">
+            <div id="status" class="hidden absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center rounded-2xl">
+                <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-20 w-20 mb-4"></div>
+                <p class="text-blue-900 font-black animate-pulse uppercase tracking-widest">LIAX está creando el recurso...</p>
+                <p class="text-slate-400 text-xs mt-2 italic">Consultando modelos Llama-3 vía Together AI</p>
+            </div>
+
+            <div id="content" class="h-full">
+                <div class="flex flex-col items-center justify-center h-full text-slate-300 italic text-center">
+                    <div class="text-6xl mb-4 opacity-20">🚀</div>
+                    <p>El motor está listo con tu API Key.<br>Selecciona los parámetros y presiona Generar.</p>
+                </div>
             </div>
         </main>
     </div>
 
     <script>
-        function generar() {
-            const edad = document.getElementById('edad').value;
-            const logro = document.getElementById('logro').value;
-            const display = document.getElementById('display');
+        const TOGETHER_API_KEY = "key_CaG2axZJ6861PcXP1NReM";
 
-            if (edad === "5") {
-                // GENERACIÓN PARA 5 AÑOS (PIURA)
-                display.innerHTML = `
-                    <div class="border-8 border-teal-500 rounded-[3rem] overflow-hidden bg-white">
-                        <div class="bg-teal-600 p-8 text-white flex justify-between items-center">
-                            <div><h2 class="text-4xl font-black italic uppercase">LIAX JUNIOR</h2><p>COMUNICACIÓN • PIURA</p></div>
-                            <span class="text-6xl">🎨</span>
-                        </div>
-                        <div class="p-10 space-y-10">
-                            <div class="bg-rose-50 p-6 rounded-3xl border-2 border-rose-200">
-                                <h3 class="font-black text-rose-700 uppercase mb-4">📍 ZONA DE APOYO: Conciencia Fonológica</h3>
-                                <div class="grid grid-cols-2 gap-8 items-center">
-                                    <div class="text-center">
-                                        <div class="text-9xl">🐦</div>
-                                        <p class="text-2xl font-black tracking-widest mt-4">chi - LA - lo</p>
-                                    </div>
-                                    <div class="space-y-4">
-                                        <p class="font-bold text-slate-700 italic">"El chilalo del algarrobo, no le tiene miedo al lobo."</p>
-                                        <p class="text-sm bg-white p-4 rounded-xl shadow-sm"><strong>Instrucción:</strong> Zeus y Thiago deben palmear cada sílaba mientras pintan el ave.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-3 gap-4">
-                                ${['Mango', 'Paita', 'Sol'].map(item => `<div class="border-4 border-dashed border-slate-200 h-32 rounded-2xl flex items-center justify-center text-slate-200 font-bold uppercase">${item}</div>`).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                // GENERACIÓN PARA 17 AÑOS (SECUNDARIA)
-                display.innerHTML = `
-                    <div class="border-8 border-slate-900 rounded-3xl overflow-hidden bg-white">
-                        <div class="bg-slate-900 p-8 text-white flex justify-between items-center">
-                            <div><h2 class="text-3xl font-black italic uppercase">LIAX ACADEMY</h2><p>ANÁLISIS CRÍTICO • NIVEL SUPERIOR</p></div>
-                            <span class="text-5xl">🖋️</span>
-                        </div>
-                        <div class="p-10 space-y-8">
-                            <div class="border-l-8 border-blue-600 p-6 bg-blue-50 rounded-r-2xl">
-                                <h3 class="font-black text-blue-900 uppercase mb-2">Desafío: Geopolítica de los Recursos en el Siglo XXI</h3>
-                                <p class="text-sm text-slate-600 leading-relaxed">Analice el impacto socioeconómico de la desalinización de agua en la costa norte peruana frente al estrés hídrico global. Elabore una hipótesis argumentativa de 500 palabras.</p>
-                            </div>
-                            <div class="grid grid-cols-2 gap-6">
-                                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                                    <p class="text-xs font-black text-slate-400 uppercase mb-3 underline">Rúbrica (INDI Destacado)</p>
-                                    <ul class="text-[11px] space-y-2 text-slate-600">
-                                        <li>• Coherencia sistémica en la propuesta.</li>
-                                        <li>• Uso de fuentes académicas citadas.</li>
-                                        <li>• Análisis de variables multicausales.</li>
-                                    </ul>
-                                </div>
-                                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                                    <p class="text-xs font-black text-slate-400 uppercase mb-3 underline">Recursos de Apoyo</p>
-                                    <button class="w-full bg-slate-800 text-white p-2 rounded text-[10px] mb-2 uppercase">Ver Gráfico de Estrés Hídrico</button>
-                                    <button class="w-full bg-slate-800 text-white p-2 rounded text-[10px] uppercase">Descargar Paper UNP</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+        async function generarConIA() {
+            const edad = document.getElementById('edad').value;
+            const materia = document.getElementById('materia').value;
+            const logro = document.getElementById('logro').value;
+            const contentDiv = document.getElementById('content');
+            const statusDiv = document.getElementById('status');
+
+            statusDiv.classList.remove('hidden');
+
+            // Prompt Maestro de Alta Ingeniería
+            const promptMaestro = `Actúa como un Diseñador Instruccional Experto. Genera un recurso pedagógico innovador en formato HTML para un estudiante de ${edad} años. 
+            ÁREA: ${materia}. NIVEL INDI: ${logro}.
+            
+            REGLAS DE DISEÑO:
+            1. Si es para 5 años: Usa colores Teal y Rose, iconos grandes, lenguaje rítmico de Piura (Perú), 4 puzzles de encastre y 6 tarjetas de rimas.
+            2. Si es para 17 años: Usa un diseño minimalista 'Dark Mode' académico, plantea un caso de estudio real, una rúbrica analítica y un desafío de pensamiento crítico.
+            3. Devuelve SOLO el código HTML interno (dentro de un div) usando clases de Tailwind CSS. 
+            4. Asegúrate que sea visualmente impactante y profesional. 
+            5. No incluyas explicaciones fuera del código HTML.`;
+
+            try {
+                const response = await fetch("https://api.together.xyz/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${TOGETHER_API_KEY}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "meta-llama/Llama-3-70b-chat-hf",
+                        messages: [{role: "user", content: promptMaestro}],
+                        max_tokens: 2500,
+                        temperature: 0.7
+                    })
+                });
+
+                const data = await response.json();
+                let aiHTML = data.choices[0].message.content;
+
+                // Limpieza básica por si la IA devuelve backticks
+                aiHTML = aiHTML.replace(/```html/g, "").replace(/```/g, "");
+
+                contentDiv.innerHTML = aiHTML;
+            } catch (error) {
+                console.error("Error LIAX Engine:", error);
+                contentDiv.innerHTML = `<div class="p-10 text-red-500 font-bold">Error de conexión con Together AI. Revisa tus créditos o la clave.</div>`;
+            } finally {
+                statusDiv.classList.add('hidden');
             }
         }
     </script>
