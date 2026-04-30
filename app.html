@@ -11481,17 +11481,42 @@ async function grGenerate() {
   var out=document.getElementById('gr-output');
   btn.disabled=true; btn.textContent='⏳ Generando recurso…';
   out.style.display='block'; out.textContent='Generando con IA…';
+  // Remove previous action bar if any
+  var prevBar=document.getElementById('gr-action-bar');
+  if(prevBar) prevBar.remove();
   try{
-    var endpoint=(typeof getApiEndpoint==='function')?getApiEndpoint():'https://api.anthropic.com/v1/messages';
-    var resp=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})});
-    var data=await resp.json();
-    var text=data.content&&data.content.map(function(b){return b.text||''}).join('')||'No se pudo generar.';
-    out.textContent=text;
-    var bar=document.createElement('div');
-    bar.style.cssText='display:flex;gap:8px;margin-top:10px;justify-content:flex-end';
-    bar.innerHTML='<button onclick="grSaveDoc(this)" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">💾 Guardar</button><button onclick="navigator.clipboard.writeText(document.getElementById(\'gr-output\').textContent)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">📋 Copiar</button>';
-    out.parentNode.insertBefore(bar,out.nextSibling);
-  }catch(e){out.textContent='Error: '+e.message;}
+    // ── Use the same API key infrastructure as the rest of the app ──
+    var apiKey = (window._cachedAnthropicKey||'');
+    if (!apiKey) {
+      try { apiKey = await AGENT_VAULT.loadSetting('anthropic_key') || ''; if(apiKey) window._cachedAnthropicKey = apiKey; } catch(e){}
+    }
+    if (!apiKey) {
+      out.innerHTML = '<span style="color:var(--accent3)">⚠️ No hay API Key configurada. Ve a <strong>⚙️ Configurar IAs</strong> y añade tu clave de Anthropic.</span>';
+      btn.disabled=false; btn.textContent='✨ Generar recurso con IA'; return;
+    }
+    var resp = await fetch(_getAnthropicEndpoint(), {
+      method: 'POST',
+      headers: _getAnthropicHeaders(apiKey),
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20251022',
+        max_tokens: 1500,
+        messages: [{ role:'user', content: prompt }]
+      })
+    });
+    var data = await resp.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    var text = data.content && data.content.map(function(b){return b.text||''}).join('') || 'No se pudo generar.';
+    out.textContent = text;
+    // Action bar
+    var bar = document.createElement('div');
+    bar.id = 'gr-action-bar';
+    bar.style.cssText = 'display:flex;gap:8px;margin-top:10px;justify-content:flex-end';
+    bar.innerHTML = '<button onclick="grSaveDoc(this)" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">💾 Guardar</button>'
+      + '<button onclick="navigator.clipboard.writeText(document.getElementById(\'gr-output\').textContent).then(function(){this.textContent=\'✅ Copiado\';}.bind(this))" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">📋 Copiar</button>';
+    out.parentNode.insertBefore(bar, out.nextSibling);
+  } catch(e) {
+    out.innerHTML = '<span style="color:var(--accent3)">❌ Error: ' + e.message + '</span>';
+  }
   btn.disabled=false; btn.textContent='✨ Generar recurso con IA';
 }
 function grSaveDoc(btn){
