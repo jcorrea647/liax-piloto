@@ -1,128 +1,95 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIAX - Visualizador de Recursos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .sidebar { width: 260px; background: white; border-right: 1px solid #e5e7eb; }
-        .badge-destacado { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
-        .badge-esperado { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-        .badge-apoyo { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .card-recurso { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-    </style>
-</head>
-<body class="flex min-h-screen">
+<header class="flex justify-between items-center mb-6 no-print bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+    <div class="text-slate-500 text-sm italic">
+        📄 Recurso — <strong>RAYITOS A • Comunicación</strong>
+    </div>
 
-    <aside class="sidebar p-5 flex flex-col gap-6 no-print">
-        <div class="flex items-center gap-2 mb-4">
-            <div class="bg-blue-900 text-white px-3 py-1 rounded font-black italic">LIAX</div>
-            <span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">IA Educativa</span>
-        </div>
-
-        <div>
-            <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
-                📊 Resumen del Aula
-            </h3>
-            <div class="space-y-2 text-[11px]">
-                <div class="p-2 rounded-lg badge-destacado flex justify-between items-center">
-                    <span>🌟 Destacado</span> <strong class="text-sm">15</strong>
-                </div>
-                <div class="p-2 rounded-lg badge-esperado flex justify-between items-center">
-                    <span>✅ Esperado</span> <strong class="text-sm">7</strong>
-                </div>
-                <div class="p-2 rounded-lg badge-apoyo flex justify-between items-center">
-                    <span>⚠️ Apoyo</span> <strong class="text-sm">7</strong>
-                </div>
-            </div>
-        </div>
-
-        <div class="text-[11px] space-y-3 border-t pt-4">
-             <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-1">📋 Contexto Curricular</h3>
-             <p><strong>Aula:</strong> RAYITOS A</p>
-             <p><strong>Edad:</strong> 5 Años</p>
-             <p><strong>Área:</strong> Comunicación</p>
-             <p class="text-slate-500 italic">Comp: Se comunica oralmente en su lengua materna</p>
-        </div>
-
-        <div class="text-[11px] space-y-1 border-t pt-4">
-            <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-1">📍 Contexto Piura</h3>
-            <p class="text-slate-500 italic leading-tight">Identidad territorial: Chilalo, Algarrobo, Mar de Paita, Mango de Tambogrande.</p>
-        </div>
-    </aside>
-
-    <main class="flex-1 p-8 overflow-y-auto">
-        <header class="flex justify-between items-center mb-6 no-print">
-            <div class="text-slate-500 text-sm">📄 Recurso — <strong>RAYITOS A • Comunicación</strong></div>
-            <div class="flex gap-2">
-                <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg hover:bg-blue-700 transition-all">🖨️ Imprimir Recurso</button>
-            </div>
-        </header>
-
-        <div class="card-recurso mx-auto max-w-4xl border border-slate-200 overflow-hidden">
-            <div class="bg-blue-700 p-6 text-white flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <span class="text-4xl">🎨</span>
-                    <div>
-                        <h2 class="text-2xl font-black uppercase tracking-tight">Recurso Pedagógico LIAX</h2>
-                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Comunicación - 5 años</p>
-                    </div>
-                </div>
-                <div class="bg-white/20 px-4 py-2 rounded-xl text-[10px] font-bold">IMPRIMIR - A4</div>
-            </div>
-
-            <div class="grid grid-cols-4 text-[10px] border-b uppercase font-bold bg-slate-50">
-                <div class="p-3 border-r">Aula<br><span class="text-blue-700 text-xs">Rayitos A</span></div>
-                <div class="p-3 border-r">Maestra<br><span class="text-blue-700 text-xs">Fanny De la Cruz</span></div>
-                <div class="p-3 border-r">Área<br><span class="text-blue-700 text-xs">Comunicación</span></div>
-                <div class="p-3">Fecha<br><span class="text-blue-700 text-xs">30/04/2026</span></div>
-            </div>
-
-            <div class="p-8 space-y-6">
-                <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5">
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-rose-700 font-black text-xs uppercase flex items-center gap-2">
-                            🤝 Zona de Apoyo Visual <span class="text-slate-400 font-normal">— Andamiaje y guía</span>
-                        </h4>
-                        <span class="bg-rose-200 text-rose-800 text-[10px] px-2 py-0.5 rounded-full font-bold">7 Alumnos</span>
-                    </div>
-                    <div class="flex flex-wrap gap-2 mb-6">
-                        <span class="bg-white border border-rose-200 px-3 py-1 rounded-full text-[9px] font-bold text-rose-600">Caleb López</span>
-                        <span class="bg-white border border-rose-200 px-3 py-1 rounded-full text-[9px] font-bold text-rose-600">Yocelin Ogoña</span>
-                        <span class="bg-white border border-rose-200 px-3 py-1 rounded-full text-[9px] font-bold text-rose-600">Thiago Pangalima</span>
-                        <span class="bg-white border border-rose-200 px-3 py-1 rounded-full text-[9px] font-bold text-rose-600">David Coral</span>
-                    </div>
-
-                    <div class="space-y-4 text-slate-700">
-                        <div class="flex gap-3">
-                            <span class="text-xl">🦀</span>
-                            <div class="text-xs">
-                                <strong class="uppercase text-rose-700">Contamos con el Chilalo de Piura</strong>
-                                <p class="mt-1"><strong>Instrucción:</strong> Toca cada imagen con el dedo mientras repites en voz alta.</p>
-                            </div>
-                        </div>
-                        <div class="bg-white/60 p-4 rounded-xl border border-rose-100 text-[13px] leading-relaxed">
-                            <p class="mb-2">🐦 El <strong>chilalo</strong> canta: <em>"chi-LA-lo, chi-LA-lo"</em> — palmea cada sílaba.</p>
-                            <p class="mb-2"><strong>Actividad:</strong> Mira las imágenes y di el nombre de cada animal del mar de Paita: <br>
-                                🦀 cangrejo &nbsp; 🐟 pez &nbsp; 🦐 langostino &nbsp; 🐚 concha
-                            </p>
-                            <p class="pt-2 border-t border-rose-100"><strong>Rima de apoyo:</strong> <br>
-                                <span class="italic text-slate-500">"El CAN-gre-jo del MAR, tie-ne PIN-zas y ya sé con-TAR."</span>
-                            </p>
-                        </div>
-                    </div>
-                </div>
+    <div class="flex gap-4">
+        <div class="relative group">
+            <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all">
+                🎮 TIPO DE RECURSO <span class="text-[8px]">▼</span>
+            </button>
+            
+            <div class="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl hidden group-hover:block z-50 overflow-hidden">
+                <div class="p-2 bg-slate-50 text-[9px] font-bold text-slate-400 uppercase border-b">Digital / Juego</div>
+                <button onclick="poblarRecurso('juego-rimas')" class="w-full text-left p-3 text-xs hover:bg-teal-50 flex items-center gap-2">
+                    <span>🎤</span> Rimas Interactivas (Piura)
+                </button>
+                <button onclick="poblarRecurso('juego-puzzle')" class="w-full text-left p-3 text-xs hover:bg-teal-50 flex items-center gap-2 border-b">
+                    <span>🧩</span> Puzzle de Rotación Lógica
+                </button>
                 
-                <div class="space-y-3">
-                    <div class="h-8 border-b border-rose-200"></div>
-                    <div class="h-8 border-b border-rose-200"></div>
-                </div>
+                <div class="p-2 bg-slate-50 text-[9px] font-bold text-slate-400 uppercase border-b">Imprimible / Ficha</div>
+                <button onclick="poblarRecurso('ficha-trazo')" class="w-full text-left p-3 text-xs hover:bg-orange-50 flex items-center gap-2">
+                    <span>✏️</span> Ficha de Grafomotricidad
+                </button>
+                <button onclick="poblarRecurso('ficha-comprension')" class="w-full text-left p-3 text-xs hover:bg-orange-50 flex items-center gap-2">
+                    <span>📖</span> Comprensión de Textos
+                </button>
             </div>
         </div>
-    </main>
 
-</body>
-</html>
+        <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-xl text-xs font-black shadow-lg hover:bg-blue-700 transition-all">
+            🖨️ IMPRIMIR
+        </button>
+    </div>
+</header>
+
+<div id="contenedor-recurso" class="card-recurso mx-auto max-w-4xl border border-slate-200 overflow-hidden">
+    <div class="p-20 text-center text-slate-300 font-bold italic">
+        Selecciona un tipo de recurso para comenzar...
+    </div>
+</div>
+
+<script>
+    function poblarRecurso(tipo) {
+        const contenedor = document.getElementById('contenedor-recurso');
+        
+        // Base de datos de estructuras (Siguiendo tu modelo de ayer)
+        const recursos = {
+            'juego-rimas': `
+                <div class="bg-teal-600 p-6 text-white flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <span class="text-4xl">🎤</span>
+                        <div>
+                            <h2 class="text-2xl font-black uppercase italic">Rimas Piuranas PRO</h2>
+                            <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Digital Interactivo</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-8">
+                    <div class="bg-teal-50 border border-teal-200 rounded-3xl p-10 text-center">
+                        <p class="text-xs font-bold text-teal-600 mb-4 uppercase italic">Conciencia Fonológica - Nivel Esperado</p>
+                        <div class="text-9xl mb-6">🐦</div>
+                        <h3 class="text-3xl font-black text-slate-800 mb-4">El CHILALO construye su...</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="alert('¡Correcto!')" class="p-4 bg-white border-2 border-teal-500 rounded-2xl font-bold hover:bg-teal-500 hover:text-white transition-all text-xl">🏠 NIDO</button>
+                            <button class="p-4 bg-white border-2 border-slate-200 rounded-2xl font-bold hover:border-teal-500 transition-all text-xl">🚗 CARRO</button>
+                        </div>
+                    </div>
+                </div>
+            `,
+            'juego-puzzle': `
+                <div class="bg-indigo-700 p-6 text-white flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <span class="text-4xl">🧩</span>
+                        <div>
+                            <h2 class="text-2xl font-black uppercase italic">Puzzle de Encastre Lógico</h2>
+                            <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Desafío Cognitivo - Nivel Destacado</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-8 flex flex-col items-center">
+                    <div class="w-64 h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex items-center justify-center text-slate-100 text-8xl mb-10">⭐</div>
+                    <div class="flex gap-4">
+                        <div class="w-32 h-32 bg-white shadow-xl rounded-2xl flex items-center justify-center text-6xl cursor-move border border-slate-100">⭐</div>
+                    </div>
+                    <p class="mt-8 text-xs font-bold text-slate-400">ARRASTRA LA PIEZA A SU SILUETA</p>
+                </div>
+            `
+        };
+
+        if (recursos[tipo]) {
+            contenedor.innerHTML = recursos[tipo];
+        }
+    }
+</script>
