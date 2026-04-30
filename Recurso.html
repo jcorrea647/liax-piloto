@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recurso Pedagógico - LIAX Editorial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        liaxBlue: '#005088',
+                        liaxTeal: '#11caa0',
+                        liaxLight: '#f0fdfa'
+                    },
+                    fontFamily: {
+                        montserrat: ['Montserrat', 'sans-serif'],
+                        opensans:['Open Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            background-color: #cbd5e1; 
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important; 
+        }
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 20px auto;
+            background-color: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            padding: 15mm;
+            position: relative;
+            box-sizing: border-box;
+        }
+        .cut-line {
+            border: 2px dashed #005088;
+            position: relative;
+        }
+        .cut-line::before {
+            content: '✂️';
+            position: absolute;
+            top: -14px;
+            left: 10px;
+            font-size: 16px;
+            background: white;
+            padding: 0 4px;
+            z-index: 10;
+        }
+        .checkbox-cell {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #005088;
+            border-radius: 4px;
+            margin: auto;
+            background-color: white;
+        }
+        @media print {
+            body { background-color: white; margin: 0; padding: 0; }
+            .a4-page {
+                margin: 0;
+                box-shadow: none;
+                width: 210mm;
+                height: 297mm;
+                page-break-after: always;
+                padding: 15mm;
+            }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="font-opensans text-slate-800">
+
+    <!-- Botón de impresión (no-print) -->
+    <div class="fixed bottom-6 right-6 no-print z-50">
+        <button onclick="window.print()" class="bg-liaxTeal hover:bg-teal-400 text-white font-montserrat font-extrabold py-4 px-8 rounded-full shadow-2xl transition-all transform hover:scale-105 flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+            IMPRIMIR RECURSO LIAX
+        </button>
+    </div>
+
+    <!-- PÁGINA 1: Tabla de Evaluación (Alumnos 1-11) -->
+    <div class="a4-page">
+        <header class="mb-6">
+            <h1 class="font-montserrat font-extrabold text-2xl text-liaxBlue text-center uppercase border-b-4 border-liaxTeal pb-2 inline-block w-full">Lista de Cotejo - Comprensión Lectora</h1>
+            <p class="text-center text-sm font-bold text-slate-500 mt-2">Nivel: Inicial 5 Años | Aula: RAYITOS A</p>
+        </header>
+
+        <table class="w-full text-sm text-left border-collapse border-2 border-liaxBlue">
+            <thead class="text-xs text-white uppercase bg-liaxBlue font-montserrat font-extrabold">
+                <tr>
+                    <th class="px-3 py-3 border-2 border-liaxBlue w-10 text-center">N°</th>
+                    <th class="px-4 py-3 border-2 border-liaxBlue w-2/5">Apellidos y Nombres</th>
+                    <th class="px-2 py-3 border-2 border-liaxBlue text-center">Identifica Info. Explícita</th>
+                    <th class="px-2 py-3 border-2 border-liaxBlue text-center">Infiere Significado</th>
+                    <th class="px-2 py-3 border-2 border-liaxBlue text-center">Opina sobre el Texto</th>
+                </tr>
+            </thead>
+            <tbody class="text-slate-700 bg-white font-opensans font-semibold">
+                <tr>
+                    <td class="border-2 border-liaxBlue px-3 py-2 text-center">1</td>
+                    <td class="border-2 border-liaxBlue px-4 py-2">Zeus de Piero Abad Rebolledo</td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                </tr>
+                <tr class="bg-slate-50">
+                    <td class="border-2 border-liaxBlue px-3 py-2 text-center">2</td>
+                    <td class="border-2 border-liaxBlue px-4 py-2">Thayza Julie Acaro Silva</td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="border-2 border-liaxBlue px-3 py-2 text-center">3</td>
+                    <td class="border-2 border-liaxBlue px-4 py-2">Hansel Joshua Estrada Carcamo</td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                </tr>
+                <tr class="bg-slate-50">
+                    <td class="border-2 border-liaxBlue px-3 py-2 text-center">4</td>
+                    <td class="border-2 border-liaxBlue px-4 py-2">Luis Angel Imán Palomino</td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="border-2 border-liaxBlue px-3 py-2 text-center">5</td>
+                    <td class="border-2 border-liaxBlue px-4 py-2">Rebeca Naemi Jimenez Zeta</td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                </tr>
+                <tr class="bg-slate-50">
+                    <td class="border-2 border-liaxBlue px-3 py-2 text-center">6</td>
+                    <td class="border-2 border-liaxBlue px-4 py-2">Caleb Emmanuel Lopez Landa</td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="border-2 border-liaxBlue px-3 py-2 text-center">7</td>
+                    <td class="border-2 border-liaxBlue px-4 py-2">Vianca Nicol Mayo Guerrero</td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                </tr>
+                <tr class="bg-slate-50">
+                    <td class="border-2 border-liaxBlue px-3 py-2 text-center">8</td>
+                    <td class="border-2 border-liaxBlue px-4 py-2">Yocelin Kristell Ogoña López</td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="border-2 border-liaxBlue px-3 py-2 text-center">9</td>
+                    <td class="border-2 border-liaxBlue px-4 py-2">Sara Juliet Ojeda Benites</td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                </tr>
+                <tr class="bg-slate-50">
+                    <td class="border-2 border-liaxBlue px-3 py-2 text-center">10</td>
+                    <td class="border-2 border-liaxBlue px-4 py-2">Camila Sofia Palacios Castro</td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="border-2 border-liaxBlue px-3 py-2 text-center">11</td>
+                    <td class="border-2 border-liaxBlue px-4 py-2">Thiago Alexis Pangalima Salcedo</td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                    <td class="border-2 border-liaxBlue"><div class="checkbox-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PÁGINA 2: Tarjetas de Juego (Alumnos 1-11) -->
+    <div class="a4-page">
+        <header class="mb-6">
+            <h1 class="font-montserrat font-extrabold text-2xl text-liaxBlue text-center uppercase">Tarjetas de Rol: Detectives de Cuentos</h1>
+            <p class="text-center text-sm font-bold text-slate-500">Recorta por las líneas punteadas para asignar roles de Comprensión Lectora</p>
+        </header>
+
+        <div class="grid grid-cols-3 gap-6">
+            <div class="cut-line h-32 flex flex-col justify-center items-center bg-liaxLight border border-liaxTeal p-2">
+                <span class="font-montserrat font-extrabold text-liaxBlue text-sm text-center leading-tight">Zeus de Piero Abad Rebolledo</span>
+                <span class="mt-2 text-xs bg-liaxTeal text-white px-3 py-1 rounded-full font-bold">Buscador de Pistas</span>
+            </div>
+            <div class="cut-line h-32 flex flex-col justify-center items-center bg-liaxLight border border-liaxTeal p-2">
+                <span class="font-montserrat font-extrabold text-liaxBlue text-sm text-center leading-tight">Thayza Julie Acaro Silva</span>
+                <span class="mt-2 text-xs bg-liaxTeal text-white px-3 py-1 rounded-full font-bold">Buscador de Pistas</span>
+            </div>
+            <div class="cut-line h-32 flex flex-col justify-center items-center bg-liaxLight border border-liaxTeal p-2">
+                <span class="font-montserrat font-extrabold text-liaxBlue text-sm text-center leading-tight">Hansel Joshua Estrada Carcamo</span>
+                <span class="mt-2 text-xs bg-liaxTeal text-white px-3 py-1 rounded-full font-bold">Buscador de Pistas</span>
+            </div>
+            <div class="cut-line h-32 flex flex-col justify-center items-center bg-liaxLight border border-liaxTeal p-2">
+                <span class="font-montserrat font-extrabold text-liaxBlue text-sm text-center leading-tight">Luis Angel Imán Palomino</span>
+                <span class="mt-2 text-xs bg-liaxTeal text-white px-3 py-1 rounded-full font-bold">Buscador de Pistas</span>
+            </div>
+            <div class="cut-line h-32 flex flex-col justify-center items-center bg-liaxLight border border-liaxTeal p-2">
+                <span class="font-montserrat font-extrabold text-liaxBlue text-sm text-center leading-tight">Rebeca Naemi Jimenez Zeta</span>
+                <span class="mt-2 text-xs bg-liaxTeal text-white px-3 py-1 rounded-full font-bold">Buscador de Pistas</span>
+            </div>
+            <div class="cut-line h-32 flex flex-col justify-center items-center bg-liaxLight border border-liaxTeal p-2">
+                <span class="font-montserrat font-extrabold text-liaxBlue text-sm text-center leading-tight">Caleb Emmanuel Lopez Landa</span>
+                <span class="mt-2 text-xs bg-liaxTeal text-white px-3 py-1 rounded-full font-bold">Buscador de Pistas</span>
+            </div>
+            <div class="cut-line h-32 flex flex-col justify-center items-center bg-liaxLight border border-liaxTeal p-2">
+                <span class="font-montserrat font-extrabold text-liaxBlue text-sm text-center leading-tight">Vianca Nicol Mayo Guerrero</span>
+                <span class="mt-2 text-xs bg-liaxTeal text-white px-3 py-1 rounded-full font-bold">Buscador de Pistas</span>
+            </div>
+            <div class="cut-line h-32 flex flex-col justify-center items-center bg-liaxLight border border-liaxTeal p-2">
+                <span class="font-montserrat font-extrabold text-liaxBlue text-sm text-center leading-tight">Yocelin Kristell Ogoña López</span>
+                <span class="mt-2 text-xs bg-liaxTeal text-white px-3 py-1 rounded-full font-bold">Buscador de Pistas</span>
+            </div>
+            <div class="cut-line h-32 flex flex-col justify-center items-center bg-liaxLight border border-liaxTeal p-2">
+                <span class="font-montserrat font-extrabold text-liaxBlue text-sm text-center leading-tight">Sara Juliet Ojeda Benites</span>
+                <span class="mt-2 text-xs bg-liaxTeal text-white px-3 py-1 rounded-full font-bold">Buscador de Pistas</span>
+            </div>
+            <div class="cut-line h-32 flex flex-col justify-center items-center bg-liaxLight border border-liaxTeal p-2">
+                <span class="font-montserrat font-extrabold text-liaxBlue text-sm text-center leading-tight">Camila Sofia Palacios Castro</span>
+                <span class="mt-2 text-xs bg-liaxTeal text-white px-3 py-1 rounded-full font-bold">Buscador de Pistas</span>
+            </div>
+            <div class="cut-line h-32 flex flex-col justify-center items-center bg-liaxLight border border-liaxTeal p-2">
+                <span class="font-montserrat font-extrabold text-liaxBlue text-sm text-center leading-tight">Thiago Alexis Pangalima Salcedo</span>
+                <span class="mt-2 text-xs bg-liaxTeal text-white px-3 py-1 rounded-full font-bold">Buscador de Pistas</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
