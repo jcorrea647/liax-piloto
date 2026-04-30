@@ -11383,99 +11383,83 @@ var _grTipo = 'Imprimible';
 function _grBuildMaestroPrompt(ctx) {
   var edad = ctx.edadLabel, area = ctx.area, comp = ctx.comp, cap = ctx.cap;
   var desempeno = ctx.desempeno, tipo = ctx.tipo, groupText = ctx.groupText;
-  var isInitial = ctx.edadNum <= 6; // ≤6 años = estilo lúdico; >6 = estilo académico
+  var isInitial = ctx.edadNum <= 6;
   var styleNote = isInitial
-    ? 'ESTILO VISUAL: Lúdico, bordes extra redondeados, emojis grandes, tipografía amigable, colores cálidos.'
-    : 'ESTILO VISUAL: Académico tipo journal, grids de 2-3 columnas, tipografía serif para títulos, datos simulados con barras CSS.';
+    ? 'ESTILO VISUAL: Ludico, bordes extra redondeados, emojis grandes, tipografia amigable, colores calidos.'
+    : 'ESTILO VISUAL: Academico tipo journal, grids de 2-3 columnas, tipografia serif para titulos, barras CSS para datos.';
 
-  var base = `Eres un diseñador pedagógico experto en recursos educativos premium para docentes latinoamericanos.
-Genera el recurso en formato HTML completo y autocontenido (sin etiquetas html/head/body externas).
-Usa SOLO clases de Tailwind CSS via CDN. No uses JavaScript. Todo debe ser puro HTML + Tailwind CSS inline.
-${styleNote}
+  var p = '';
+  p += 'Eres un disenador pedagogico experto en recursos educativos premium para docentes latinoamericanos.\n';
+  p += 'Genera el recurso en formato HTML completo y autocontenido.\n';
+  p += 'Usa clases de Tailwind CSS via CDN. No uses JavaScript interno. Solo HTML + CSS.\n';
+  p += styleNote + '\n\n';
+  p += 'CONTEXTO PEDAGOGICO:\n';
+  p += '- Edad: ' + edad + '\n';
+  p += '- Area: ' + area + '\n';
+  p += '- Competencia: ' + comp + '\n';
+  p += '- Capacidad: ' + cap + '\n';
+  p += '- Desempeno esperado: ' + desempeno + '\n';
+  p += '- Tipo de recurso: ' + tipo + '\n\n';
+  p += 'GRUPOS DE TRABAJO (con nombres reales de alumnos):\n';
+  p += groupText + '\n\n';
+  p += 'ESTRUCTURA OBLIGATORIA — incluye EXACTAMENTE estas secciones:\n\n';
 
-CONTEXTO PEDAGÓGICO:
-- Edad: ${edad}
-- Área: ${area}
-- Competencia: ${comp}
-- Capacidad: ${cap}
-- Desempeño esperado: ${desempeno}
-- Tipo de recurso: ${tipo}
+  p += 'SECCION 1 — ENCABEZADO EDITORIAL\n';
+  p += '- Nombre del colegio "I.E. Nuestra Senora de las Mercedes" con badge de area y nivel\n';
+  p += '- Linea de meta: Competencia / Capacidad / Fecha: ___ / Nombre: ___\n';
+  p += '- Badge del grupo asignado\n\n';
 
-GRUPOS DE TRABAJO (con nombres reales de alumnos):
-${groupText}
+  p += 'SECCION 2 — 4 PUZZLES CON LINEAS DE CORTE\n';
+  p += 'Genera exactamente 4 puzzles en grid 2x2. Cada puzzle:\n';
+  p += '- Titulo del puzzle en esquina superior\n';
+  p += '- Contenido pedagogico relacionado al tema\n';
+  p += '- Instruccion especifica para el nivel del grupo\n';
+  p += '- BORDE DISCONTINUO real: style="border: 2px dashed #94a3b8; padding:16px; border-radius:8px; margin:8px"\n';
+  p += '- Icono de tijeras en esquina superior derecha con texto "recortar"\n\n';
 
-ESTRUCTURA OBLIGATORIA DEL RECURSO — incluye EXACTAMENTE estas secciones:
+  p += 'SECCION 3 — 6 TARJETAS DE RIMAS\n';
+  p += 'Genera exactamente 6 tarjetas en grid de 3 columnas. Cada tarjeta:\n';
+  p += '- Una rima corta (2-4 versos) relacionada al tema\n';
+  p += '- Espacio de dibujo: div con style="border: 2px dashed #cbd5e1; height:80px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:12px" con texto "Dibuja aqui"\n';
+  p += '- Numero de tarjeta visible (1/6, 2/6, etc.)\n';
+  p += '- Fondo con gradiente suave diferente para cada tarjeta\n\n';
 
-═══════════════════════════════════════════
-SECCIÓN 1 — ENCABEZADO EDITORIAL
-═══════════════════════════════════════════
-- Logo/nombre del colegio "I.E. Nuestra Señora de las Mercedes" con badge de área y nivel
-- Línea de meta: Competencia · Capacidad · Fecha: ___________  Nombre: ___________
-- Badge de grupo asignado (Estrella / En Camino / Con Apoyo / Apoyo Reforzado)
+  p += 'SECCION 4 — 2 CASOS DE ESTUDIO CON GRAFICOS CSS\n';
+  p += 'Cada caso de estudio:\n';
+  p += '- Titulo + descripcion narrativa (2-3 lineas)\n';
+  p += '- Grafico de barras CSS puro (sin JavaScript):\n';
+  p += '  * Usa divs con style="height:18px; border-radius:4px; margin:4px 0" y width en porcentaje\n';
+  p += '  * Barra Destacado: background:#16a34a; width:55%\n';
+  p += '  * Barra Esperado: background:#3b82f6; width:30%\n';
+  p += '  * Barra Con Apoyo: background:#f59e0b; width:10%\n';
+  p += '  * Barra Apoyo Reforzado: background:#ef4444; width:5%\n';
+  p += '  * Etiqueta con nombre y porcentaje junto a cada barra\n';
+  p += '- Pregunta reflexiva para el docente al pie\n\n';
 
-═══════════════════════════════════════════
-SECCIÓN 2 — 4 PUZZLES CON LÍNEAS DE CORTE
-═══════════════════════════════════════════
-Genera exactamente 4 puzzles. Cada puzzle:
-- Título del puzzle en la esquina superior
-- Contenido pedagógico relacionado al tema (imagen SVG inline simple O texto grande con consigna)
-- Instrucción específica para el nivel de desempeño del grupo
-- BORDE DISCONTINUO real con CSS: border: 2px dashed #94a3b8; (simula línea de corte)
-- Ícono de tijeras ✂️ en la esquina superior derecha con texto "recortar"
-- Dispuestos en grid de 2x2
+  p += 'SECCION 5 — ACTIVIDAD DIFERENCIADA POR GRUPO\n';
+  p += 'Una card por cada grupo activo (max 4):\n';
+  p += '- Header de color unico por nivel\n';
+  p += '- Nombres de los alumnos del grupo\n';
+  p += '- 3 consignas diferenciadas al nivel de desempeno\n';
+  p += '- Lineas punteadas para respuesta: style="border-bottom: 1px dashed #94a3b8; height:24px; margin:6px 0"\n\n';
 
-═══════════════════════════════════════════
-SECCIÓN 3 — 6 TARJETAS DE RIMAS
-═══════════════════════════════════════════
-Genera exactamente 6 tarjetas. Cada tarjeta:
-- Una rima corta (2-4 versos) relacionada al tema de la competencia
-- Espacio de dibujo: rectángulo con borde punteado, altura 80px, texto "✏️ Dibuja aquí"
-- Número de tarjeta visible (1/6, 2/6, etc.)
-- Fondo con gradiente suave (diferente color para cada tarjeta)
-- Grid de 3 columnas
+  p += 'SECCION 6 — REFLEXION DOCENTE\n';
+  p += '- 3 preguntas de metacognicion para el docente\n';
+  p += '- Escala de logro visual con 5 circulos\n';
+  p += '- Espacio para firma y fecha\n\n';
 
-═══════════════════════════════════════════
-SECCIÓN 4 — CASOS DE ESTUDIO CON GRÁFICOS CSS
-═══════════════════════════════════════════
-2 casos de estudio, cada uno con:
-- Título del caso + descripción narrativa breve (2-3 líneas)
-- Gráfico simulado con barras CSS puras (div con width% y background-color, sin JS):
-  * Barra 1: Grupo Estrella — color verde, width según % de alumnos en ese nivel
-  * Barra 2: Grupo En Camino — color azul
-  * Barra 3: Con Apoyo — color amarillo
-  * Barra 4: Apoyo Reforzado — color rojo
-  * Etiqueta con número y porcentaje junto a cada barra
-- Pregunta reflexiva para el docente al pie
+  p += 'REGLAS TECNICAS CRITICAS:\n';
+  p += '1. Incluye al inicio: ' + '<' + 'link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2/dist/tailwind.min.css"' + '>' + '\n';
+  p += '2. Los 4 puzzles DEBEN tener border: 2px dashed #94a3b8 en su div contenedor\n';
+  p += '3. Las 6 tarjetas de rimas DEBEN tener el div de dibujo con border dashed y height:80px\n';
+  p += '4. Los graficos son divs CSS puros con width%, NO uses JavaScript ni canvas\n';
+  p += '5. NO incluyas etiquetas html, head ni body — solo el contenido interno\n';
+  p += '6. Agrega al inicio: <style>@media print{.no-print{display:none}body{margin:0}}</style>\n';
+  p += '7. Paleta: slate-800 para textos, indigo-600 para acentos, sky-50 para fondos suaves\n';
+  p += '8. Los grupos con sus nombres reales DEBEN aparecer en las secciones 2, 3 y 5\n\n';
+  p += 'Genera el HTML completo ahora:';
 
-═══════════════════════════════════════════
-SECCIÓN 5 — ACTIVIDAD DIFERENCIADA POR GRUPO
-═══════════════════════════════════════════
-Una card por cada grupo activo (máx 4), con:
-- Header de color único por nivel
-- Nombres de los alumnos del grupo
-- 3 consignas diferenciadas al nivel de desempeño
-- Espacio de respuesta para cada consigna (líneas punteadas)
-
-═══════════════════════════════════════════
-SECCIÓN 6 — REFLEXIÓN DOCENTE (pie de página)
-═══════════════════════════════════════════
-- 3 preguntas de metacognición para el docente
-- Escala de logro visual (5 emojis de ⭐)
-- Firma + fecha + sello
-
-REGLAS TÉCNICAS:
-1. Usa Tailwind CDN: <script src="https://cdn.tailwindcss.com"></script> al inicio
-2. Los 4 puzzles DEBEN tener style="border: 2px dashed #94a3b8;" real en su div
-3. Las 6 tarjetas de rimas DEBEN tener un div con style="border: 2px dashed #cbd5e1; height:80px;"
-4. Los gráficos de barras DEBEN ser divs con style="width:XX%; height:18px; background:#color;"
-5. Toda la ficha debe verse como un documento A4 profesional imprimible
-6. Incluye @media print en un <style> tag: ocultar sombras, ajustar márgenes
-7. NO incluyas etiquetas <html>, <head>, <body> — solo el contenido interno
-8. La paleta principal: slate-800 para textos, indigo-600 para acenttos, sky-100 para fondos suaves
-
-Genera el HTML ahora, completo y listo para renderizar:`;
-
-  return base;
+  return p;
 }
 
 // ── UI del generador (SaaS premium) ───────────────────────
