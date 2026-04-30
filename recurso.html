@@ -2,121 +2,95 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>LIAX - Evaluación Psicomotriz RAYITOS A</title>
+    <title>Juegos Psicomotrices - LIAX</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .a4-page { width: 210mm; min-height: 297mm; padding: 15mm; margin: 10px auto; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        @media print { .no-print { display: none; } .a4-page { margin: 0; box-shadow: none; } }
-        th { font-size: 10px; padding: 5px; border: 1px solid #005088; background-color: #005088; color: white; text-transform: uppercase; }
-        td { font-size: 11px; padding: 5px; border: 1px solid #005088; text-transform: uppercase; }
+        .a4-page { width: 210mm; min-height: 297mm; padding: 15mm; margin: 10px auto; background: white; border: 8px double #0d9488; }
+        .game-card { border: 2px dashed #0d9488; border-radius: 15px; padding: 10px; margin-bottom: 15px; background: #f0fdfa; }
+        @media print { .no-print { display: none; } .a4-page { margin: 0; } }
     </style>
 </head>
-<body class="bg-slate-100 font-sans">
+<body class="bg-slate-200 font-sans">
 
     <div class="fixed bottom-6 right-6 no-print">
-        <button onclick="window.print()" class="bg-teal-500 hover:bg-teal-600 text-white px-6 py-3 rounded-full font-bold shadow-lg transition-all">
-            🖨️ IMPRIMIR FICHA
+        <button onclick="window.print()" class="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-full font-bold shadow-2xl transition-all">
+            🖨️ IMPRIMIR JUEGOS
         </button>
     </div>
 
     <div class="a4-page">
-        <div class="flex justify-between items-center border-b-4 border-teal-500 pb-2 mb-4">
-            <div>
-                <h1 class="text-2xl font-black text-blue-900 leading-none">LIAX EDITORIAL</h1>
-                <p class="text-teal-600 font-bold text-[10px] tracking-[3px]">RECURSOS PEDAGÓGICOS 2026</p>
-            </div>
-            <div class="text-right">
-                <p class="text-sm font-bold text-slate-700">AULA: <span class="text-blue-800">RAYITOS A (5 AÑOS)</span></p>
-                <p class="text-[10px] font-semibold text-slate-400 italic">Área: Psicomotricidad e Indicadores de Desarrollo</p>
+        <div class="text-center mb-6">
+            <h1 class="text-4xl font-black text-teal-600 uppercase tracking-tighter">¡A JUGAR Y MOVERSE!</h1>
+            <p class="text-orange-500 font-bold italic">Circuito de Psicomotricidad - Aula Rayitos A (5 años)</p>
+            <div class="flex justify-center gap-4 mt-2 text-[10px] font-bold text-slate-400">
+                <span>COLEGIO: LIAX ACADEMY</span> | <span>FECHA: ___/___/2026</span>
             </div>
         </div>
 
-        <table class="w-full border-collapse">
-            <thead>
-                <tr>
-                    <th rowspan="2" class="w-8">N°</th>
-                    <th rowspan="2" class="text-left px-4">Nombres y Apellidos del Estudiante</th>
-                    <th colspan="3">Motricidad Gruesa</th>
-                    <th colspan="2">Motricidad Fina</th>
-                </tr>
-                <tr>
-                    <th class="w-16">Equilibrio</th>
-                    <th class="w-16">Coordinación</th>
-                    <th class="w-16">Desplazam.</th>
-                    <th class="w-16">Prensión</th>
-                    <th class="w-16">Visomanual</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div class="grid grid-cols-1 gap-2">
+            
+            <div class="game-card flex items-center gap-4">
+                <div class="text-4xl">🦒</div>
+                <div class="flex-1">
+                    <h3 class="font-black text-teal-800 uppercase text-sm">1. El Paso de la Jirafa (Equilibrio)</h3>
+                    <p class="text-[10px] text-slate-600">Caminar sobre una línea de cinta con las manos arriba, sin salirse.</p>
+                </div>
+                <div class="bg-white border-2 border-teal-500 p-2 text-[9px] font-bold w-32">
+                    LOGRADO: [ ]<br>EN PROCESO: [ ]
+                </div>
+            </div>
+
+            <div class="game-card flex items-center gap-4">
+                <div class="text-4xl">🐸</div>
+                <div class="flex-1">
+                    <h3 class="font-black text-teal-800 uppercase text-sm">2. Salto del Sapito (Fuerza)</h3>
+                    <p class="text-[10px] text-slate-600">Saltar dentro de aros de colores con los dos pies juntos.</p>
+                </div>
+                <div class="bg-white border-2 border-teal-500 p-2 text-[9px] font-bold w-32">
+                    LOGRADO: [ ]<br>EN PROCESO: [ ]
+                </div>
+            </div>
+
+            <div class="game-card flex items-center gap-4">
+                <div class="text-4xl">🦀</div>
+                <div class="flex-1">
+                    <h3 class="font-black text-teal-800 uppercase text-sm">3. Carrera de Cangrejos (Coord.)</h3>
+                    <p class="text-[10px] text-slate-600">Caminar de espaldas apoyando manos y pies hasta la meta.</p>
+                </div>
+                <div class="bg-white border-2 border-teal-500 p-2 text-[9px] font-bold w-32">
+                    LOGRADO: [ ]<br>EN PROCESO: [ ]
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-4">
+            <h4 class="text-xs font-bold text-slate-700 mb-2 border-b-2 border-orange-300 inline-block">OBSERVACIÓN POR ESTUDIANTE:</h4>
+            <div class="grid grid-cols-2 gap-x-6 gap-y-1">
                 <script>
                     const alumnos = [
-                        "Zeus de Piero Abad Rebolledo",
-                        "Thayza Julie Acaro Silva",
-                        "Hansel Joshua Estrada Carcamo",
-                        "Luis Angel Imán Palomino",
-                        "Rebeca Naemi Jimenez Zeta",
-                        "Caleb Emmanuel Lopez Landa",
-                        "Vianca Nicol Mayo Guerrero",
-                        "Yocelin Kristell Ogoña López",
-                        "Sara Juliet Ojeda Benites",
-                        "Camila Sofia Palacios Castro",
-                        "Thiago Alexis Pangalima Salcedo"
+                        "Zeus Abad", "Thayza Acaro", "Hansel Estrada", 
+                        "Luis Imán", "Rebeca Jimenez", "Caleb Lopez", 
+                        "Vianca Mayo", "Yocelin Ogoña", "Sara Ojeda", 
+                        "Camila Palacios", "Thiago Pangalima"
                     ];
-
-                    alumnos.forEach((nombre, index) => {
-                        document.write(`
-                            <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}">
-                                <td class="text-center font-bold text-blue-900">${index + 1}</td>
-                                <td class="font-semibold px-4">${nombre}</td>
-                                <td class="text-center text-slate-300 font-bold">☐</td>
-                                <td class="text-center text-slate-300 font-bold">☐</td>
-                                <td class="text-center text-slate-300 font-bold">☐</td>
-                                <td class="text-center text-slate-300 font-bold">☐</td>
-                                <td class="text-center text-slate-300 font-bold">☐</td>
-                            </tr>
-                        `);
+                    alumnos.forEach(name => {
+                        document.write(`<div class="text-[9px] border-b border-slate-100 flex justify-between">
+                            <span>${name}</span>
+                            <span class="text-slate-300 italic">Notas: _________________</span>
+                        </div>`);
                     });
-
-                    // Espacios adicionales para alumnos nuevos
-                    for(let i = alumnos.length + 1; i <= 15; i++) {
-                        document.write(`
-                            <tr class="bg-white">
-                                <td class="text-center font-bold text-slate-300">${i}</td>
-                                <td class="px-4">__________________________________________</td>
-                                <td class="text-center"></td><td class="text-center"></td>
-                                <td class="text-center"></td><td class="text-center"></td>
-                                <td class="text-center"></td>
-                            </tr>
-                        `);
-                    }
                 </script>
-            </tbody>
-        </table>
-
-        <div class="mt-6 p-3 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
-            <h3 class="text-[10px] font-bold text-slate-500 uppercase mb-2">Leyenda de Calificación:</h3>
-            <div class="flex justify-around text-[10px] font-bold text-blue-900">
-                <p><span class="bg-blue-900 text-white px-2 py-0.5 rounded mr-1">L</span> LOGRADO</p>
-                <p><span class="bg-teal-500 text-white px-2 py-0.5 rounded mr-1">EP</span> EN PROCESO</p>
-                <p><span class="bg-slate-400 text-white px-2 py-0.5 rounded mr-1">I</span> INICIO</p>
             </div>
         </div>
 
-        <div class="mt-16 flex justify-between px-10">
-            <div class="text-center">
-                <div class="w-48 border-t border-black mb-1"></div>
-                <p class="text-[10px] font-bold uppercase">Prof. de Aula</p>
-            </div>
-            <div class="text-center">
-                <div class="w-48 border-t border-black mb-1"></div>
-                <p class="text-[10px] font-bold uppercase">Dirección / LIAX</p>
-            </div>
+        <div class="mt-8 pt-4 border-t-2 border-slate-100 flex justify-between items-end">
+            <img src="https://via.placeholder.com/100x40?text=LIAX+LOGOTIPO" alt="Logo" class="opacity-30">
+            <p class="text-[8px] text-slate-400 max-w-xs text-right italic">
+                Este recurso forma parte del programa "Mente Sana en Cuerpo Sano" de LIAX Editorial. 
+                Prohibida su reproducción total sin autorización.
+            </p>
         </div>
-        
-        <footer class="mt-10 text-center">
-            <p class="text-[9px] text-slate-400 italic">Material exclusivo para el Colegio: Rayitos A - Generado por LIAX Editorial © 2026</p>
-        </footer>
     </div>
-
 </body>
 </html>
