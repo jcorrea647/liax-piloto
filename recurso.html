@@ -2,114 +2,98 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>LIAX Advanced Puzzle</title>
+    <title>LIAX - Tarjetas de Rimas Piuranas</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
     <style>
-        .canvas-bg { background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%); }
-        .dropzone { border: 4px dashed #cbd5e1; transition: all 0.3s; }
-        .dropzone.active { border-color: #0d9488; background: rgba(20, 184, 166, 0.1); }
-        .draggable { 
-            touch-action: none; 
-            user-select: none; 
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .correct { filter: drop-shadow(0 0 15px #10b981); pointer-events: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap');
+        body { font-family: 'Outfit', sans-serif; background-color: #f1f5f9; }
+        .card-printable { width: 10cm; height: 14cm; border: 3px solid #0d9488; border-radius: 20px; position: relative; overflow: hidden; background: white; }
+        .rhyme-box { background: #f0fdfa; border-radius: 15px; padding: 15px; border-left: 8px solid #fbbf24; }
+        .highlight { color: #0d9488; font-weight: 900; text-decoration: underline; }
+        @media print { .no-print { display: none; } body { background: white; padding: 0; } }
     </style>
 </head>
-<body class="bg-slate-900 p-4 md:p-10 font-sans overflow-hidden">
+<body class="p-8">
 
-    <div class="max-w-5xl mx-auto bg-white rounded-[3rem] shadow-2xl overflow-hidden min-h-[85vh] flex flex-col">
-        <header class="bg-teal-600 p-6 text-white flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-black italic uppercase tracking-tighter">LIAX Puzzle Pro</h1>
-                <p class="text-[10px] font-bold opacity-80 uppercase">Reto: Rotación y Ensamble • Nivel Destacado</p>
-            </div>
-            <div id="timer" class="text-2xl font-mono font-bold bg-black/20 px-4 py-2 rounded-2xl">00:00</div>
-        </header>
-
-        <main class="flex-1 flex flex-col md:flex-row p-8 gap-10 canvas-bg">
-            
-            <div class="flex-1 flex items-center justify-center">
-                <div id="outer-target" class="dropzone w-80 h-80 flex items-center justify-center relative">
-                    <div id="inner-target" class="text-[12rem] opacity-10 select-none">⭐</div>
-                    <p class="absolute bottom-4 text-slate-400 font-bold text-xs">COLOCA Y ROTATE AQUÍ</p>
-                </div>
-            </div>
-
-            <div class="w-full md:w-64 bg-white/50 backdrop-blur-sm rounded-3xl p-6 border border-slate-200 flex flex-wrap md:flex-col items-center justify-center gap-8">
-                <div id="piece-1" 
-                     class="draggable text-8xl cursor-grab active:cursor-grabbing" 
-                     data-type="star" 
-                     data-angle="0">
-                    ⭐
-                </div>
-                <p class="text-[10px] text-slate-400 text-center font-bold uppercase italic">Toca para rotar<br>Arrastra para encajar</p>
-            </div>
-        </main>
-
-        <footer class="p-6 bg-slate-50 border-t flex justify-between items-center">
-            <div class="flex gap-4">
-                <div class="flex flex-col">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">Estado Zeus Abad</span>
-                    <span id="feedback" class="text-sm font-black text-slate-700 italic underline decoration-teal-500">Esperando movimiento...</span>
-                </div>
-            </div>
-            <button onclick="location.reload()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold text-sm">REINICIAR RETO</button>
-        </footer>
+    <div class="max-w-4xl mx-auto no-print mb-8 bg-teal-600 p-6 rounded-3xl text-white shadow-lg">
+        <h1 class="text-2xl font-black italic">GENERADOR DE RECURSOS LIAX</h1>
+        <p class="text-sm opacity-90">Basado en Resultados INDI: Área Comunicación (Enfoque Nivelación)</p>
     </div>
 
-    <script>
-        let correctRotation = 0; // Ángulo correcto para encajar
-        const piece = document.getElementById('piece-1');
-        const feedback = document.getElementById('feedback');
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl mx-auto justify-items-center">
+        
+        <div class="card-printable shadow-xl p-6">
+            <div class="text-[10px] font-black text-slate-300 uppercase mb-2">LIAX • PIURA • NIVEL 1</div>
+            <div class="h-48 bg-slate-100 rounded-2xl flex flex-col items-center justify-center mb-6 border-2 border-dashed border-teal-200">
+                <span class="text-7xl">🐦</span>
+                <p class="text-[10px] text-teal-600 font-bold mt-2">DIBUJO: Un Chilalo construyendo su nido de barro</p>
+            </div>
+            <div class="rhyme-box">
+                <p class="text-lg leading-tight text-slate-800 italic">
+                    "El pajarito <span class="highlight">Chilalo</span>,<br>
+                    usa barro y un <span class="highlight">palo</span>,<br>
+                    para hacerse un nido<br>
+                    que no sea <span class="highlight">malo</span>."
+                </p>
+            </div>
+        </div>
 
-        // Lógica de Rotación (Tocar la pieza)
-        piece.addEventListener('click', () => {
-            let angle = parseInt(piece.getAttribute('data-angle')) + 90;
-            if (angle >= 360) angle = 0;
-            piece.setAttribute('data-angle', angle);
-            piece.style.transform = `rotate(${angle}deg)`;
-            feedback.innerText = `Rotando pieza: ${angle}°`;
-        });
+        <div class="card-printable shadow-xl p-6">
+            <div class="text-[10px] font-black text-slate-300 uppercase mb-2">LIAX • PIURA • NIVEL 1</div>
+            <div class="h-48 bg-slate-100 rounded-2xl flex flex-col items-center justify-center mb-6 border-2 border-dashed border-teal-200">
+                <span class="text-7xl">🌳</span>
+                <p class="text-[10px] text-teal-600 font-bold mt-2">DIBUJO: Un árbol de Algarrobo con mucha sombra</p>
+            </div>
+            <div class="rhyme-box">
+                <p class="text-lg leading-tight text-slate-800 italic">
+                    "Bajo el gran <span class="highlight">Algarrobo</span>,<br>
+                    me encontré un <span class="highlight">globo</span>,<br>
+                    y sopló el viento<br>
+                    como un gran <span class="highlight">lobo</span>."
+                </p>
+            </div>
+        </div>
 
-        // Lógica de Arrastrar (Interact.js)
-        interact('.draggable').draggable({
-            listeners: {
-                move (event) {
-                    const { target } = event;
-                    const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-                    const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-                    const angle = target.getAttribute('data-angle');
+        <div class="card-printable shadow-xl p-6">
+            <div class="text-[10px] font-black text-slate-300 uppercase mb-2">LIAX • PIURA • NIVEL 1</div>
+            <div class="h-48 bg-slate-100 rounded-2xl flex flex-col items-center justify-center mb-6 border-2 border-dashed border-teal-200">
+                <span class="text-7xl">🥭</span>
+                <p class="text-[10px] text-teal-600 font-bold mt-2">DIBUJO: Un Mango Ciruelo dulce y amarillo</p>
+            </div>
+            <div class="rhyme-box">
+                <p class="text-lg leading-tight text-slate-800 italic">
+                    "El dulce <span class="highlight">Mango</span>,<br>
+                    se puso un <span class="highlight">fango</span>,<br>
+                    y bailó conmigo<br>
+                    un lindo <span class="highlight">tango</span>."
+                </p>
+            </div>
+        </div>
 
-                    target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg)`;
-                    target.setAttribute('data-x', x);
-                    target.setAttribute('data-y', y);
-                }
-            }
-        });
+        <div class="card-printable shadow-xl p-6 border-rose-500 border-4">
+            <div class="text-[10px] font-black text-rose-500 uppercase mb-1">RECURSO DE NIVELACIÓN (COMUNICACIÓN)</div>
+            <div class="h-48 bg-rose-50 rounded-2xl flex flex-col items-center justify-center mb-4 border-2 border-dashed border-rose-200">
+                <span class="text-8xl">🌊</span>
+                <p class="text-[10px] text-rose-600 font-bold mt-2">DIBUJO: Una ola del mar grande y azul</p>
+            </div>
+            <div class="bg-rose-50 border-l-8 border-rose-500 p-4 rounded-xl">
+                <p class="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-2">EL M<span class="text-rose-500">AR</span></p>
+                <p class="text-xl leading-none text-slate-700 font-medium">
+                    "Mira el <span class="text-rose-600 font-black">MAR</span>...<br>
+                    para ju<span class="text-rose-600 font-black">GAR</span>...<br>
+                    y cantar en este lu<span class="text-rose-600 font-black">GAR</span>."
+                </p>
+            </div>
+            <p class="mt-4 text-[9px] text-slate-400 italic font-bold uppercase">Nota: Usar onomatopeyas del mar para reforzar.</p>
+        </div>
 
-        // Lógica de Encastre (Dropzone)
-        interact('.dropzone').dropzone({
-            accept: '.draggable',
-            overlap: 0.5,
-            ondragenter: (e) => e.target.classList.add('active'),
-            ondragleave: (e) => e.target.classList.remove('active'),
-            ondrop: (event) => {
-                const targetPiece = event.relatedTarget;
-                const angle = parseInt(targetPiece.getAttribute('data-angle'));
-                
-                // VALIDACIÓN: ¿Está en el ángulo correcto (0 o 360)?
-                if (angle === 0) {
-                    targetPiece.classList.add('correct');
-                    feedback.innerText = "¡LOGRADO! Zeus resolvió el patrón.";
-                    event.target.style.background = "#d1fae5";
-                    event.target.style.borderColor = "#10b981";
-                } else {
-                    feedback.innerText = "Pieza en posición, pero la rotación es incorrecta.";
-                }
-            }
-        });
-    </script>
+    </div>
+
+    <div class="text-center mt-10 no-print">
+        <button onclick="window.print()" class="bg-slate-900 text-white px-10 py-4 rounded-full font-black hover:scale-105 transition-all shadow-2xl">
+            🖨️ IMPRIMIR TARJETAS (A4)
+        </button>
+    </div>
+
 </body>
 </html>
