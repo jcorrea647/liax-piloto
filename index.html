@@ -1,45 +1,60 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Generador LIAX</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-100 p-6">
-    <div class="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-2xl border-t-8 border-blue-900">
-        <h1 class="text-2xl font-black text-blue-900 mb-6 uppercase text-center">Configurador de Recursos</h1>
-        
-        <div class="space-y-4">
+<body class="bg-slate-900 p-6 font-sans text-slate-200">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-10 flex justify-between items-end">
             <div>
-                <label class="block text-xs font-bold text-slate-400 mb-1">NIVEL DE RESULTADO</label>
-                <select id="logro" class="w-full p-3 bg-slate-50 border rounded-lg font-bold">
-                    <option value="destacado">🌟 DESTACADO (Retos)</option>
-                    <option value="esperado">✅ ESPERADO (Refuerzo)</option>
-                    <option value="descendido">🆘 DESCENDIDO (Nivelación)</option>
-                </select>
+                <h1 class="text-5xl font-black text-teal-400 italic tracking-tighter">LIAX ANALYTICS</h1>
+                <p class="text-slate-400 uppercase text-xs tracking-[0.4em]">Reporte de Logros - Aula Rayitos A</p>
             </div>
-
-            <div>
-                <label class="block text-xs font-bold text-slate-400 mb-1">TIPO DE RECURSO</label>
-                <select id="tipo" class="w-full p-3 bg-slate-50 border rounded-lg font-bold">
-                    <option value="juego">🎮 JUEGO PSICOMOTRIZ</option>
-                    <option value="ficha">📄 FICHA IMPRESA</option>
-                </select>
+            <div class="bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10">
+                <span class="text-3xl font-bold text-white">2026</span>
             </div>
+        </header>
 
-            <button onclick="irAlRecurso()" class="w-full bg-teal-500 hover:bg-blue-900 text-white font-bold py-4 rounded-xl transition-all shadow-lg uppercase mt-4">
-                Generar y Abrir Recurso →
-            </button>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-emerald-500/20 border border-emerald-500/50 p-6 rounded-[2rem]">
+                <p class="text-emerald-400 font-bold text-xs uppercase mb-2">Destacados</p>
+                <h3 class="text-4xl font-black">45%</h3>
+                <p class="text-xs text-emerald-200/60 mt-2">Listos para retos lógicos complejos</p>
+            </div>
+            <div class="bg-amber-500/20 border border-amber-500/50 p-6 rounded-[2rem]">
+                <p class="text-amber-400 font-bold text-xs uppercase mb-2">Esperado</p>
+                <h3 class="text-4xl font-black">35%</h3>
+                <p class="text-xs text-amber-200/60 mt-2">Refuerzo de competencias base</p>
+            </div>
+            <div class="bg-rose-500/20 border border-rose-500/50 p-6 rounded-[2rem]">
+                <p class="text-rose-400 font-bold text-xs uppercase mb-2">Descendido</p>
+                <h3 class="text-4xl font-black">20%</h3>
+                <p class="text-xs text-rose-200/60 mt-2">Nivelación y estimulación temprana</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[3rem] p-10 text-slate-900 shadow-2xl">
+            <h2 class="text-2xl font-black mb-8 border-b-2 border-slate-100 pb-4 text-center">GENERADOR DE EXPERIENCIAS DE APRENDIZAJE</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <button onclick="generar('juego', 'destacado')" class="group relative overflow-hidden bg-slate-100 p-8 rounded-3xl hover:bg-teal-500 transition-all duration-500 text-left">
+                    <span class="text-5xl mb-4 block">🧩</span>
+                    <h4 class="font-black text-xl group-hover:text-white">PUZZLES LÓGICOS</h4>
+                    <p class="text-sm text-slate-500 group-hover:text-teal-100">Desafío espacial avanzado</p>
+                </button>
+
+                <button onclick="generar('ficha', 'esperado')" class="group relative overflow-hidden bg-slate-100 p-8 rounded-3xl hover:bg-orange-500 transition-all duration-500 text-left">
+                    <span class="text-5xl mb-4 block">🎤</span>
+                    <h4 class="font-black text-xl group-hover:text-white">TARJETAS DE RIMAS</h4>
+                    <p class="text-sm text-slate-500 group-hover:text-orange-100">Conciencia fonológica PRO</p>
+                </button>
+
+                <button onclick="generar('juego', 'descendido')" class="group relative overflow-hidden bg-slate-100 p-8 rounded-3xl hover:bg-rose-500 transition-all duration-500 text-left">
+                    <span class="text-5xl mb-4 block">🧠</span>
+                    <h4 class="font-black text-xl group-hover:text-white">MEMORIA SENSORIAL</h4>
+                    <p class="text-sm text-slate-500 group-hover:text-rose-100">Nivelación cognitiva</p>
+                </button>
+
+            </div>
         </div>
     </div>
 
     <script>
-        function irAlRecurso() {
-            const logro = document.getElementById('logro').value;
-            const tipo = document.getElementById('tipo').value;
-            // Esto envía las opciones por la URL
-            window.location.href = `recurso.html?logro=${logro}&tipo=${tipo}`;
-        }
+        function generar(t, l) { window.location.href = `recurso.html?tipo=${t}&logro=${l}`; }
     </script>
 </body>
-</html>
