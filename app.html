@@ -11486,134 +11486,110 @@ function buildGeneradorINDI() {
   var labels = window._curriculumLabels || {};
   var compLabel = labels.competencia || 'Competencia';
   var capLabel  = labels.capacidad   || 'Capacidad';
-  var areaLabel = labels.area        || 'Área Curricular';
+  var areaLabel = labels.area        || 'Area Curricular';
 
-  return `<div id="grIndiWrap" style="width:100%;max-width:720px;margin-top:8px">
+  var h = '';
+  // Wrapper
+  h += '<div id="grIndiWrap" style="width:100%;max-width:720px;margin-top:8px">';
 
-<!-- Header premium -->
-<div style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#1e40af 100%);border-radius:14px;padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
-  <div>
-    <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#a5b4fc;margin-bottom:3px">✦ Generador Premium</div>
-    <div style="font-size:16px;font-weight:700;color:#fff">Recursos Pedagógicos IA</div>
-    <div style="font-size:11px;color:#818cf8;margin-top:2px">Together AI · Prompt Maestro Estructurado</div>
-  </div>
-  <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px 12px;text-align:center">
-    <div style="font-size:20px">🎓</div>
-    <div style="font-size:9px;color:#a5b4fc;font-weight:600;margin-top:2px">INDI</div>
-  </div>
-</div>
+  // ── Header premium ──
+  h += '<div style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#1e40af 100%);border-radius:14px;padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">';
+  h += '<div>';
+  h += '<div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#a5b4fc;margin-bottom:3px">&#10022; Generador Premium</div>';
+  h += '<div style="font-size:16px;font-weight:700;color:#fff">Recursos Pedag&#243;gicos IA</div>';
+  h += '<div style="font-size:11px;color:#818cf8;margin-top:2px">Together AI &middot; Prompt Maestro Estructurado</div>';
+  h += '</div>';
+  h += '<div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px 12px;text-align:center">';
+  h += '<div style="font-size:20px">&#127891;</div>';
+  h += '<div style="font-size:9px;color:#a5b4fc;font-weight:600;margin-top:2px">INDI</div>';
+  h += '</div></div>';
 
-<!-- Grid de controles -->
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
-  <div>
-    <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">🎂 Edad</div>
-    <select id="gr-edad" class="gr-sel" onchange="grRenderGroups()">
-      <option value="3">3 años</option>
-      <option value="4">4 años</option>
-      <option value="5" selected>5 años</option>
-      <option value="10">10 años</option>
-      <option value="14">14 años</option>
-      <option value="17">17 años</option>
-    </select>
-  </div>
-  <div>
-    <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">📚 ${areaLabel}</div>
-    <select id="gr-area" class="gr-sel" onchange="grUpdateComps()"></select>
-  </div>
-  <div>
-    <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">📊 Área grupos</div>
-    <select id="gr-area-datos" class="gr-sel" onchange="grRenderGroups()">
-      <option value="C">Comunicación (C)</option>
-      <option value="M">Matemática (M)</option>
-      <option value="D">Desarrollo (D)</option>
-      <option value="S">Social (S)</option>
-    </select>
-  </div>
-</div>
+  // ── Controles fila 1 ──
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">';
+  h += '<div><div class="gr-lbl">&#127874; Edad</div>';
+  h += '<select id="gr-edad" class="gr-sel" onchange="grRenderGroups()">';
+  h += '<option value="3">3 a&#241;os</option><option value="4">4 a&#241;os</option><option value="5" selected>5 a&#241;os</option>';
+  h += '<option value="10">10 a&#241;os</option><option value="14">14 a&#241;os</option><option value="17">17 a&#241;os</option>';
+  h += '</select></div>';
+  h += '<div><div class="gr-lbl">&#128218; ' + areaLabel + '</div>';
+  h += '<select id="gr-area" class="gr-sel" onchange="grUpdateComps()"></select></div>';
+  h += '<div><div class="gr-lbl">&#128202; &#193;rea grupos</div>';
+  h += '<select id="gr-area-datos" class="gr-sel" onchange="grRenderGroups()">';
+  h += '<option value="C">Comunicaci&#243;n (C)</option><option value="M">Matem&#225;tica (M)</option>';
+  h += '<option value="D">Desarrollo (D)</option><option value="S">Social (S)</option>';
+  h += '</select></div></div>';
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-  <div>
-    <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">🎯 ${compLabel}</div>
-    <select id="gr-comp" class="gr-sel" onchange="grUpdateCaps()"></select>
-  </div>
-  <div>
-    <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">⚡ ${capLabel}</div>
-    <select id="gr-cap" class="gr-sel"></select>
-  </div>
-</div>
+  // ── Controles fila 2 ──
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
+  h += '<div><div class="gr-lbl">&#127919; ' + compLabel + '</div>';
+  h += '<select id="gr-comp" class="gr-sel" onchange="grUpdateCaps()"></select></div>';
+  h += '<div><div class="gr-lbl">&#9889; ' + capLabel + '</div>';
+  h += '<select id="gr-cap" class="gr-sel"></select></div></div>';
 
-<!-- Tipo de recurso premium -->
-<div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:7px">📋 Tipo de recurso</div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
-  <button class="gr-tipo-btn gr-tipo-active" data-tipo="Imprimible" onclick="grSelectTipo(this)">
-    <div style="font-size:16px;margin-bottom:3px">🖨️</div>
-    <div style="font-size:10px;font-weight:700">A4 Print</div>
-    <div style="font-size:9px;opacity:.7">Puzzles + Rimas</div>
-  </button>
-  <button class="gr-tipo-btn" data-tipo="Digital" onclick="grSelectTipo(this)">
-    <div style="font-size:16px;margin-bottom:3px">💻</div>
-    <div style="font-size:10px;font-weight:700">Digital</div>
-    <div style="font-size:9px;opacity:.7">Interactivo</div>
-  </button>
-  <button class="gr-tipo-btn" data-tipo="Ficha de trabajo" onclick="grSelectTipo(this)">
-    <div style="font-size:16px;margin-bottom:3px">📝</div>
-    <div style="font-size:10px;font-weight:700">Ficha</div>
-    <div style="font-size:9px;opacity:.7">3 niveles</div>
-  </button>
-  <button class="gr-tipo-btn" data-tipo="Juego" onclick="grSelectTipo(this)">
-    <div style="font-size:16px;margin-bottom:3px">🎲</div>
-    <div style="font-size:10px;font-weight:700">Juego</div>
-    <div style="font-size:9px;opacity:.7">Grupal</div>
-  </button>
-</div>
+  // ── Tipo de recurso ──
+  h += '<div class="gr-lbl" style="margin-bottom:7px">&#128203; Tipo de recurso</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">';
+  var tipos = [
+    {v:'Imprimible',   e:'&#128424;', t:'A4 Print',  s:'Puzzles + Rimas'},
+    {v:'Digital',      e:'&#128187;', t:'Digital',   s:'Interactivo'},
+    {v:'Ficha de trabajo', e:'&#128221;', t:'Ficha', s:'3 niveles'},
+    {v:'Juego',        e:'&#127922;', t:'Juego',     s:'Grupal'},
+  ];
+  tipos.forEach(function(tp, idx) {
+    h += '<button class="gr-tipo-btn' + (idx===0?' gr-tipo-active':'') + '" data-tipo="' + tp.v + '" onclick="grSelectTipo(this)">';
+    h += '<div style="font-size:16px;margin-bottom:3px">' + tp.e + '</div>';
+    h += '<div style="font-size:10px;font-weight:700">' + tp.t + '</div>';
+    h += '<div style="font-size:9px;opacity:.7">' + tp.s + '</div>';
+    h += '</button>';
+  });
+  h += '</div>';
 
-<!-- Grupos preview -->
-<div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:7px">👥 Grupos INDI</div>
-<div id="gr-groups" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px"></div>
+  // ── Grupos ──
+  h += '<div class="gr-lbl" style="margin-bottom:7px">&#128101; Grupos INDI</div>';
+  h += '<div id="gr-groups" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px"></div>';
 
-<!-- Botón generar premium -->
-<button id="gr-gen-btn" onclick="grGenerate()"
-  style="width:100%;padding:13px 20px;background:linear-gradient(135deg,#4f46e5,#7c3aed);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;letter-spacing:.4px;transition:all .2s;box-shadow:0 4px 15px rgba(79,70,229,.35);display:flex;align-items:center;justify-content:center;gap:8px">
-  <span>✦</span> <span>Generar recurso premium</span> <span style="font-size:10px;opacity:.8;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:20px">Together AI</span>
-</button>
+  // ── Botón generar ──
+  h += '<button id="gr-gen-btn" onclick="grGenerate()"';
+  h += ' style="width:100%;padding:13px 20px;background:linear-gradient(135deg,#4f46e5,#7c3aed);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;letter-spacing:.4px;transition:all .2s;box-shadow:0 4px 15px rgba(79,70,229,.35);display:flex;align-items:center;justify-content:center;gap:8px">';
+  h += '<span>&#10022;</span><span>Generar recurso premium</span>';
+  h += '<span style="font-size:10px;opacity:.8;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:20px">Together AI</span>';
+  h += '</button>';
 
-<!-- Progress bar (hidden by default) -->
-<div id="gr-progress" style="display:none;margin-top:10px">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-    <div style="width:10px;height:10px;border-radius:50%;background:#4f46e5;animation:grPulse 1s infinite"></div>
-    <span id="gr-progress-msg" style="font-size:12px;color:var(--muted)">Conectando con Together AI…</span>
-  </div>
-  <div style="height:3px;background:var(--border);border-radius:3px;overflow:hidden">
-    <div id="gr-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#4f46e5,#7c3aed);border-radius:3px;transition:width .4s ease"></div>
-  </div>
-</div>
+  // ── Progress bar ──
+  h += '<div id="gr-progress" style="display:none;margin-top:10px">';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">';
+  h += '<div style="width:10px;height:10px;border-radius:50%;background:#4f46e5" id="gr-pulse-dot"></div>';
+  h += '<span id="gr-progress-msg" style="font-size:12px;color:var(--muted)">Conectando con Together AI...</span>';
+  h += '</div>';
+  h += '<div style="height:3px;background:var(--border);border-radius:3px;overflow:hidden">';
+  h += '<div id="gr-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#4f46e5,#7c3aed);border-radius:3px;transition:width .4s ease"></div>';
+  h += '</div></div>';
 
-<!-- Output frame (iframe para renderizar HTML generado) -->
-<div id="gr-output-wrap" style="display:none;margin-top:12px">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-    <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.5px">RECURSO GENERADO</div>
-    <div style="display:flex;gap:6px" id="gr-action-bar">
-      <button onclick="grOpenFull()" style="background:linear-gradient(135deg,#059669,#047857);border:none;border-radius:7px;padding:5px 12px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif">🖨️ Abrir / Imprimir</button>
-      <button onclick="grCopyHtml()" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">📋 Copiar HTML</button>
-      <button onclick="grSaveDoc(this)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">💾 Guardar</button>
-    </div>
-  </div>
-  <iframe id="gr-output-frame"
-    style="width:100%;height:600px;border:1px solid var(--border);border-radius:10px;background:#fff"
-    sandbox="allow-same-origin"></iframe>
-</div>
+  // ── Output frame ──
+  h += '<div id="gr-output-wrap" style="display:none;margin-top:12px">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+  h += '<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.5px">RECURSO GENERADO</div>';
+  h += '<div style="display:flex;gap:6px" id="gr-action-bar">';
+  h += '<button onclick="grOpenFull()" style="background:linear-gradient(135deg,#059669,#047857);border:none;border-radius:7px;padding:5px 12px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif">&#128424; Abrir / Imprimir</button>';
+  h += '<button onclick="grCopyHtml()" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">&#128203; Copiar HTML</button>';
+  h += '<button onclick="grSaveDoc(this)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">&#128190; Guardar</button>';
+  h += '</div></div>';
+  h += '<iframe id="gr-output-frame" style="width:100%;height:600px;border:1px solid var(--border);border-radius:10px;background:#fff" sandbox="allow-same-origin"></iframe>';
+  h += '</div>';
 
-<style>
-@keyframes grPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
-.gr-sel{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;outline:none;cursor:pointer;transition:.15s}
-.gr-sel:focus{border-color:#4f46e5;box-shadow:0 0 0 2px rgba(79,70,229,.2)}
-.gr-tipo-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 8px;cursor:pointer;font-family:DM Sans,sans-serif;transition:all .15s;text-align:center;width:100%}
-.gr-tipo-btn:hover{border-color:#4f46e5;color:var(--text);transform:translateY(-1px)}
-.gr-tipo-active{border-color:#4f46e5!important;background:linear-gradient(135deg,rgba(79,70,229,.12),rgba(124,58,237,.08))!important;color:#818cf8!important;box-shadow:0 2px 8px rgba(79,70,229,.2)}
-</style>
-</div>`;
+  // ── CSS ──
+  h += '<style>';
+  h += '.gr-sel{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;outline:none;cursor:pointer;transition:.15s}';
+  h += '.gr-sel:focus{border-color:#4f46e5;box-shadow:0 0 0 2px rgba(79,70,229,.2)}';
+  h += '.gr-lbl{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}';
+  h += '.gr-tipo-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 8px;cursor:pointer;font-family:DM Sans,sans-serif;transition:all .15s;text-align:center;width:100%}';
+  h += '.gr-tipo-btn:hover{border-color:#4f46e5;color:var(--text);transform:translateY(-1px)}';
+  h += '.gr-tipo-active{border-color:#4f46e5!important;background:linear-gradient(135deg,rgba(79,70,229,.12),rgba(124,58,237,.08))!important;color:#818cf8!important;box-shadow:0 2px 8px rgba(79,70,229,.2)}';
+  h += '</style>';
+
+  h += '</div>';
+  return h;
 }
-
 // ── Lógica auxiliar del generador ─────────────────────────
 function grInitSelects() {
   var areas = [...new Set(_GR_COMPS.map(function(c){return c.area_curricular}))];
