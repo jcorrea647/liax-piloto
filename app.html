@@ -11365,16 +11365,121 @@ function saveSchoolAssignment(){
 
 
 // ══════════════════════════════════════════════════════════════
-// GENERADOR INDI — Agente Genera Recursos Pedagógicos (gr1)
+// GENERADOR INDI PREMIUM — Agente Genera Recursos Pedagógicos (gr1)
+// Together AI · Prompt Maestro estructurado · SaaS Design
 // ══════════════════════════════════════════════════════════════
+
+var _GR_TOGETHER_KEY = 'key_CaPgNyrKBZtdWUt1CYrbT';
+var _GR_TOGETHER_URL = 'https://api.together.xyz/v1/chat/completions';
+var _GR_TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
+
 var _GR_COMPS=[{"area_curricular":"Personal Social","competencia":"Construye su identidad","capacidades":["Se valora a sí mismo","Autorregula sus emociones"],"desempenos":{"3_anos":"Reconoce sus necesidades, sensaciones e intereses; se reconoce como miembro de su familia y aula.","4_anos":"Reconoce sus intereses, preferencias y características; las diferencia de las de los otros.","5_anos":"Reconoce sus cualidades, características y capacidades, y las diferencia de las de los otros. Se siente orgulloso de sus logros."}},{"area_curricular":"Personal Social","competencia":"Convive y participa democráticamente en la búsqueda del bien común","capacidades":["Interactúa con todas las personas","Construye normas y asume acuerdos y leyes","Participa en acciones que promueven el bienestar común"],"desempenos":{"3_anos":"Se relaciona con adultos y niños jugando en grupos pequeños.","4_anos":"Se integra en actividades grupales y juegos con sus pares. Propone ideas de juego y sus reglas.","5_anos":"Propone reglas de juego y las cumple. Realiza actividades cotidianas con sus compañeros."}},{"area_curricular":"Psicomotriz","competencia":"Se desenvuelve de manera autónoma a través de su motricidad","capacidades":["Comprende su cuerpo","Se expresa corporalmente"],"desempenos":{"3_anos":"Realiza movimientos como correr, saltar y trepar explorando su cuerpo.","4_anos":"Realiza acciones motrices básicas coordinando movimientos con seguridad.","5_anos":"Combina habilidades motrices básicas en diversos juegos."}},{"area_curricular":"Comunicación","competencia":"Se comunica oralmente en su lengua materna","capacidades":["Obtiene información","Infiere e interpreta","Adecúa, organiza y desarrolla","Utiliza recursos no verbales","Interactúa estratégicamente","Reflexiona y evalúa"],"desempenos":{"3_anos":"Expresa necesidades y emociones con palabras de uso frecuente.","4_anos":"Expresa experiencias e ideas en torno a un tema.","5_anos":"Desarrolla ideas de manera coherente. Mantiene el hilo de la conversación."}},{"area_curricular":"Comunicación","competencia":"Lee diversos tipos de textos escritos en su lengua materna","capacidades":["Obtiene información","Infiere e interpreta","Reflexiona y evalúa"],"desempenos":{"3_anos":"Identifica características de personajes en ilustraciones.","4_anos":"Identifica características de personas o animales en ilustraciones de textos.","5_anos":"Identifica palabras conocidas y siluetas en textos de su entorno."}},{"area_curricular":"Comunicación","competencia":"Crea proyectos desde los lenguajes artísticos","capacidades":["Explora y experimenta","Aplica procesos creativos","Socializa sus procesos y proyectos"],"desempenos":{"3_anos":"Explora materiales libremente descubriendo sus posibilidades.","4_anos":"Descubre efectos al combinar materiales. Representa sus ideas.","5_anos":"Explora materiales individualmente o en grupo."}},{"area_curricular":"Matemática","competencia":"Resuelve problemas de cantidad","capacidades":["Traduce cantidades","Comunica su comprensión","Usa estrategias y procedimientos"],"desempenos":{"3_anos":"Compara y agrupa objetos por características similares. Usa 'muchos' o 'pocos'.","4_anos":"Agrupa objetos y realiza conteo hasta 5. Usa 'más que', 'menos que'.","5_anos":"Establece el criterio para agrupar objetos. Realiza el conteo hasta 10."}},{"area_curricular":"Ciencia y Tecnología","competencia":"Indaga mediante métodos científicos para construir sus conocimientos","capacidades":["Problematiza situaciones","Diseña estrategias","Genera y registra datos","Analiza datos e interpreta información","Evalúa y comunica"],"desempenos":{"3_anos":"Hace preguntas sobre objetos o seres vivos. Obtiene información a través de sus sentidos.","4_anos":"Pregunta sobre el ambiente y seres vivos de su entorno. Propone posibles explicaciones.","5_anos":"Plantea posibles explicaciones y predicciones. Registra sus observaciones mediante dibujos."}}];
 
 var _GR_STUDENTS=[{n:"Zeus de Piero Abad Rebolledo",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Thayza Julie Acaro Silva",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Maria Fernanda Arevalo Garcia",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Eymi Arely Arraiza Cordova",r:{C:"Esperado",D:"Esperado",M:"Esperado",S:"Esperado"}},{n:"Franchesca Raquel Abigail Balarezo Vargas",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Derek Mateo Bruno Atoche",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Eithan Yadiel Castro Cordova",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"David Daniel Coral Pingo",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Gael David Coronado Garcia",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Maria Julia Escobar Herrera",r:{C:"Esperado",D:"Esperado",M:"Esperado",S:"Esperado"}},{n:"Hansel Joshua Estrada Carcamo",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Luis Angel Imán Palomino",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Rebeca Naemi Jimenez Zeta",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Caleb Emmanuel Lopez Landa",r:{C:"Esperado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Vianca Nicol Mayo Guerrero",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Yocelin Kristell Ogoña López",r:{C:"Destacado",D:"Muy descendido",M:"Esperado",S:"Esperado"}},{n:"Sara Juliet Ojeda Benites",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Camila Sofia Palacios Castro",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Thiago Alexis Pangalima Salcedo",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Muy descendido"}},{n:"Leilany Mailen Paucar Castillo",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Mateo Alonso Paucar Peña",r:{C:"Esperado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Thiago Ismael Periche Guevara",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Tiana Zuleyka Periche Guevara",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Eithan Matheus Periche Gómez",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Cristian Junior Ramirez Bruno",r:{C:"Destacado",D:"Esperado",M:"Esperado",S:"Descendido"}},{n:"Abby Dayli Ruiz Ipanaque",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Kayla Jazzel Ruiz Sánchez",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Lohana Mercedes Salar Porras",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Luciana Santamaria Fernanadez",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Lucianan Scarlett Silbaña Remigio",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Milenka Nayeli Sosa Ayala",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Erik Alexander Zeta Morante",r:{C:"Destacado",D:"Muy descendido",M:"Esperado",S:"Muy descendido"}},{n:"Pedro Juaquin Zeta Tineo",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}}];
 
 var _grTipo = 'Imprimible';
 
+// ── Prompt Maestro por tipo de recurso ────────────────────
+function _grBuildMaestroPrompt(ctx) {
+  var edad = ctx.edadLabel, area = ctx.area, comp = ctx.comp, cap = ctx.cap;
+  var desempeno = ctx.desempeno, tipo = ctx.tipo, groupText = ctx.groupText;
+  var isInitial = ctx.edadNum <= 6; // ≤6 años = estilo lúdico; >6 = estilo académico
+  var styleNote = isInitial
+    ? 'ESTILO VISUAL: Lúdico, bordes extra redondeados, emojis grandes, tipografía amigable, colores cálidos.'
+    : 'ESTILO VISUAL: Académico tipo journal, grids de 2-3 columnas, tipografía serif para títulos, datos simulados con barras CSS.';
+
+  var base = `Eres un diseñador pedagógico experto en recursos educativos premium para docentes latinoamericanos.
+Genera el recurso en formato HTML completo y autocontenido (sin etiquetas html/head/body externas).
+Usa SOLO clases de Tailwind CSS via CDN. No uses JavaScript. Todo debe ser puro HTML + Tailwind CSS inline.
+${styleNote}
+
+CONTEXTO PEDAGÓGICO:
+- Edad: ${edad}
+- Área: ${area}
+- Competencia: ${comp}
+- Capacidad: ${cap}
+- Desempeño esperado: ${desempeno}
+- Tipo de recurso: ${tipo}
+
+GRUPOS DE TRABAJO (con nombres reales de alumnos):
+${groupText}
+
+ESTRUCTURA OBLIGATORIA DEL RECURSO — incluye EXACTAMENTE estas secciones:
+
+═══════════════════════════════════════════
+SECCIÓN 1 — ENCABEZADO EDITORIAL
+═══════════════════════════════════════════
+- Logo/nombre del colegio "I.E. Nuestra Señora de las Mercedes" con badge de área y nivel
+- Línea de meta: Competencia · Capacidad · Fecha: ___________  Nombre: ___________
+- Badge de grupo asignado (Estrella / En Camino / Con Apoyo / Apoyo Reforzado)
+
+═══════════════════════════════════════════
+SECCIÓN 2 — 4 PUZZLES CON LÍNEAS DE CORTE
+═══════════════════════════════════════════
+Genera exactamente 4 puzzles. Cada puzzle:
+- Título del puzzle en la esquina superior
+- Contenido pedagógico relacionado al tema (imagen SVG inline simple O texto grande con consigna)
+- Instrucción específica para el nivel de desempeño del grupo
+- BORDE DISCONTINUO real con CSS: border: 2px dashed #94a3b8; (simula línea de corte)
+- Ícono de tijeras ✂️ en la esquina superior derecha con texto "recortar"
+- Dispuestos en grid de 2x2
+
+═══════════════════════════════════════════
+SECCIÓN 3 — 6 TARJETAS DE RIMAS
+═══════════════════════════════════════════
+Genera exactamente 6 tarjetas. Cada tarjeta:
+- Una rima corta (2-4 versos) relacionada al tema de la competencia
+- Espacio de dibujo: rectángulo con borde punteado, altura 80px, texto "✏️ Dibuja aquí"
+- Número de tarjeta visible (1/6, 2/6, etc.)
+- Fondo con gradiente suave (diferente color para cada tarjeta)
+- Grid de 3 columnas
+
+═══════════════════════════════════════════
+SECCIÓN 4 — CASOS DE ESTUDIO CON GRÁFICOS CSS
+═══════════════════════════════════════════
+2 casos de estudio, cada uno con:
+- Título del caso + descripción narrativa breve (2-3 líneas)
+- Gráfico simulado con barras CSS puras (div con width% y background-color, sin JS):
+  * Barra 1: Grupo Estrella — color verde, width según % de alumnos en ese nivel
+  * Barra 2: Grupo En Camino — color azul
+  * Barra 3: Con Apoyo — color amarillo
+  * Barra 4: Apoyo Reforzado — color rojo
+  * Etiqueta con número y porcentaje junto a cada barra
+- Pregunta reflexiva para el docente al pie
+
+═══════════════════════════════════════════
+SECCIÓN 5 — ACTIVIDAD DIFERENCIADA POR GRUPO
+═══════════════════════════════════════════
+Una card por cada grupo activo (máx 4), con:
+- Header de color único por nivel
+- Nombres de los alumnos del grupo
+- 3 consignas diferenciadas al nivel de desempeño
+- Espacio de respuesta para cada consigna (líneas punteadas)
+
+═══════════════════════════════════════════
+SECCIÓN 6 — REFLEXIÓN DOCENTE (pie de página)
+═══════════════════════════════════════════
+- 3 preguntas de metacognición para el docente
+- Escala de logro visual (5 emojis de ⭐)
+- Firma + fecha + sello
+
+REGLAS TÉCNICAS:
+1. Usa Tailwind CDN: <script src="https://cdn.tailwindcss.com"></script> al inicio
+2. Los 4 puzzles DEBEN tener style="border: 2px dashed #94a3b8;" real en su div
+3. Las 6 tarjetas de rimas DEBEN tener un div con style="border: 2px dashed #cbd5e1; height:80px;"
+4. Los gráficos de barras DEBEN ser divs con style="width:XX%; height:18px; background:#color;"
+5. Toda la ficha debe verse como un documento A4 profesional imprimible
+6. Incluye @media print en un <style> tag: ocultar sombras, ajustar márgenes
+7. NO incluyas etiquetas <html>, <head>, <body> — solo el contenido interno
+8. La paleta principal: slate-800 para textos, indigo-600 para acenttos, sky-100 para fondos suaves
+
+Genera el HTML ahora, completo y listo para renderizar:`;
+
+  return base;
+}
+
+// ── UI del generador (SaaS premium) ───────────────────────
 function buildGeneradorINDI() {
-  // Directors / Red → supervision panel
   if (typeof _getAgentToolMode === 'function' && _getAgentToolMode() === 'supervision') {
     return typeof _buildSupervisionPanel === 'function' ? _buildSupervisionPanel() : '';
   }
@@ -11382,35 +11487,134 @@ function buildGeneradorINDI() {
   var compLabel = labels.competencia || 'Competencia';
   var capLabel  = labels.capacidad   || 'Capacidad';
   var areaLabel = labels.area        || 'Área Curricular';
-  return '<div class="gr-indi-wrap" id="grIndiWrap" style="width:100%;max-width:680px;margin-top:12px">' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">' +
-      '<div><div class="gr-lbl">🎂 Edad</div>' +
-        '<select id="gr-edad" class="gr-sel"><option value="5_anos">5 años</option><option value="4_anos">4 años</option><option value="3_anos">3 años</option></select></div>' +
-      '<div><div class="gr-lbl">📚 ' + areaLabel + '</div>' +
-        '<select id="gr-area" class="gr-sel" onchange="grUpdateComps()"></select></div>' +
-      '<div><div class="gr-lbl">📊 Área para grupos</div>' +
-        '<select id="gr-area-datos" class="gr-sel" onchange="grRenderGroups()">' +
-          '<option value="C">Comunicación (C)</option><option value="M">Matemática (M)</option><option value="D">Desarrollo (D)</option><option value="S">Social (S)</option>' +
-        '</select></div>' +
-    '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
-      '<div><div class="gr-lbl">🎯 ' + compLabel + '</div><select id="gr-comp" class="gr-sel" onchange="grUpdateCaps()"></select></div>' +
-      '<div><div class="gr-lbl">⚡ ' + capLabel + '</div><select id="gr-cap" class="gr-sel"></select></div>' +
-    '</div>' +
-    '<div class="gr-lbl" style="margin-bottom:6px">📋 Tipo de recurso</div>' +
-    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">' +
-      '<button class="gr-tipo-btn gr-tipo-active" data-tipo="Imprimible" onclick="grSelectTipo(this)">🖨️ Imprimible A4</button>' +
-      '<button class="gr-tipo-btn" data-tipo="Digital" onclick="grSelectTipo(this)">💻 Digital</button>' +
-      '<button class="gr-tipo-btn" data-tipo="Ficha de trabajo" onclick="grSelectTipo(this)">📝 Ficha</button>' +
-      '<button class="gr-tipo-btn" data-tipo="Juego" onclick="grSelectTipo(this)">🎲 Juego</button>' +
-    '</div>' +
-    '<div class="gr-lbl" style="margin-bottom:6px">👥 Grupos de trabajo (según resultados INDI)</div>' +
-    '<div id="gr-groups" style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px"></div>' +
-    '<button id="gr-gen-btn" onclick="grGenerate()" style="width:100%;padding:11px;background:var(--accent1);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;letter-spacing:.3px;transition:.15s">✨ Generar recurso con IA</button>' +
-    '<div id="gr-output" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;color:var(--text);white-space:pre-wrap;line-height:1.7;max-height:460px;overflow-y:auto"></div>' +
-  '</div>';
+
+  return `<div id="grIndiWrap" style="width:100%;max-width:720px;margin-top:8px">
+
+<!-- Header premium -->
+<div style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#1e40af 100%);border-radius:14px;padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+  <div>
+    <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#a5b4fc;margin-bottom:3px">✦ Generador Premium</div>
+    <div style="font-size:16px;font-weight:700;color:#fff">Recursos Pedagógicos IA</div>
+    <div style="font-size:11px;color:#818cf8;margin-top:2px">Together AI · Prompt Maestro Estructurado</div>
+  </div>
+  <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px 12px;text-align:center">
+    <div style="font-size:20px">🎓</div>
+    <div style="font-size:9px;color:#a5b4fc;font-weight:600;margin-top:2px">INDI</div>
+  </div>
+</div>
+
+<!-- Grid de controles -->
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+  <div>
+    <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">🎂 Edad</div>
+    <select id="gr-edad" class="gr-sel" onchange="grRenderGroups()">
+      <option value="3">3 años</option>
+      <option value="4">4 años</option>
+      <option value="5" selected>5 años</option>
+      <option value="10">10 años</option>
+      <option value="14">14 años</option>
+      <option value="17">17 años</option>
+    </select>
+  </div>
+  <div>
+    <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">📚 ${areaLabel}</div>
+    <select id="gr-area" class="gr-sel" onchange="grUpdateComps()"></select>
+  </div>
+  <div>
+    <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">📊 Área grupos</div>
+    <select id="gr-area-datos" class="gr-sel" onchange="grRenderGroups()">
+      <option value="C">Comunicación (C)</option>
+      <option value="M">Matemática (M)</option>
+      <option value="D">Desarrollo (D)</option>
+      <option value="S">Social (S)</option>
+    </select>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+  <div>
+    <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">🎯 ${compLabel}</div>
+    <select id="gr-comp" class="gr-sel" onchange="grUpdateCaps()"></select>
+  </div>
+  <div>
+    <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">⚡ ${capLabel}</div>
+    <select id="gr-cap" class="gr-sel"></select>
+  </div>
+</div>
+
+<!-- Tipo de recurso premium -->
+<div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:7px">📋 Tipo de recurso</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
+  <button class="gr-tipo-btn gr-tipo-active" data-tipo="Imprimible" onclick="grSelectTipo(this)">
+    <div style="font-size:16px;margin-bottom:3px">🖨️</div>
+    <div style="font-size:10px;font-weight:700">A4 Print</div>
+    <div style="font-size:9px;opacity:.7">Puzzles + Rimas</div>
+  </button>
+  <button class="gr-tipo-btn" data-tipo="Digital" onclick="grSelectTipo(this)">
+    <div style="font-size:16px;margin-bottom:3px">💻</div>
+    <div style="font-size:10px;font-weight:700">Digital</div>
+    <div style="font-size:9px;opacity:.7">Interactivo</div>
+  </button>
+  <button class="gr-tipo-btn" data-tipo="Ficha de trabajo" onclick="grSelectTipo(this)">
+    <div style="font-size:16px;margin-bottom:3px">📝</div>
+    <div style="font-size:10px;font-weight:700">Ficha</div>
+    <div style="font-size:9px;opacity:.7">3 niveles</div>
+  </button>
+  <button class="gr-tipo-btn" data-tipo="Juego" onclick="grSelectTipo(this)">
+    <div style="font-size:16px;margin-bottom:3px">🎲</div>
+    <div style="font-size:10px;font-weight:700">Juego</div>
+    <div style="font-size:9px;opacity:.7">Grupal</div>
+  </button>
+</div>
+
+<!-- Grupos preview -->
+<div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:7px">👥 Grupos INDI</div>
+<div id="gr-groups" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px"></div>
+
+<!-- Botón generar premium -->
+<button id="gr-gen-btn" onclick="grGenerate()"
+  style="width:100%;padding:13px 20px;background:linear-gradient(135deg,#4f46e5,#7c3aed);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;letter-spacing:.4px;transition:all .2s;box-shadow:0 4px 15px rgba(79,70,229,.35);display:flex;align-items:center;justify-content:center;gap:8px">
+  <span>✦</span> <span>Generar recurso premium</span> <span style="font-size:10px;opacity:.8;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:20px">Together AI</span>
+</button>
+
+<!-- Progress bar (hidden by default) -->
+<div id="gr-progress" style="display:none;margin-top:10px">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <div style="width:10px;height:10px;border-radius:50%;background:#4f46e5;animation:grPulse 1s infinite"></div>
+    <span id="gr-progress-msg" style="font-size:12px;color:var(--muted)">Conectando con Together AI…</span>
+  </div>
+  <div style="height:3px;background:var(--border);border-radius:3px;overflow:hidden">
+    <div id="gr-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#4f46e5,#7c3aed);border-radius:3px;transition:width .4s ease"></div>
+  </div>
+</div>
+
+<!-- Output frame (iframe para renderizar HTML generado) -->
+<div id="gr-output-wrap" style="display:none;margin-top:12px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.5px">RECURSO GENERADO</div>
+    <div style="display:flex;gap:6px" id="gr-action-bar">
+      <button onclick="grOpenFull()" style="background:linear-gradient(135deg,#059669,#047857);border:none;border-radius:7px;padding:5px 12px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif">🖨️ Abrir / Imprimir</button>
+      <button onclick="grCopyHtml()" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">📋 Copiar HTML</button>
+      <button onclick="grSaveDoc(this)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">💾 Guardar</button>
+    </div>
+  </div>
+  <iframe id="gr-output-frame"
+    style="width:100%;height:600px;border:1px solid var(--border);border-radius:10px;background:#fff"
+    sandbox="allow-same-origin"></iframe>
+</div>
+
+<style>
+@keyframes grPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+.gr-sel{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;outline:none;cursor:pointer;transition:.15s}
+.gr-sel:focus{border-color:#4f46e5;box-shadow:0 0 0 2px rgba(79,70,229,.2)}
+.gr-tipo-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 8px;cursor:pointer;font-family:DM Sans,sans-serif;transition:all .15s;text-align:center;width:100%}
+.gr-tipo-btn:hover{border-color:#4f46e5;color:var(--text);transform:translateY(-1px)}
+.gr-tipo-active{border-color:#4f46e5!important;background:linear-gradient(135deg,rgba(79,70,229,.12),rgba(124,58,237,.08))!important;color:#818cf8!important;box-shadow:0 2px 8px rgba(79,70,229,.2)}
+</style>
+</div>`;
 }
 
+// ── Lógica auxiliar del generador ─────────────────────────
 function grInitSelects() {
   var areas = [...new Set(_GR_COMPS.map(function(c){return c.area_curricular}))];
   var asel = document.getElementById('gr-area');
@@ -11424,7 +11628,7 @@ function grUpdateComps() {
   sel.innerHTML='';
   _GR_COMPS.filter(function(c){return c.area_curricular===asel.value}).forEach(function(c){
     var o=document.createElement('option');o.value=c.competencia;
-    o.textContent=c.competencia.length>52?c.competencia.slice(0,52)+'…':c.competencia;
+    o.textContent=c.competencia.length>50?c.competencia.slice(0,50)+'…':c.competencia;
     sel.appendChild(o);
   });
   grUpdateCaps();
@@ -11442,15 +11646,21 @@ function grRenderGroups() {
   var adsel=document.getElementById('gr-area-datos'); if(!adsel) return;
   var groups={Destacado:[],Esperado:[],Descendido:[],'Muy descendido':[]};
   _GR_STUDENTS.forEach(function(s){var r=s.r[adsel.value]||'Esperado';if(groups[r])groups[r].push(s.n.split(' ').slice(0,2).join(' '));});
-  var labels={Destacado:'🌟 Grupo Estrella (Destacado)',Esperado:'✅ Grupo en Camino (Esperado)',Descendido:'🤝 Grupo con Apoyo','Muy descendido':'🆘 Apoyo Reforzado'};
-  var colors={Destacado:'var(--accent1)',Esperado:'var(--accent2)',Descendido:'var(--accent4)','Muy descendido':'var(--accent3)'};
+  var cfg={
+    Destacado:  {icon:'🌟',label:'Grupo Estrella',  bg:'linear-gradient(135deg,#1e3a2f,#14532d)',border:'#16a34a',text:'#4ade80'},
+    Esperado:   {icon:'✅',label:'En Camino',       bg:'linear-gradient(135deg,#1e3050,#1e3a8a)',border:'#3b82f6',text:'#60a5fa'},
+    Descendido: {icon:'🤝',label:'Con Apoyo',       bg:'linear-gradient(135deg,#3a2a10,#78350f)',border:'#f59e0b',text:'#fbbf24'},
+    'Muy descendido':{icon:'🆘',label:'Apoyo Reforzado',bg:'linear-gradient(135deg,#3a1010,#7f1d1d)',border:'#ef4444',text:'#f87171'},
+  };
   var container=document.getElementById('gr-groups'); if(!container) return;
   container.innerHTML='';
   Object.entries(groups).forEach(function(e){
     var nivel=e[0],names=e[1]; if(!names.length)return;
+    var c=cfg[nivel];
     var div=document.createElement('div');
-    div.style.cssText='padding:6px 10px;border-radius:7px;font-size:11px;border:1px solid var(--border);background:var(--surface2)';
-    div.innerHTML='<strong style="color:'+colors[nivel]+';font-size:10px;display:block;margin-bottom:2px">'+labels[nivel]+'</strong><span style="color:var(--muted)">'+names.join(', ')+'</span>';
+    div.style.cssText='padding:8px 12px;border-radius:9px;font-size:11px;border:1px solid '+c.border+';background:'+c.bg;
+    div.innerHTML='<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px"><span>'+c.icon+'</span><strong style="color:'+c.text+';font-size:10px;letter-spacing:.5px">'+c.label+' ('+names.length+')</strong></div>'
+      +'<div style="color:rgba(255,255,255,.6);font-size:10px;line-height:1.5">'+names.join(', ')+'</div>';
     container.appendChild(div);
   });
 }
@@ -11458,73 +11668,145 @@ function grSelectTipo(el) {
   document.querySelectorAll('.gr-tipo-btn').forEach(function(b){b.classList.remove('gr-tipo-active')});
   el.classList.add('gr-tipo-active'); _grTipo=el.dataset.tipo;
 }
+
+// ── GENERATE — Together AI ─────────────────────────────────
+var _grLastHtml = '';
 async function grGenerate() {
-  var edad=(document.getElementById('gr-edad')||{}).value||'5_anos';
-  var area=(document.getElementById('gr-area')||{}).value||'';
-  var comp=(document.getElementById('gr-comp')||{}).value||'';
-  var cap=(document.getElementById('gr-cap')||{}).value||'';
-  var areaDatos=(document.getElementById('gr-area-datos')||{}).value||'C';
-  var tipo=_grTipo;
-  var labels=window._curriculumLabels||{competencia:'Competencia',capacidad:'Capacidad'};
-  var compObj=_GR_COMPS.find(function(c){return c.area_curricular===area&&c.competencia===comp});
-  var desempeno=compObj?compObj.desempenos[edad]:'';
-  var edadLabel=edad==='5_anos'?'5 años':edad==='4_anos'?'4 años':'3 años';
+  var edadRaw  = parseInt((document.getElementById('gr-edad')||{}).value||'5');
+  var area     = (document.getElementById('gr-area')||{}).value||'';
+  var comp     = (document.getElementById('gr-comp')||{}).value||'';
+  var cap      = (document.getElementById('gr-cap')||{}).value||'';
+  var areaDatos= (document.getElementById('gr-area-datos')||{}).value||'C';
+  var tipo     = _grTipo;
+  var labels   = window._curriculumLabels||{competencia:'Competencia',capacidad:'Capacidad'};
+  var edadKey  = edadRaw<=3?'3_anos':edadRaw<=4?'4_anos':'5_anos';
+  var edadLabel= edadRaw+' años';
+  var compObj  = _GR_COMPS.find(function(c){return c.area_curricular===area&&c.competencia===comp});
+  var desempeno= compObj?compObj.desempenos[edadKey]||compObj.desempenos['5_anos']:'';
+
   var groups={Destacado:[],Esperado:[],Descendido:[],'Muy descendido':[]};
   _GR_STUDENTS.forEach(function(s){var r=s.r[areaDatos]||'Esperado';if(groups[r])groups[r].push(s.n.split(' ').slice(0,2).join(' '));});
-  var groupText=Object.entries(groups).filter(function(e){return e[1].length}).map(function(e){return '- '+e[0]+': '+e[1].join(', ')}).join('\n');
-  var printInstr=tipo==='Imprimible'?'Formato ficha imprimible A4 con encabezado (colegio Nuestra Señora de las Mercedes), recuadros diferenciados por grupo y sección de reflexión.':
-    tipo==='Digital'?'Actividad digital interactiva con botones de respuesta, retroalimentación inmediata y efecto de celebración.':
-    tipo==='Ficha de trabajo'?'Ficha diferenciada con 3 niveles (básico, intermedio, avanzado), 2-3 consignas por nivel.':
-    'Juego o dinámica grupal: nombre, materiales, pasos detallados, roles por grupo y criterios de éxito.';
-  var prompt='Eres una maestra experta en educación inicial del Perú (CNE/MINEDU). Genera un recurso pedagógico completo.\n\nCONTEXTO:\n- Edad: '+edadLabel+'\n- Área curricular: '+area+'\n- '+labels.competencia+': '+comp+'\n- '+labels.capacidad+': '+cap+'\n- Desempeño: '+desempeno+'\n- Tipo: '+tipo+'\n\nGRUPOS (área '+areaDatos+'):\n'+groupText+'\n\nINSTRUCCIONES: '+printInstr+'\n\nIncluye los nombres reales de los alumnos. Recurso completo, listo para usar.';
-  var btn=document.getElementById('gr-gen-btn');
-  var out=document.getElementById('gr-output');
-  btn.disabled=true; btn.textContent='⏳ Generando recurso…';
-  out.style.display='block'; out.textContent='Generando con IA…';
-  // Remove previous action bar if any
-  var prevBar=document.getElementById('gr-action-bar');
-  if(prevBar) prevBar.remove();
-  try{
-    // ── Use the same API key infrastructure as the rest of the app ──
-    var apiKey = (window._cachedAnthropicKey||'');
-    if (!apiKey) {
-      try { apiKey = await AGENT_VAULT.loadSetting('anthropic_key') || ''; if(apiKey) window._cachedAnthropicKey = apiKey; } catch(e){}
-    }
-    if (!apiKey) {
-      out.innerHTML = '<span style="color:var(--accent3)">⚠️ No hay API Key configurada. Ve a <strong>⚙️ Configurar IAs</strong> y añade tu clave de Anthropic.</span>';
-      btn.disabled=false; btn.textContent='✨ Generar recurso con IA'; return;
-    }
-    var resp = await fetch(_getAnthropicEndpoint(), {
+  var groupText=Object.entries(groups).filter(function(e){return e[1].length})
+    .map(function(e){return '- '+e[0]+' ('+e[1].length+' alumnos): '+e[1].join(', ')}).join('\n');
+
+  var prompt = _grBuildMaestroPrompt({
+    edadLabel:edadLabel, edadNum:edadRaw, area:area, comp:comp, cap:cap,
+    desempeno:desempeno, tipo:tipo, groupText:groupText
+  });
+
+  // UI — progress
+  var btn  = document.getElementById('gr-gen-btn');
+  var prog = document.getElementById('gr-progress');
+  var pMsg = document.getElementById('gr-progress-msg');
+  var pBar = document.getElementById('gr-progress-bar');
+  var wrap = document.getElementById('gr-output-wrap');
+  btn.disabled=true; btn.innerHTML='<span style="opacity:.6">⏳</span> Generando…';
+  prog.style.display='block'; wrap.style.display='none';
+
+  var steps=[
+    [10,'Conectando con Together AI…'],
+    [30,'Construyendo estructura del recurso…'],
+    [55,'Generando puzzles y tarjetas de rimas…'],
+    [75,'Creando gráficos CSS y casos de estudio…'],
+    [90,'Finalizando diseño editorial…'],
+  ];
+  var si=0;
+  var ticker=setInterval(function(){
+    if(si<steps.length){ pBar.style.width=steps[si][0]+'%'; pMsg.textContent=steps[si][1]; si++; }
+  },900);
+
+  try {
+    var resp = await fetch(_GR_TOGETHER_URL, {
       method: 'POST',
-      headers: _getAnthropicHeaders(apiKey),
+      headers: {
+        'Authorization': 'Bearer ' + _GR_TOGETHER_KEY,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20251022',
-        max_tokens: 1500,
+        model: _GR_TOGETHER_MODEL,
+        max_tokens: 4096,
+        temperature: 0.7,
         messages: [{ role:'user', content: prompt }]
       })
     });
+
+    clearInterval(ticker);
+
+    if (!resp.ok) {
+      var errText = await resp.text();
+      throw new Error('Together AI ' + resp.status + ': ' + errText.slice(0,200));
+    }
+
     var data = await resp.json();
-    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-    var text = data.content && data.content.map(function(b){return b.text||''}).join('') || 'No se pudo generar.';
-    out.textContent = text;
-    // Action bar
-    var bar = document.createElement('div');
-    bar.id = 'gr-action-bar';
-    bar.style.cssText = 'display:flex;gap:8px;margin-top:10px;justify-content:flex-end';
-    bar.innerHTML = '<button onclick="grSaveDoc(this)" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">💾 Guardar</button>'
-      + '<button onclick="navigator.clipboard.writeText(document.getElementById(\'gr-output\').textContent).then(function(){this.textContent=\'✅ Copiado\';}.bind(this))" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">📋 Copiar</button>';
-    out.parentNode.insertBefore(bar, out.nextSibling);
+    var raw  = (data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content) || '';
+
+    // Extract HTML block
+    var html = raw;
+    var fenceMatch = raw.match(/```html\s*([\s\S]*?)```/i);
+    if (fenceMatch) html = fenceMatch[1].trim();
+    else if (raw.includes('<')) html = raw.replace(/^[\s\S]*?(?=<)/, '').trim();
+
+    // Inject Tailwind CDN if not present
+    if (!html.includes('tailwindcss.com')) {
+      html = '<script src="https://cdn.tailwindcss.com"><\/script>\n' + html;
+    }
+    // Inject print styles
+    if (!html.includes('@media print')) {
+      html = '<style>@media print{body{margin:0;padding:0}.no-print{display:none!important}}</style>\n' + html;
+    }
+
+    _grLastHtml = html;
+    pBar.style.width='100%'; pMsg.textContent='¡Recurso generado! 🎉';
+
+    setTimeout(function(){
+      prog.style.display='none';
+      wrap.style.display='block';
+      var frame = document.getElementById('gr-output-frame');
+      frame.srcdoc = html;
+    }, 500);
+
   } catch(e) {
-    out.innerHTML = '<span style="color:var(--accent3)">❌ Error: ' + e.message + '</span>';
+    clearInterval(ticker);
+    prog.style.display='none';
+    wrap.style.display='block';
+    var frame = document.getElementById('gr-output-frame');
+    frame.srcdoc = '<div style="padding:20px;font-family:sans-serif;color:#ef4444"><strong>❌ Error:</strong> '+e.message+'<br><small style="color:#64748b;margin-top:8px;display:block">Verifica que la clave Together AI sea válida y que tengas conexión.</small></div>';
   }
-  btn.disabled=false; btn.textContent='✨ Generar recurso con IA';
+
+  btn.disabled=false;
+  btn.innerHTML='<span>✦</span> <span>Generar recurso premium</span> <span style="font-size:10px;opacity:.8;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:20px">Together AI</span>';
 }
-function grSaveDoc(btn){
-  var text=(document.getElementById('gr-output')||{}).textContent||''; if(!text||text==='Generando con IA…') return;
-  var comp=(document.getElementById('gr-comp')||{}).value||'Recurso';
-  if(typeof saveDocToRepo==='function'){ saveDocToRepo({titulo:_grTipo+' · '+comp.slice(0,40),contenido:text,tipo:'guia',agente:'Genera Recursos Pedagógicos'}); btn.textContent='✅ Guardado'; btn.disabled=true; }
-  else alert('Función de guardado no disponible.');
+
+function grOpenFull() {
+  if (!_grLastHtml) return;
+  var w = window.open('', '_blank');
+  w.document.write(_grLastHtml);
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 800);
 }
+function grCopyHtml() {
+  if (!_grLastHtml) return;
+  navigator.clipboard.writeText(_grLastHtml).then(function(){
+    var btn = document.querySelector('#gr-action-bar button:nth-child(2)');
+    if(btn){ btn.textContent='✅ Copiado'; setTimeout(function(){btn.textContent='📋 Copiar HTML';},2000); }
+  });
+}
+function grSaveDoc(btn) {
+  if (!_grLastHtml) return;
+  var comp = (document.getElementById('gr-comp')||{}).value||'Recurso';
+  if(typeof saveDocToRepo==='function'){
+    saveDocToRepo({titulo:_grTipo+' · '+comp.slice(0,40)+' · HTML',contenido:_grLastHtml,tipo:'guia',agente:'Genera Recursos Pedagógicos'});
+    btn.textContent='✅ Guardado'; btn.disabled=true;
+  } else {
+    // Fallback: download as .html file
+    var blob = new Blob([_grLastHtml],{type:'text/html'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'recurso_'+_grTipo.toLowerCase().replace(/\s/g,'_')+'.html';
+    a.click();
+  }
+}
+
 
 // ── ASSIGN BY USER ────────────────────────────────────────
 // agentAssignments[userId] = { agentIds: Set, pais, tipo_usuario }
