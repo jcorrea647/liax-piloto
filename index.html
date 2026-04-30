@@ -2,42 +2,42 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>LIAX AI - Generador Real Time</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIAX AI - Generador de Vanguardia</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Outfit', sans-serif; background: #0f172a; color: white; }
-        .canvas { background: white; color: #1e293b; min-height: 85vh; border-radius: 2rem; position: relative; border: 1px solid #e2e8f0; }
-        .loader { border-top-color: #3b82f6; animation: spinner 1.5s linear infinite; }
+        body { font-family: 'Outfit', sans-serif; background: #0f172a; color: white; margin: 0; }
+        .canvas { background: white; color: #1e293b; min-height: 88vh; border-radius: 2.5rem; position: relative; border: 1px solid #e2e8f0; }
+        .sidebar { background: #0f172a; }
+        .loader { border-top-color: #3b82f6; animation: spinner 1.2s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Evita que el contenido de la IA rompa el diseño */
-        #content img { max-width: 100%; border-radius: 1rem; }
+        @media print { .no-print { display: none !important; } .canvas { border-radius: 0; border: none; box-shadow: none; width: 100%; } }
     </style>
 </head>
-<body class="p-6">
+<body class="p-4 lg:p-8">
 
-    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div class="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
         
         <aside class="space-y-6 no-print">
-            <div class="bg-gradient-to-br from-blue-700 to-indigo-900 p-6 rounded-3xl shadow-2xl">
-                <h2 class="text-2xl font-black italic">LIAX ENGINE</h2>
-                <p class="text-[10px] uppercase tracking-widest opacity-70">Power by Together AI</p>
-                <div class="mt-4 p-2 bg-blue-800/50 rounded text-[9px] font-mono break-all opacity-50">Key: key_CaPgNyrKBZtdWUt1CYrbT</div>
+            <div class="bg-gradient-to-br from-blue-600 to-indigo-800 p-8 rounded-[2rem] shadow-2xl text-center">
+                <h1 class="text-4xl font-black italic tracking-tighter mb-1">LIAX AI</h1>
+                <p class="text-[10px] font-bold uppercase tracking-[0.3em] opacity-80">Together AI Engine</p>
             </div>
 
-            <div class="bg-slate-800 p-6 rounded-3xl space-y-4">
+            <div class="bg-slate-800/50 backdrop-blur-md p-6 rounded-[2rem] border border-slate-700 space-y-5">
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Edad del Estudiante</label>
-                    <select id="edad" class="w-full bg-slate-700 p-3 rounded-xl mt-1 font-bold text-sm outline-none">
-                        <option value="5">Rayitos A (5 años)</option>
-                        <option value="12">Primaria (12 años)</option>
-                        <option value="17">Secundaria / Bachillerato (17 años)</option>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Población Objetivo</label>
+                    <select id="edad" class="w-full bg-slate-900 border border-slate-700 p-4 rounded-2xl mt-2 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                        <option value="5">Rayitos A (5 años) - Inicial</option>
+                        <option value="12">Primaria (12 años) - Escolar</option>
+                        <option value="17">Promoción (17 años) - Superior</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Área Curricular</label>
-                    <select id="materia" class="w-full bg-slate-700 p-3 rounded-xl mt-1 font-bold text-sm outline-none">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Área Curricular</label>
+                    <select id="materia" class="w-full bg-slate-900 border border-slate-700 p-4 rounded-2xl mt-2 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                         <option value="Comunicación y Lenguaje">Comunicación</option>
                         <option value="Matemática y Pensamiento Lógico">Matemática</option>
                         <option value="Ciencia y Tecnología">Ciencia</option>
@@ -45,41 +45,45 @@
                 </div>
 
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Nivel INDI</label>
-                    <select id="logro" class="w-full bg-slate-700 p-3 rounded-xl mt-1 font-bold text-sm border-l-4 border-rose-500 outline-none">
-                        <option value="Apoyo (Requiere nivelación)">⚠️ Zona de Apoyo</option>
-                        <option value="Destacado (Reto avanzado)">🌟 Logro Destacado</option>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado INDI (Diferenciación)</label>
+                    <select id="logro" class="w-full bg-slate-900 border border-slate-700 p-4 rounded-2xl mt-2 font-bold text-sm border-l-4 border-rose-500 outline-none">
+                        <option value="Apoyo (Nivelación urgente)">⚠️ Zona de Apoyo</option>
+                        <option value="Destacado (Reto de alta demanda)">🌟 Logro Destacado</option>
                     </select>
                 </div>
 
-                <button onclick="generarConIA()" id="btnGenerar" class="w-full bg-blue-500 py-4 rounded-2xl font-black hover:bg-blue-400 active:scale-95 transition-all shadow-xl">
-                    GENERAR RECURSO YA
+                <button onclick="generarLIAX()" id="btnGenerar" class="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3">
+                    <span>🚀</span> GENERAR AHORA
                 </button>
             </div>
-            
-            <button onclick="window.print()" class="w-full bg-slate-700 py-3 rounded-xl text-xs font-bold uppercase tracking-widest">🖨️ Imprimir Resultado</button>
+
+            <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-700 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all">
+                🖨️ Exportar / Imprimir
+            </button>
         </aside>
 
-        <main class="lg:col-span-3 canvas p-8 shadow-2xl overflow-y-auto" id="display">
-            <div id="status" class="hidden absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center rounded-2xl">
-                <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-20 w-20 mb-4"></div>
-                <p class="text-blue-900 font-black animate-pulse uppercase tracking-widest">LIAX está creando el recurso...</p>
-                <p class="text-slate-400 text-xs mt-2 italic">Consultando modelos Llama-3 vía Together AI</p>
+        <main class="lg:col-span-3 canvas p-4 lg:p-10 shadow-2xl overflow-y-auto bg-slate-50" id="display">
+            <div id="status" class="hidden absolute inset-0 bg-white/90 z-50 flex flex-col items-center justify-center rounded-[2.5rem]">
+                <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-100 h-24 w-24 mb-6 shadow-sm"></div>
+                <h3 class="text-blue-900 font-black text-2xl animate-pulse italic">LIAX GENERANDO...</h3>
+                <p class="text-slate-400 text-sm mt-2 font-bold uppercase tracking-widest">Consultando Llama-3-70B</p>
             </div>
 
             <div id="content" class="h-full">
-                <div class="flex flex-col items-center justify-center h-full text-slate-300 italic text-center">
-                    <div class="text-6xl mb-4 opacity-20">🚀</div>
-                    <p>El motor está listo con tu API Key.<br>Selecciona los parámetros y presiona Generar.</p>
+                <div class="flex flex-col items-center justify-center h-full text-slate-300 italic text-center max-w-md mx-auto">
+                    <div class="text-8xl mb-6 opacity-20">🧬</div>
+                    <p class="text-xl font-medium">Motor de Autoría Pedagógica conectado con Together AI.</p>
+                    <p class="text-sm mt-2">Selecciona los parámetros para generar una ficha diferenciada única.</p>
                 </div>
             </div>
         </main>
     </div>
 
     <script>
-        const TOGETHER_API_KEY = "key_CaG2axZJ6861PcXP1NReM";
+        // CLAVE INTEGRADA
+        const TOGETHER_API_KEY = "key_CaPgNyrKBZtdWUt1CYrbT";
 
-        async function generarConIA() {
+        async function generarLIAX() {
             const edad = document.getElementById('edad').value;
             const materia = document.getElementById('materia').value;
             const logro = document.getElementById('logro').value;
@@ -88,16 +92,21 @@
 
             statusDiv.classList.remove('hidden');
 
-            // Prompt Maestro de Alta Ingeniería
-            const promptMaestro = `Actúa como un Diseñador Instruccional Experto. Genera un recurso pedagógico innovador en formato HTML para un estudiante de ${edad} años. 
-            ÁREA: ${materia}. NIVEL INDI: ${logro}.
+            // PROMPT MAESTRO PARAMETRIZADO
+            const promptMaestro = `Genera un recurso educativo profesional en HTML usando Tailwind CSS.
+            PARÁMETROS: Alumno de ${edad} años, Área: ${materia}, Nivel INDI: ${logro}.
             
-            REGLAS DE DISEÑO:
-            1. Si es para 5 años: Usa colores Teal y Rose, iconos grandes, lenguaje rítmico de Piura (Perú), 4 puzzles de encastre y 6 tarjetas de rimas.
-            2. Si es para 17 años: Usa un diseño minimalista 'Dark Mode' académico, plantea un caso de estudio real, una rúbrica analítica y un desafío de pensamiento crítico.
-            3. Devuelve SOLO el código HTML interno (dentro de un div) usando clases de Tailwind CSS. 
-            4. Asegúrate que sea visualmente impactante y profesional. 
-            5. No incluyas explicaciones fuera del código HTML.`;
+            REQUERIMIENTOS TÉCNICOS:
+            1. Si tiene 5 años: Diseña una ficha lúdica con el estilo de Piura (Perú). Debe incluir:
+               - Un encabezado institucional azul.
+               - Una sección de 'Rimas de Piura' (6 tarjetas con iconos como mango, chilalo, mar).
+               - Una sección de 'Puzzles de Encastre' (4 cuadros con guías para recortar).
+            2. Si tiene 17 años: Diseña un dashboard académico avanzado 'Dark Mode' o 'Academic Clean'. Incluye:
+               - Un Caso de Estudio complejo sobre un problema real actual.
+               - 3 preguntas de Pensamiento Crítico de alta demanda cognitiva.
+               - Una Rúbrica Analítica de evaluación.
+            3. Devuelve SOLO el HTML dentro de un div. No incluyas etiquetas <html>, <head> o <body>. 
+            4. Usa colores vibrantes para inicial y sobrios para secundaria.`;
 
             try {
                 const response = await fetch("https://api.together.xyz/v1/chat/completions", {
@@ -109,21 +118,28 @@
                     body: JSON.stringify({
                         model: "meta-llama/Llama-3-70b-chat-hf",
                         messages: [{role: "user", content: promptMaestro}],
-                        max_tokens: 2500,
-                        temperature: 0.7
+                        max_tokens: 2800,
+                        temperature: 0.75
                     })
                 });
 
                 const data = await response.json();
-                let aiHTML = data.choices[0].message.content;
+                
+                if (data.error) {
+                    contentDiv.innerHTML = `<div class="p-8 bg-red-50 text-red-700 rounded-3xl border border-red-200">
+                        <h4 class="font-black">Error de Together AI:</h4>
+                        <p class="text-sm">${data.error.message}</p>
+                    </div>`;
+                } else {
+                    let aiHTML = data.choices[0].message.content;
+                    // Limpieza de formato markdown si la IA lo envía
+                    aiHTML = aiHTML.replace(/```html/g, "").replace(/```/g, "").trim();
+                    contentDiv.innerHTML = aiHTML;
+                }
 
-                // Limpieza básica por si la IA devuelve backticks
-                aiHTML = aiHTML.replace(/```html/g, "").replace(/```/g, "");
-
-                contentDiv.innerHTML = aiHTML;
             } catch (error) {
-                console.error("Error LIAX Engine:", error);
-                contentDiv.innerHTML = `<div class="p-10 text-red-500 font-bold">Error de conexión con Together AI. Revisa tus créditos o la clave.</div>`;
+                console.error("LIAX ENGINE CRITICAL ERROR:", error);
+                contentDiv.innerHTML = `<div class="p-8 bg-orange-50 text-orange-700 rounded-3xl">Error de conexión. Revisa tu clave o internet.</div>`;
             } finally {
                 statusDiv.classList.add('hidden');
             }
