@@ -2,74 +2,108 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIAX INTERACTIVE - Rayitos 5 Años</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .a4-page { width: 210mm; min-height: 297mm; padding: 15mm; margin: 10px auto; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        @media print { .no-print { display: none; } .a4-page { margin: 0; } }
+        .game-canvas { background: radial-gradient(circle, #f0fdfa 0%, #ccfbf1 100%); min-height: 80vh; border-radius: 2rem; border: 8px solid #0d9488; position: relative; overflow: hidden; }
+        .token { transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
+        .token:hover { transform: scale(1.1) rotate(5deg); }
+        .drop-zone { border: 4px dashed #0d9488; border-radius: 1rem; background: rgba(255,255,255,0.5); }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        .floating { animation: float 3s ease-in-out infinite; }
     </style>
 </head>
-<body class="bg-slate-200">
-    <div class="a4-page" id="contenido">
+<body class="bg-slate-900 p-4 md:p-8 font-sans">
+
+    <div id="game-container" class="max-w-5xl mx-auto">
+        <header class="flex justify-between items-center mb-6 no-print">
+            <div>
+                <h1 class="text-4xl font-black text-teal-400 italic">LIAX PLAY</h1>
+                <p class="text-white text-xs uppercase tracking-widest font-bold">Aventura de Psicomotricidad: Rayitos A</p>
+            </div>
+            <button onclick="window.location.href='index.html'" class="bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-white/20">✖ Salir</button>
+        </header>
+
+        <div class="game-canvas p-8 shadow-2xl relative">
+            <div id="setup" class="text-center py-20">
+                <h2 class="text-5xl font-black text-teal-800 mb-4 floating">¡HOLA RAYITOS!</h2>
+                <p class="text-xl text-teal-600 mb-8 font-bold">Selecciona un nivel para comenzar el desafío interactivo</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                    <button onclick="startGame('coordinacion')" class="bg-orange-500 hover:bg-orange-600 text-white p-6 rounded-2xl font-black shadow-xl transform transition hover:-translate-y-2">🎮 COORDINACIÓN<br><span class="text-xs opacity-70">Óculo-manual</span></button>
+                    <button onclick="startGame('colores')" class="bg-blue-500 hover:bg-blue-600 text-white p-6 rounded-2xl font-black shadow-xl transform transition hover:-translate-y-2">🎨 COLORES Y MOVIMIENTO<br><span class="text-xs opacity-70">Reacción</span></button>
+                    <button onclick="startGame('formas')" class="bg-purple-500 hover:bg-purple-600 text-white p-6 rounded-2xl font-black shadow-xl transform transition hover:-translate-y-2">📐 FORMAS ESPACIALES<br><span class="text-xs opacity-70">Lateralidad</span></button>
+                </div>
+            </div>
+
+            <div id="play-area" class="hidden">
+                <div class="flex justify-between items-center mb-10">
+                    <div id="player-tag" class="bg-teal-800 text-white px-6 py-2 rounded-full font-bold text-lg shadow-lg">Alumno: <span id="current-student">...</span></div>
+                    <div class="text-3xl font-bold text-teal-800">Puntos: <span id="score">0</span></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-10">
+                    <div id="task-area" class="drop-zone h-64 flex items-center justify-center text-6xl shadow-inner">
+                        </div>
+                    <div id="options" class="grid grid-cols-2 gap-4">
+                        </div>
+                </div>
+            </div>
         </div>
 
+        <div class="mt-8 bg-white/5 p-6 rounded-2xl border border-white/10 no-print">
+            <h3 class="text-teal-400 font-bold mb-4 uppercase text-sm italic">Registro en Tiempo Real para el Docente</h3>
+            <div id="teacher-log" class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                </div>
+        </div>
+    </div>
+
     <script>
-        // 1. Capturar lo que el usuario eligió en la página anterior
-        const params = new URLSearchParams(window.location.search);
-        const logro = params.get('logro') || 'esperado';
-        const tipo = params.get('tipo') || 'juego';
+        const alumnos = ["Zeus Abad", "Thayza Acaro", "Hansel Estrada", "Luis Imán", "Rebeca Jimenez", "Caleb Lopez", "Vianca Mayo", "Yocelin Ogoña"];
+        let score = 0;
 
-        const container = document.getElementById('contenido');
+        function startGame(tipo) {
+            document.getElementById('setup').classList.add('hidden');
+            document.getElementById('play-area').classList.remove('hidden');
+            nextTurn();
+        }
 
-        // 2. Base de datos de contenidos pedagógicos
-        const contenidos = {
-            descendido: {
-                juego: "CIRCUITO BÁSICO: Gateo dirigido y equilibrio sobre línea ancha.",
-                ficha: "Trazo grueso de líneas rectas y círculos grandes.",
-                color: "border-red-500",
-                emoji: "🆘"
-            },
-            esperado: {
-                juego: "CIRCUITO INTERMEDIO: Salto de obstáculos bajos y carrera de relevos.",
-                ficha: "Recorte de figuras geométricas y trazo de letras.",
-                color: "border-teal-500",
-                emoji: "✅"
-            },
-            destacado: {
-                juego: "CIRCUITO AVANZADO: Coordinación óculo-manual con pelotas y equilibrio en un pie (5 seg).",
-                ficha: "Laberintos complejos y escritura de nombres.",
-                color: "border-blue-900",
-                emoji: "🌟"
+        function nextTurn() {
+            const randomStudent = alumnos[Math.floor(Math.random() * alumnos.length)];
+            document.getElementById('current-student').innerText = randomStudent;
+            
+            const taskArea = document.getElementById('task-area');
+            const options = document.getElementById('options');
+            
+            // Ejemplo de Juego de Colores
+            taskArea.innerHTML = "🔴"; // Objetivo
+            options.innerHTML = `
+                <button onclick="check(true)" class="token text-5xl bg-white p-6 rounded-3xl shadow-lg">🔴</button>
+                <button onclick="check(false)" class="token text-5xl bg-white p-6 rounded-3xl shadow-lg">🔵</button>
+                <button onclick="check(false)" class="token text-5xl bg-white p-6 rounded-3xl shadow-lg">🟡</button>
+                <button onclick="check(false)" class="token text-5xl bg-white p-6 rounded-3xl shadow-lg">🟢</button>
+            `;
+        }
+
+        function check(isCorrect) {
+            if(isCorrect) {
+                score += 10;
+                document.getElementById('score').innerText = score;
+                alert("¡Excelente trabajo!");
             }
-        };
+            nextTurn();
+        }
 
-        const data = contenidos[logro];
-
-        // 3. Dibujar el recurso según la elección
-        container.innerHTML = `
-            <div class="border-b-4 ${data.color} pb-4 mb-6">
-                <h1 class="text-3xl font-black text-slate-800 italic">LIAX RECURSOS</h1>
-                <p class="text-sm font-bold text-slate-500 uppercase">Nivel: Rayitos (5 años) | Estado: ${logro.toUpperCase()}</p>
-            </div>
-
-            <div class="bg-slate-50 p-6 rounded-xl border-2 border-dashed ${data.color} mb-8">
-                <h2 class="text-2xl font-bold mb-4">${data.emoji} RECURSO: ${tipo.toUpperCase()}</h2>
-                <p class="text-lg text-slate-700 font-medium">${data[tipo]}</p>
-            </div>
-
-            <table class="w-full border-collapse border border-slate-300">
-                <tr class="bg-slate-800 text-white text-xs uppercase">
-                    <th class="p-2 border">Alumno</th>
-                    <th class="p-2 border">Observación Pedagógica</th>
-                </tr>
-                <tr><td class="p-2 border font-bold">Zeus Abad</td><td class="p-2 border italic text-slate-400 text-xs">Anotar aquí progreso...</td></tr>
-                <tr class="bg-slate-50"><td class="p-2 border font-bold">Thayza Acaro</td><td class="p-2 border italic text-slate-400 text-xs">Anotar aquí progreso...</td></tr>
-                <tr><td class="p-2 border font-bold">Hansel Estrada</td><td class="p-2 border italic text-slate-400 text-xs">Anotar aquí progreso...</td></tr>
-            </table>
-
-            <div class="mt-20 no-print">
-                <button onclick="window.print()" class="bg-blue-900 text-white px-8 py-3 rounded-full font-bold">🖨️ IMPRIMIR ESTE RECURSO</button>
-            </div>
-        `;
+        // Generar log de profesor
+        const log = document.getElementById('teacher-log');
+        alumnos.forEach(name => {
+            log.innerHTML += `
+                <div class="bg-white/10 p-2 rounded text-[10px] text-white flex justify-between">
+                    <span>${name}</span>
+                    <span class="text-teal-400 font-bold">---</span>
+                </div>
+            `;
+        });
     </script>
 </body>
 </html>
