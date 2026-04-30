@@ -3,169 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIAX - Plataforma de Autoría Pedagógica</title>
+    <title>LIAX - Sistema de Progresión Pedagógica</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .sidebar { width: 280px; background: white; border-right: 1px solid #e5e7eb; position: sticky; top: 0; height: 100vh; }
-        .card-recurso { background: white; border-radius: 2.5rem; box-shadow: 0 10px 40px rgba(0,0,0,0.08); overflow: hidden; }
-        .badge-apoyo { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .draggable { touch-action: none; user-select: none; cursor: grab; }
+        body { font-family: 'Outfit', sans-serif; background-color: #f8fafc; }
+        .sidebar { width: 280px; background: white; border-right: 1px solid #e2e8f0; position: sticky; top: 0; height: 100vh; }
+        .card-recurso { background: white; border-radius: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #e2e8f0; }
+        
+        /* Estilos de Puzzle */
+        .puzzle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 300px; height: 300px; background: #f1f5f9; border-radius: 1rem; padding: 10px; position: relative; }
+        .slot { border: 2px dashed #cbd5e1; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; background: white; }
+        .piece { width: 130px; height: 130px; cursor: grab; display: flex; align-items: center; justify-content: center; font-size: 3rem; background: white; border-radius: 0.5rem; shadow: lg; border: 1px solid #e2e8f0; z-index: 10; touch-action: none; }
         .dropzone-active { background: #d1fae5 !important; border-color: #10b981 !important; }
-        @media print { .no-print { display: none !important; } .sidebar { display: none; } body { background: white; } }
+        
+        @media print { .no-print { display: none !important; } .sidebar { display: none; } body { background: white; padding: 0; } .card-recurso { box-shadow: none; border: 1px solid #eee; margin: 0; width: 100%; } }
     </style>
 </head>
 <body class="flex min-h-screen">
 
-    <aside class="sidebar p-6 flex flex-col gap-6 no-print overflow-y-auto">
+    <aside class="sidebar p-6 flex flex-col gap-6 no-print">
         <div class="flex items-center gap-2 mb-4">
-            <div class="bg-blue-900 text-white px-3 py-1 rounded font-black italic">LIAX</div>
-            <span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">PRO v2.5</span>
+            <div class="bg-blue-900 text-white px-3 py-1 rounded-lg font-black italic">LIAX</div>
+            <span class="text-[10px] font-bold text-blue-600 tracking-widest uppercase">Piura Pro</span>
         </div>
-        <div>
-            <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest">📊 Resumen INDI</h3>
-            <div class="space-y-2 text-[11px]">
-                <div class="p-2.5 rounded-xl bg-yellow-50 text-yellow-800 border border-yellow-200 flex justify-between items-center"><span>🌟 Destacado</span> <strong>15</strong></div>
-                <div class="p-2.5 rounded-xl bg-green-50 text-green-800 border border-green-200 flex justify-between items-center"><span>✅ Esperado</span> <strong>7</strong></div>
-                <div class="p-2.5 rounded-xl badge-apoyo flex justify-between items-center font-bold"><span>⚠️ Apoyo</span> <strong>7</strong></div>
-            </div>
-        </div>
-        <div class="text-[11px] space-y-3 border-t pt-5">
-             <p><strong>Aula:</strong> Rayitos A (5 años)</p>
-             <p><strong>Área:</strong> Comunicación</p>
-             <p class="text-slate-500 italic leading-snug">Contexto: Piura (Chilalo, Algarrobo)</p>
+        <div class="space-y-2">
+            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aula: Rayitos A</h3>
+            <div class="p-3 rounded-xl bg-rose-50 border border-rose-100 text-[11px] font-bold text-rose-700">⚠️ Apoyo: 7 Alumnos</div>
+            <div class="p-3 rounded-xl bg-teal-50 border border-teal-100 text-[11px] font-bold text-teal-700">✅ Esperado: 15 Alumnos</div>
         </div>
     </aside>
 
-    <main class="flex-1 p-8 overflow-y-auto">
+    <main class="flex-1 p-8">
         
-        <header class="flex justify-between items-center mb-10 no-print bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-200">
-            <div class="text-slate-500 text-sm">📄 Visualizador — <strong class="text-blue-900">RAYITOS A • Comunicación</strong></div>
+        <header class="flex justify-between items-center mb-10 no-print bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="text-sm font-bold text-slate-500">Selector de Recursos Secuenciales</div>
             <div class="flex gap-4">
                 <div class="relative group">
-                    <button class="bg-blue-900 text-white px-6 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 shadow-lg">
-                        🎨 ELIGE EL RECURSO <span class="text-[8px] opacity-60">▼</span>
+                    <button class="bg-blue-900 text-white px-6 py-2.5 rounded-xl text-xs font-black shadow-lg">
+                        SELECCIONAR ACTIVIDAD ▼
                     </button>
-                    <div class="absolute right-0 mt-3 w-64 bg-white border border-slate-200 rounded-2xl shadow-2xl hidden group-hover:block z-50 overflow-hidden ring-4 ring-black/5">
-                        <div class="p-3 bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b">Acción Digital</div>
-                        <button onclick="cargarRimas()" class="w-full text-left p-4 text-xs hover:bg-teal-50 flex items-center gap-3 transition-colors">
-                            <span class="text-lg">🎤</span> <strong>Rimas de Piura</strong>
-                        </button>
-                        <button onclick="cargarPuzzle()" class="w-full text-left p-4 text-xs hover:bg-indigo-50 flex items-center gap-3 border-b transition-colors">
-                            <span class="text-lg">🧩</span> <strong>Puzzle Lógico</strong>
-                        </button>
-                        <div class="p-3 bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b">Imprimible</div>
-                        <button onclick="cargarFicha()" class="w-full text-left p-4 text-xs hover:bg-rose-50 flex items-center gap-3 transition-colors">
-                            <span class="text-lg">📄</span> <strong>Ficha Zona de Apoyo</strong>
-                        </button>
+                    <div class="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-2xl hidden group-hover:block z-50 overflow-hidden">
+                        <button onclick="iniciarPuzzle(1)" class="w-full text-left p-4 text-xs hover:bg-indigo-50 border-b flex gap-3"><span>🧩</span> <strong>Puzzle de 4 Piezas</strong></button>
+                        <button onclick="iniciarRima(1)" class="w-full text-left p-4 text-xs hover:bg-teal-50 border-b flex gap-3"><span>🎤</span> <strong>Tarjetas de Rimas</strong></button>
+                        <button onclick="generarFichaMaestra()" class="w-full text-left p-4 text-xs hover:bg-rose-50 flex gap-3"><span>📄</span> <strong>Ficha Completa (Imprimir)</strong></button>
                     </div>
                 </div>
-                <button onclick="window.print()" class="bg-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-xs font-black hover:bg-slate-300">🖨️ IMPRIMIR</button>
+                <button onclick="window.print()" class="bg-slate-800 text-white px-6 py-2.5 rounded-xl text-xs font-black">IMPRIMIR</button>
             </div>
         </header>
 
-        <div id="contenedor-recurso" class="mx-auto max-w-4xl">
-            <div class="bg-white rounded-[3rem] p-24 text-center border-4 border-dashed border-slate-100">
-                <p class="text-slate-400 font-bold italic">Selecciona un recurso para activarlo...</p>
+        <div id="escenario" class="mx-auto max-w-4xl">
+            <div class="p-20 text-center bg-white rounded-[3rem] border-4 border-dashed border-slate-100 text-slate-300 font-bold italic">
+                Carga un recurso para comenzar la secuencia...
             </div>
         </div>
     </main>
 
     <script>
-        const contenedor = document.getElementById('contenedor-recurso');
+        const escenario = document.getElementById('escenario');
+        let piezasEncajadas = 0;
 
-        // --- FUNCION 1: FICHA IMPRIMIBLE ---
-        function cargarFicha() {
-            contenedor.innerHTML = `
-                <div class="card-recurso border border-slate-200 bg-white">
-                    <div class="bg-blue-700 p-8 text-white flex justify-between items-center">
-                        <div><h2 class="text-3xl font-black uppercase italic">Ficha Pedagógica</h2><p class="text-[11px] opacity-80 uppercase font-bold tracking-widest">Comunicación - Nivel Apoyo</p></div>
-                        <span class="text-5xl">🎨</span>
-                    </div>
-                    <div class="grid grid-cols-4 text-[10px] border-b uppercase font-bold bg-slate-50 p-4">
-                        <div>Aula: <span class="text-blue-700">Rayitos A</span></div>
-                        <div>Maestra: <span class="text-blue-700">Fanny De la Cruz</span></div>
-                        <div>Fecha: <span class="text-blue-700">30/04/2026</span></div>
-                        <div>INDI: <span class="text-rose-600 font-black italic">Zona de Apoyo</span></div>
-                    </div>
-                    <div class="p-10">
-                        <div class="bg-rose-50 border border-rose-200 rounded-[2rem] p-8 mb-6">
-                            <h4 class="text-rose-700 font-black text-xs mb-4 uppercase">⚠️ Alumnos Seleccionados (INDI):</h4>
-                            <div class="flex flex-wrap gap-2 mb-6">
-                                ${["Caleb López", "Yocelin Ogoña", "Thiago Pangalima", "David Coral"].map(n => `<span class="bg-white border px-3 py-1 rounded-lg text-[10px] font-bold text-rose-600">${n}</span>`).join('')}
-                            </div>
-                            <div class="grid grid-cols-2 gap-8 items-center">
-                                <div>
-                                    <p class="text-lg font-bold text-slate-800 italic">"El Chilalo de Piura canta así:"</p>
-                                    <p class="text-3xl font-black text-rose-600 tracking-widest mt-2 uppercase">chi-LA-lo</p>
-                                </div>
-                                <div class="text-8xl text-center">🐦</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-        }
-
-        // --- FUNCION 2: RÍMAS INTERACTIVAS ---
-        function cargarRimas() {
-            contenedor.innerHTML = `
-                <div class="card-recurso border-4 border-teal-500 rounded-[3rem] bg-white overflow-hidden">
-                    <div class="bg-teal-600 p-6 text-white text-center"><h2 class="text-2xl font-black uppercase italic tracking-tighter">Laboratorio de Rimas Piuranas</h2></div>
-                    <div class="p-12 text-center">
-                        <p class="text-slate-400 font-black mb-6 uppercase text-xs">¿Qué rima con MANGO?</p>
-                        <div class="text-9xl mb-8">🥭</div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <button onclick="alert('¡Excelente! Mango rima con Fandango.')" class="p-6 bg-slate-50 border-2 border-slate-100 rounded-3xl text-xl font-bold hover:bg-teal-500 hover:text-white transition-all">💃 Fandango</button>
-                            <button onclick="alert('Inténtalo de nuevo')" class="p-6 bg-slate-50 border-2 border-slate-100 rounded-3xl text-xl font-bold hover:bg-rose-500 hover:text-white transition-all">🚗 Carro</button>
-                        </div>
-                    </div>
-                </div>`;
-        }
-
-        // --- FUNCION 3: PUZZLE INTERACTIVO ---
-        function cargarPuzzle() {
-            contenedor.innerHTML = `
-                <div class="card-recurso border-4 border-indigo-600 rounded-[3rem] bg-white overflow-hidden">
-                    <div class="bg-indigo-700 p-6 text-white text-center"><h2 class="text-2xl font-black uppercase italic tracking-tighter">Puzzle de Encastre Lógico</h2></div>
-                    <div class="p-12 flex flex-col items-center">
-                        <div id="dropzone" class="w-64 h-64 border-4 border-dashed border-slate-200 rounded-[3rem] flex items-center justify-center text-slate-100 text-9xl mb-12 transition-all">⭐</div>
-                        <div id="drag-piece" class="draggable w-32 h-32 bg-white shadow-2xl rounded-3xl border border-slate-100 flex items-center justify-center text-6xl">⭐</div>
-                        <p class="mt-8 text-xs font-bold text-slate-400 italic">ARRASTRA LA ESTRELLA AL MOLDE</p>
-                    </div>
-                </div>`;
+        // --- LÓGICA DE PUZZLE ---
+        function iniciarPuzzle(nivel) {
+            piezasEncajadas = 0;
+            const iconos = nivel === 1 ? ['🥭', '🌊', '🐦', '☀️'] : ['🦀', '🌴', '🐟', '⛵'];
             
-            // Iniciar lógica de arrastre
-            initInteract();
+            escenario.innerHTML = `
+                <div class="card-recurso p-12 text-center animate-in fade-in zoom-in duration-300">
+                    <h2 class="text-2xl font-black text-indigo-900 mb-2 uppercase italic">Puzzle Lógico - Nivel ${nivel}</h2>
+                    <p class="text-sm text-slate-400 mb-8 font-bold italic uppercase">Arrastra las 4 piezas para completar el cuadro</p>
+                    
+                    <div class="flex flex-col md:flex-row gap-12 items-center justify-center">
+                        <div class="puzzle-grid" id="puzzle-target">
+                            <div class="slot" data-slot="0"></div><div class="slot" data-slot="1"></div>
+                            <div class="slot" data-slot="2"></div><div class="slot" data-slot="3"></div>
+                        </div>
+                        
+                        <div class="flex flex-wrap md:flex-col gap-4" id="piezas-container">
+                            ${iconos.map((ico, i) => `<div class="piece draggable shadow-xl" data-id="${i}">${ico}</div>`).join('')}
+                        </div>
+                    </div>
+                    <div id="btn-next-puzzle" class="mt-10 hidden">
+                        <button onclick="iniciarPuzzle(${nivel + 1})" class="bg-green-500 text-white px-10 py-4 rounded-full font-black shadow-xl hover:bg-green-600">¡LOGRADO! HACER OTRO PUZZLE →</button>
+                    </div>
+                </div>`;
+            initInteractPuzzle();
         }
 
-        function initInteract() {
+        function initInteractPuzzle() {
             interact('.draggable').draggable({
-                listeners: {
-                    move (event) {
-                        const { target } = event;
-                        const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-                        const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-                        target.style.transform = `translate(${x}px, ${y}px)`;
-                        target.setAttribute('data-x', x);
-                        target.setAttribute('data-y', y);
+                listeners: { move(event) {
+                    const t = event.target;
+                    const x = (parseFloat(t.getAttribute('data-x')) || 0) + event.dx;
+                    const y = (parseFloat(t.getAttribute('data-y')) || 0) + event.dy;
+                    t.style.transform = `translate(${x}px, ${y}px)`;
+                    t.setAttribute('data-x', x); t.setAttribute('data-y', y);
+                }}
+            });
+
+            interact('.slot').dropzone({
+                accept: '.draggable', overlap: 0.6,
+                ondragenter: e => e.target.classList.add('dropzone-active'),
+                ondragleave: e => e.target.classList.remove('dropzone-active'),
+                ondrop: e => {
+                    const p = e.relatedTarget;
+                    const s = e.target;
+                    if(p.getAttribute('data-id') === s.getAttribute('data-slot')) {
+                        s.innerHTML = p.innerHTML;
+                        s.classList.remove('dropzone-active');
+                        s.classList.add('bg-green-50', 'border-green-500');
+                        p.style.display = 'none';
+                        piezasEncajadas++;
+                        if(piezasEncajadas === 4) document.getElementById('btn-next-puzzle').classList.remove('hidden');
                     }
                 }
             });
+        }
 
-            interact('#dropzone').dropzone({
-                accept: '#drag-piece',
-                overlap: 0.5,
-                ondragenter: (e) => e.target.classList.add('dropzone-active'),
-                ondragleave: (e) => e.target.classList.remove('dropzone-active'),
-                ondrop: (e) => {
-                    alert('¡Reto Logrado! Pieza encajada correctamente.');
-                    e.relatedTarget.style.opacity = '0';
-                    document.getElementById('dropzone').innerText = '⭐';
-                    document.getElementById('dropzone').classList.add('text-yellow-400', 'opacity-100');
-                }
-            });
+        // --- LÓGICA DE RIMAS ---
+        function iniciarRima(n) {
+            const rimas = [
+                {q: "MANGO", a: "FANDANGO", ico: "🥭"},
+                {q: "CHILALO", a: "PALO", ico: "🐦"},
+                {q: "MAR", a: "JUGAR", ico: "🌊"}
+            ];
+            const r = rimas[n-1] || rimas[0];
+            
+            escenario.innerHTML = `
+                <div class="card-recurso p-12 text-center bg-white border-4 border-teal-500">
+                    <span class="text-xs font-black text-teal-600 uppercase tracking-widest">Tarjeta de Rima #${n}</span>
+                    <div class="text-9xl my-8">${r.ico}</div>
+                    <h3 class="text-3xl font-black text-slate-800 mb-8 uppercase italic underline decoration-teal-300">¿Qué rima con ${r.q}?</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button onclick="checkRima(true, ${n})" class="p-6 bg-slate-50 border-2 border-slate-200 rounded-3xl text-xl font-bold hover:bg-teal-500 hover:text-white transition-all">${r.a}</button>
+                        <button onclick="alert('¡Inténtalo de nuevo!')" class="p-6 bg-slate-50 border-2 border-slate-200 rounded-3xl text-xl font-bold">PIZZA</button>
+                    </div>
+                    <div id="next-rima" class="mt-8 hidden">
+                        <button onclick="iniciarRima(${n+1})" class="bg-blue-600 text-white px-8 py-3 rounded-full font-bold">SIGUIENTE RIMA →</button>
+                    </div>
+                </div>`;
+        }
+
+        function checkRima(win, n) {
+            if(win) {
+                alert("¡Genial!");
+                document.getElementById('next-rima').classList.remove('hidden');
+            }
+        }
+
+        // --- GENERACIÓN DE FICHA MAESTRA (IMPRIMIBLE) ---
+        function generarFichaMaestra() {
+            escenario.innerHTML = `
+                <div class="card-recurso bg-white border border-slate-300">
+                    <div class="bg-blue-800 p-8 text-white flex justify-between items-center">
+                        <h2 class="text-3xl font-black italic">FICHA MAESTRA LIAX</h2>
+                        <div class="text-right text-[10px] uppercase font-bold tracking-widest">Contenido: 4 Puzzles + 6 Rimas</div>
+                    </div>
+                    
+                    <div class="p-8 space-y-10">
+                        <div>
+                            <h4 class="bg-indigo-100 text-indigo-800 p-2 text-xs font-black uppercase mb-6 rounded-lg italic">🧩 Bloque 1: Recortables de Razonamiento (16 piezas)</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                ${[1,2,3,4].map(i => `
+                                    <div class="border-2 border-dashed border-slate-200 p-2 rounded-xl text-center">
+                                        <div class="grid grid-cols-2 gap-1 mb-2">
+                                            <div class="h-10 bg-slate-50 border border-slate-100"></div><div class="h-10 bg-slate-50 border border-slate-100"></div>
+                                            <div class="h-10 bg-slate-50 border border-slate-100"></div><div class="h-10 bg-slate-50 border border-slate-100"></div>
+                                        </div>
+                                        <span class="text-[8px] font-bold text-slate-400">PUZZLE #${i}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="bg-teal-100 text-teal-800 p-2 text-xs font-black uppercase mb-6 rounded-lg italic">🎤 Bloque 2: Conciencia Fonológica Piurana (6 Tarjetas)</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                ${['Chilalo', 'Mango', 'Algarrobo', 'Paita', 'Sol', 'Mar'].map(item => `
+                                    <div class="border-2 border-teal-500 rounded-2xl p-4 text-center">
+                                        <div class="h-20 bg-slate-50 mb-3 flex items-center justify-center text-4xl">🖼️</div>
+                                        <p class="text-[10px] font-black uppercase">${item}</p>
+                                        <div class="mt-2 h-4 border-b border-slate-200"></div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
         }
     </script>
 </body>
