@@ -2,95 +2,74 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Juegos Psicomotrices - LIAX</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .a4-page { width: 210mm; min-height: 297mm; padding: 15mm; margin: 10px auto; background: white; border: 8px double #0d9488; }
-        .game-card { border: 2px dashed #0d9488; border-radius: 15px; padding: 10px; margin-bottom: 15px; background: #f0fdfa; }
+        .a4-page { width: 210mm; min-height: 297mm; padding: 15mm; margin: 10px auto; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
         @media print { .no-print { display: none; } .a4-page { margin: 0; } }
     </style>
 </head>
-<body class="bg-slate-200 font-sans">
-
-    <div class="fixed bottom-6 right-6 no-print">
-        <button onclick="window.print()" class="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-full font-bold shadow-2xl transition-all">
-            🖨️ IMPRIMIR JUEGOS
-        </button>
-    </div>
-
-    <div class="a4-page">
-        <div class="text-center mb-6">
-            <h1 class="text-4xl font-black text-teal-600 uppercase tracking-tighter">¡A JUGAR Y MOVERSE!</h1>
-            <p class="text-orange-500 font-bold italic">Circuito de Psicomotricidad - Aula Rayitos A (5 años)</p>
-            <div class="flex justify-center gap-4 mt-2 text-[10px] font-bold text-slate-400">
-                <span>COLEGIO: LIAX ACADEMY</span> | <span>FECHA: ___/___/2026</span>
-            </div>
+<body class="bg-slate-200">
+    <div class="a4-page" id="contenido">
         </div>
 
-        <div class="grid grid-cols-1 gap-2">
-            
-            <div class="game-card flex items-center gap-4">
-                <div class="text-4xl">🦒</div>
-                <div class="flex-1">
-                    <h3 class="font-black text-teal-800 uppercase text-sm">1. El Paso de la Jirafa (Equilibrio)</h3>
-                    <p class="text-[10px] text-slate-600">Caminar sobre una línea de cinta con las manos arriba, sin salirse.</p>
-                </div>
-                <div class="bg-white border-2 border-teal-500 p-2 text-[9px] font-bold w-32">
-                    LOGRADO: [ ]<br>EN PROCESO: [ ]
-                </div>
+    <script>
+        // 1. Capturar lo que el usuario eligió en la página anterior
+        const params = new URLSearchParams(window.location.search);
+        const logro = params.get('logro') || 'esperado';
+        const tipo = params.get('tipo') || 'juego';
+
+        const container = document.getElementById('contenido');
+
+        // 2. Base de datos de contenidos pedagógicos
+        const contenidos = {
+            descendido: {
+                juego: "CIRCUITO BÁSICO: Gateo dirigido y equilibrio sobre línea ancha.",
+                ficha: "Trazo grueso de líneas rectas y círculos grandes.",
+                color: "border-red-500",
+                emoji: "🆘"
+            },
+            esperado: {
+                juego: "CIRCUITO INTERMEDIO: Salto de obstáculos bajos y carrera de relevos.",
+                ficha: "Recorte de figuras geométricas y trazo de letras.",
+                color: "border-teal-500",
+                emoji: "✅"
+            },
+            destacado: {
+                juego: "CIRCUITO AVANZADO: Coordinación óculo-manual con pelotas y equilibrio en un pie (5 seg).",
+                ficha: "Laberintos complejos y escritura de nombres.",
+                color: "border-blue-900",
+                emoji: "🌟"
+            }
+        };
+
+        const data = contenidos[logro];
+
+        // 3. Dibujar el recurso según la elección
+        container.innerHTML = `
+            <div class="border-b-4 ${data.color} pb-4 mb-6">
+                <h1 class="text-3xl font-black text-slate-800 italic">LIAX RECURSOS</h1>
+                <p class="text-sm font-bold text-slate-500 uppercase">Nivel: Rayitos (5 años) | Estado: ${logro.toUpperCase()}</p>
             </div>
 
-            <div class="game-card flex items-center gap-4">
-                <div class="text-4xl">🐸</div>
-                <div class="flex-1">
-                    <h3 class="font-black text-teal-800 uppercase text-sm">2. Salto del Sapito (Fuerza)</h3>
-                    <p class="text-[10px] text-slate-600">Saltar dentro de aros de colores con los dos pies juntos.</p>
-                </div>
-                <div class="bg-white border-2 border-teal-500 p-2 text-[9px] font-bold w-32">
-                    LOGRADO: [ ]<br>EN PROCESO: [ ]
-                </div>
+            <div class="bg-slate-50 p-6 rounded-xl border-2 border-dashed ${data.color} mb-8">
+                <h2 class="text-2xl font-bold mb-4">${data.emoji} RECURSO: ${tipo.toUpperCase()}</h2>
+                <p class="text-lg text-slate-700 font-medium">${data[tipo]}</p>
             </div>
 
-            <div class="game-card flex items-center gap-4">
-                <div class="text-4xl">🦀</div>
-                <div class="flex-1">
-                    <h3 class="font-black text-teal-800 uppercase text-sm">3. Carrera de Cangrejos (Coord.)</h3>
-                    <p class="text-[10px] text-slate-600">Caminar de espaldas apoyando manos y pies hasta la meta.</p>
-                </div>
-                <div class="bg-white border-2 border-teal-500 p-2 text-[9px] font-bold w-32">
-                    LOGRADO: [ ]<br>EN PROCESO: [ ]
-                </div>
+            <table class="w-full border-collapse border border-slate-300">
+                <tr class="bg-slate-800 text-white text-xs uppercase">
+                    <th class="p-2 border">Alumno</th>
+                    <th class="p-2 border">Observación Pedagógica</th>
+                </tr>
+                <tr><td class="p-2 border font-bold">Zeus Abad</td><td class="p-2 border italic text-slate-400 text-xs">Anotar aquí progreso...</td></tr>
+                <tr class="bg-slate-50"><td class="p-2 border font-bold">Thayza Acaro</td><td class="p-2 border italic text-slate-400 text-xs">Anotar aquí progreso...</td></tr>
+                <tr><td class="p-2 border font-bold">Hansel Estrada</td><td class="p-2 border italic text-slate-400 text-xs">Anotar aquí progreso...</td></tr>
+            </table>
+
+            <div class="mt-20 no-print">
+                <button onclick="window.print()" class="bg-blue-900 text-white px-8 py-3 rounded-full font-bold">🖨️ IMPRIMIR ESTE RECURSO</button>
             </div>
-
-        </div>
-
-        <div class="mt-4">
-            <h4 class="text-xs font-bold text-slate-700 mb-2 border-b-2 border-orange-300 inline-block">OBSERVACIÓN POR ESTUDIANTE:</h4>
-            <div class="grid grid-cols-2 gap-x-6 gap-y-1">
-                <script>
-                    const alumnos = [
-                        "Zeus Abad", "Thayza Acaro", "Hansel Estrada", 
-                        "Luis Imán", "Rebeca Jimenez", "Caleb Lopez", 
-                        "Vianca Mayo", "Yocelin Ogoña", "Sara Ojeda", 
-                        "Camila Palacios", "Thiago Pangalima"
-                    ];
-                    alumnos.forEach(name => {
-                        document.write(`<div class="text-[9px] border-b border-slate-100 flex justify-between">
-                            <span>${name}</span>
-                            <span class="text-slate-300 italic">Notas: _________________</span>
-                        </div>`);
-                    });
-                </script>
-            </div>
-        </div>
-
-        <div class="mt-8 pt-4 border-t-2 border-slate-100 flex justify-between items-end">
-            <img src="https://via.placeholder.com/100x40?text=LIAX+LOGOTIPO" alt="Logo" class="opacity-30">
-            <p class="text-[8px] text-slate-400 max-w-xs text-right italic">
-                Este recurso forma parte del programa "Mente Sana en Cuerpo Sano" de LIAX Editorial. 
-                Prohibida su reproducción total sin autorización.
-            </p>
-        </div>
-    </div>
+        `;
+    </script>
 </body>
 </html>
