@@ -2,73 +2,43 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Generador de Recursos LIAX</title>
+    <title>Generador LIAX</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 font-sans">
-    <div class="max-w-4xl mx-auto py-10 px-4">
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-black text-blue-900">LIAX SMART GENERATOR</h1>
-            <p class="text-teal-600 font-bold uppercase tracking-widest">Recursos según Nivel de Logro</p>
-        </header>
-
-        <div class="bg-white p-8 rounded-2xl shadow-xl border-t-8 border-teal-500">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div>
-                    <label class="block text-xs font-black text-slate-500 mb-2 uppercase">1. Nivel del Alumno</label>
-                    <select id="nivelLogro" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700">
-                        <option value="destacado">🌟 Destacado (Reto Alto)</option>
-                        <option value="esperado">✅ Esperado (Refuerzo)</option>
-                        <option value="descendido">🆘 Descendido (Nivelación)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-black text-slate-500 mb-2 uppercase">2. Formato de Recurso</label>
-                    <select id="tipoRecurso" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700">
-                        <option value="juego">🎮 Juego Motriz</option>
-                        <option value="impreso">📄 Ficha Impresa</option>
-                        <option value="digital">📱 Actividad Digital</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-black text-slate-500 mb-2 uppercase">3. Competencia</label>
-                    <select id="competencia" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700">
-                        <option value="psico">Psicomotricidad</option>
-                        <option value="comu">Comunicación</option>
-                        <option value="mat">Matemática</option>
-                    </select>
-                </div>
+<body class="bg-slate-100 p-6">
+    <div class="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-2xl border-t-8 border-blue-900">
+        <h1 class="text-2xl font-black text-blue-900 mb-6 uppercase text-center">Configurador de Recursos</h1>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 mb-1">NIVEL DE RESULTADO</label>
+                <select id="logro" class="w-full p-3 bg-slate-50 border rounded-lg font-bold">
+                    <option value="destacado">🌟 DESTACADO (Retos)</option>
+                    <option value="esperado">✅ ESPERADO (Refuerzo)</option>
+                    <option value="descendido">🆘 DESCENDIDO (Nivelación)</option>
+                </select>
             </div>
 
-            <button onclick="generarRecurso()" class="w-full bg-blue-900 hover:bg-teal-600 text-white font-black py-4 rounded-xl transition-all shadow-lg text-xl uppercase tracking-tighter">
-                Generar Recurso Pedagógico Especializado
+            <div>
+                <label class="block text-xs font-bold text-slate-400 mb-1">TIPO DE RECURSO</label>
+                <select id="tipo" class="w-full p-3 bg-slate-50 border rounded-lg font-bold">
+                    <option value="juego">🎮 JUEGO PSICOMOTRIZ</option>
+                    <option value="ficha">📄 FICHA IMPRESA</option>
+                </select>
+            </div>
+
+            <button onclick="irAlRecurso()" class="w-full bg-teal-500 hover:bg-blue-900 text-white font-bold py-4 rounded-xl transition-all shadow-lg uppercase mt-4">
+                Generar y Abrir Recurso →
             </button>
         </div>
-
-        <div id="resultadoBusqueda" class="mt-10 hidden">
-            </div>
     </div>
 
     <script>
-        function generarRecurso() {
-            const nivel = document.getElementById('nivelLogro').value;
-            const tipo = document.getElementById('tipoRecurso').value;
-            const resContainer = document.getElementById('resultadoBusqueda');
-            
-            resContainer.classList.remove('hidden');
-            
-            // Lógica simple para simular el generador
-            resContainer.innerHTML = `
-                <div class="bg-teal-50 border-2 border-teal-500 p-6 rounded-xl flex justify-between items-center animate-bounce">
-                    <div>
-                        <h3 class="text-xl font-bold text-teal-800 uppercase">¡Recurso de ${tipo} listo!</h3>
-                        <p class="text-slate-600 text-sm">Optimizado para nivel: <strong>${nivel}</strong></p>
-                    </div>
-                    <a href="recurso.html?mode=${nivel}&type=${tipo}" class="bg-teal-500 text-white px-6 py-3 rounded-lg font-bold">VER RECURSO</a>
-                </div>
-            `;
+        function irAlRecurso() {
+            const logro = document.getElementById('logro').value;
+            const tipo = document.getElementById('tipo').value;
+            // Esto envía las opciones por la URL
+            window.location.href = `recurso.html?logro=${logro}&tipo=${tipo}`;
         }
     </script>
 </body>
