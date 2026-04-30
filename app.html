@@ -857,6 +857,14 @@
   /* ── Agent welcome screen ────────────────────────── */
   /* ── Selector de recursos (agente v1) ─────────────── */
   .rec-selector { width:100%;max-width:680px;margin:0 auto 12px; }
+  /* ── Generador INDI (agente gr1) ───────────────────── */
+  .gr-lbl { font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:4px; }
+  .gr-sel { width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;outline:none;cursor:pointer; }
+  .gr-sel:focus { border-color:var(--accent1); }
+  .gr-tipo-btn { background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:7px 6px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;transition:.12s;text-align:center;width:100%; }
+  .gr-tipo-btn:hover { border-color:var(--accent1);color:var(--text); }
+  .gr-tipo-active { border-color:var(--accent1)!important;background:var(--dim1)!important;color:var(--accent1)!important;font-weight:700; }
+
   .rec-cat-label { font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:14px 0 7px;padding-left:2px; }
   .rec-grid { display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:4px; }
   .rec-btn {
@@ -1905,200 +1913,6 @@
         </button>
         <div id="indiLoadStatus" style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center;display:none"></div>
       </div>
-
-      <!-- ══ GENERADOR DE RECURSOS PEDAGÓGICOS ══ -->
-      <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:13px">🎨</span>
-            <span style="font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)">Generador de recursos pedagógicos</span>
-          </div>
-          <button onclick="toggleGenRecursos()" id="genRecursosToggleBtn"
-            style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 10px;font-size:10px;cursor:pointer;font-family:DM Sans,sans-serif">
-            ▼ Expandir
-          </button>
-        </div>
-
-        <div id="genRecursosBody" style="display:none">
-
-          <!-- Fila 1: Edad / Área / Área datos -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
-            <div>
-              <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px">🎂 Edad</div>
-              <select id="gr-edad" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;outline:none">
-                <option value="5_anos">5 años</option>
-                <option value="4_anos">4 años</option>
-                <option value="3_anos">3 años</option>
-              </select>
-            </div>
-            <div>
-              <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px">📚 Área curricular</div>
-              <select id="gr-area" onchange="grUpdateComps()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;outline:none">
-                <option>Personal Social</option>
-                <option>Psicomotriz</option>
-                <option>Comunicación</option>
-                <option>Matemática</option>
-                <option>Ciencia y Tecnología</option>
-              </select>
-            </div>
-            <div>
-              <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px">📊 Área para grupos</div>
-              <select id="gr-area-datos" onchange="grRenderGroups()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;outline:none">
-                <option value="C">Comunicación (C)</option>
-                <option value="M">Matemática (M)</option>
-                <option value="D">Desarrollo (D)</option>
-                <option value="S">Social (S)</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Fila 2: Competencia / Capacidad -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-            <div>
-              <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px">🎯 Competencia</div>
-              <select id="gr-comp" onchange="grUpdateCaps()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;outline:none"></select>
-            </div>
-            <div>
-              <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px">⚡ Capacidad</div>
-              <select id="gr-cap" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:11px;color:var(--text);font-family:DM Sans,sans-serif;outline:none"></select>
-            </div>
-          </div>
-
-          <!-- Tipo de recurso -->
-          <div style="margin-bottom:10px">
-            <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:6px">📋 Tipo de recurso</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px" id="gr-tipo-grid">
-              <button class="gr-tipo-btn gr-tipo-active" data-tipo="Imprimible" onclick="grSelectTipo(this)">🖨️ Imprimible A4</button>
-              <button class="gr-tipo-btn" data-tipo="Digital" onclick="grSelectTipo(this)">💻 Digital</button>
-              <button class="gr-tipo-btn" data-tipo="Ficha de trabajo" onclick="grSelectTipo(this)">📝 Ficha</button>
-              <button class="gr-tipo-btn" data-tipo="Juego" onclick="grSelectTipo(this)">🎲 Juego</button>
-            </div>
-          </div>
-
-          <!-- Grupos preview -->
-          <div style="margin-bottom:10px">
-            <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:6px">👥 Grupos de trabajo</div>
-            <div id="gr-groups" style="display:flex;flex-direction:column;gap:5px"></div>
-          </div>
-
-          <!-- Botón generar -->
-          <button id="gr-gen-btn" onclick="grGenerate()"
-            style="width:100%;padding:10px;background:var(--accent1);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;transition:.15s">
-            ✨ Generar recurso con IA
-          </button>
-
-          <!-- Output -->
-          <div id="gr-output" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--text);white-space:pre-wrap;line-height:1.65;max-height:420px;overflow-y:auto"></div>
-
-        </div>
-      </div>
-
-      <style>
-        .gr-tipo-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px 8px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;transition:.12s;text-align:center}
-        .gr-tipo-btn:hover{border-color:var(--accent1);color:var(--text)}
-        .gr-tipo-active{border-color:var(--accent1)!important;background:var(--dim1)!important;color:var(--accent1)!important;font-weight:700}
-        .gr-group-chip{padding:5px 10px;border-radius:6px;font-size:11px;border:1px solid var(--border);background:var(--surface2)}
-        .gr-group-chip strong{font-weight:700;font-size:10px;display:block;margin-bottom:1px}
-      </style>
-
-      <script>
-      (function(){
-        var GR_COMPS=[{"area_curricular":"Personal Social","competencia":"Construye su identidad","capacidades":["Se valora a sí mismo","Autorregula sus emociones"],"desempenos":{"3_anos":"Reconoce sus necesidades, sensaciones e intereses; se reconoce como miembro de su familia y aula.","4_anos":"Reconoce sus intereses, preferencias y características; las diferencia de las de los otros.","5_anos":"Reconoce sus cualidades, características y capacidades, y las diferencia de las de los otros. Se siente orgulloso de sus logros."}},{"area_curricular":"Personal Social","competencia":"Convive y participa democráticamente en la búsqueda del bien común","capacidades":["Interactúa con todas las personas","Construye normas y asume acuerdos y leyes","Participa en acciones que promueven el bienestar común"],"desempenos":{"3_anos":"Se relaciona con adultos y niños jugando en grupos pequeños. Participa en actividades grupales siguiendo normas conocidas.","4_anos":"Se integra en actividades grupales y juegos con sus pares. Propone ideas de juego y sus reglas.","5_anos":"Propone reglas de juego y las cumple. Realiza actividades cotidianas con sus compañeros."}},{"area_curricular":"Psicomotriz","competencia":"Se desenvuelve de manera autónoma a través de su motricidad","capacidades":["Comprende su cuerpo","Se expresa corporalmente"],"desempenos":{"3_anos":"Realiza movimientos como correr, saltar y trepar explorando su cuerpo.","4_anos":"Realiza acciones motrices básicas coordinando movimientos para desplazarse con seguridad.","5_anos":"Combina habilidades motrices básicas coordinando sus movimientos en diversos juegos."}},{"area_curricular":"Comunicación","competencia":"Se comunica oralmente en su lengua materna","capacidades":["Obtiene información","Infiere e interpreta","Adecúa, organiza y desarrolla","Utiliza recursos no verbales","Interactúa estratégicamente","Reflexiona y evalúa"],"desempenos":{"3_anos":"Expresa necesidades y emociones con palabras de uso frecuente.","4_anos":"Expresa experiencias e ideas. Desarrolla ideas en torno a un tema.","5_anos":"Desarrolla ideas en torno a un tema de manera coherente. Mantiene el hilo de la conversación."}},{"area_curricular":"Comunicación","competencia":"Lee diversos tipos de textos escritos en su lengua materna","capacidades":["Obtiene información","Infiere e interpreta","Reflexiona y evalúa"],"desempenos":{"3_anos":"Identifica características de personajes en ilustraciones. Dice de qué trata un texto por las imágenes.","4_anos":"Identifica características de personas, personajes o animales en ilustraciones de diversos textos.","5_anos":"Identifica palabras conocidas y siluetas en textos de su entorno."}},{"area_curricular":"Comunicación","competencia":"Crea proyectos desde los lenguajes artísticos","capacidades":["Explora y experimenta","Aplica procesos creativos","Socializa sus procesos y proyectos"],"desempenos":{"3_anos":"Explora materiales libremente descubriendo sus posibilidades.","4_anos":"Descubre efectos al combinar materiales. Representa sus ideas y sentimientos.","5_anos":"Explora materiales individualmente o en grupo. Representa ideas acerca de sus vivencias."}},{"area_curricular":"Matemática","competencia":"Resuelve problemas de cantidad","capacidades":["Traduce cantidades","Comunica su comprensión","Usa estrategias y procedimientos"],"desempenos":{"3_anos":"Compara y agrupa objetos por características similares. Usa expresiones como 'muchos' o 'pocos'.","4_anos":"Agrupa objetos y realiza el conteo espontáneo hasta 5. Usa expresiones como 'más que', 'menos que'.","5_anos":"Establece el criterio para agrupar objetos por forma, color o tamaño. Realiza el conteo hasta 10."}},{"area_curricular":"Ciencia y Tecnología","competencia":"Indaga mediante métodos científicos para construir sus conocimientos","capacidades":["Problematiza situaciones","Diseña estrategias","Genera y registra datos","Analiza datos e interpreta información","Evalúa y comunica"],"desempenos":{"3_anos":"Hace preguntas sobre objetos o seres vivos. Obtiene información a través de sus sentidos.","4_anos":"Pregunta sobre el ambiente y seres vivos de su entorno. Propone posibles explicaciones.","5_anos":"Plantea posibles explicaciones y predicciones. Registra sus observaciones mediante dibujos o fotos."}}];
-
-        var GR_STUDENTS=[{n:"Zeus de Piero Abad Rebolledo",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Thayza Julie Acaro Silva",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Maria Fernanda Arevalo Garcia",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Eymi Arely Arraiza Cordova",r:{C:"Esperado",D:"Esperado",M:"Esperado",S:"Esperado"}},{n:"Franchesca Raquel Abigail Balarezo Vargas",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Derek Mateo Bruno Atoche",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Eithan Yadiel Castro Cordova",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"David Daniel Coral Pingo",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Gael David Coronado Garcia",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Maria Julia Escobar Herrera",r:{C:"Esperado",D:"Esperado",M:"Esperado",S:"Esperado"}},{n:"Hansel Joshua Estrada Carcamo",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Luis Angel Imán Palomino",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Rebeca Naemi Jimenez Zeta",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Caleb Emmanuel Lopez Landa",r:{C:"Esperado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Vianca Nicol Mayo Guerrero",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Yocelin Kristell Ogoña López",r:{C:"Destacado",D:"Muy descendido",M:"Esperado",S:"Esperado"}},{n:"Sara Juliet Ojeda Benites",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Camila Sofia Palacios Castro",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Thiago Alexis Pangalima Salcedo",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Muy descendido"}},{n:"Leilany Mailen Paucar Castillo",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Mateo Alonso Paucar Peña",r:{C:"Esperado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Thiago Ismael Periche Guevara",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Tiana Zuleyka Periche Guevara",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Eithan Matheus Periche Gómez",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Cristian Junior Ramirez Bruno",r:{C:"Destacado",D:"Esperado",M:"Esperado",S:"Descendido"}},{n:"Abby Dayli Ruiz Ipanaque",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Kayla Jazzel Ruiz Sánchez",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Lohana Mercedes Salar Porras",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Luciana Santamaria Fernanadez",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Lucianan Scarlett Silbaña Remigio",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Milenka Nayeli Sosa Ayala",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Erik Alexander Zeta Morante",r:{C:"Destacado",D:"Muy descendido",M:"Esperado",S:"Muy descendido"}},{n:"Pedro Juaquin Zeta Tineo",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}}];
-
-        var grTipo='Imprimible';
-
-        window.toggleGenRecursos=function(){
-          var b=document.getElementById('genRecursosBody');
-          var btn=document.getElementById('genRecursosToggleBtn');
-          if(b.style.display==='none'){b.style.display='block';btn.textContent='▲ Colapsar';grUpdateComps();grRenderGroups();}
-          else{b.style.display='none';btn.textContent='▼ Expandir';}
-        };
-
-        window.grSelectTipo=function(el){
-          document.querySelectorAll('.gr-tipo-btn').forEach(function(b){b.classList.remove('gr-tipo-active')});
-          el.classList.add('gr-tipo-active');
-          grTipo=el.dataset.tipo;
-        };
-
-        window.grUpdateComps=function(){
-          var area=document.getElementById('gr-area').value;
-          var sel=document.getElementById('gr-comp');
-          sel.innerHTML='';
-          GR_COMPS.filter(function(c){return c.area_curricular===area}).forEach(function(c){
-            var o=document.createElement('option');o.value=c.competencia;
-            o.textContent=c.competencia.length>50?c.competencia.slice(0,50)+'…':c.competencia;
-            sel.appendChild(o);
-          });
-          grUpdateCaps();
-        };
-
-        window.grUpdateCaps=function(){
-          var area=document.getElementById('gr-area').value;
-          var comp=document.getElementById('gr-comp').value;
-          var sel=document.getElementById('gr-cap');
-          sel.innerHTML='';
-          var found=GR_COMPS.find(function(c){return c.area_curricular===area&&c.competencia===comp});
-          if(found)found.capacidades.forEach(function(cap){var o=document.createElement('option');o.value=cap;o.textContent=cap;sel.appendChild(o);});
-          grRenderGroups();
-        };
-
-        window.grRenderGroups=function(){
-          var areaDatos=document.getElementById('gr-area-datos').value;
-          var groups={Destacado:[],Esperado:[],Descendido:[],'Muy descendido':[]};
-          GR_STUDENTS.forEach(function(s){var r=s.r[areaDatos]||'Esperado';if(groups[r])groups[r].push(s.n.split(' ').slice(0,2).join(' '));});
-          var labels={Destacado:'🌟 Destacado',Esperado:'✅ Esperado',Descendido:'🤝 Con apoyo',('Muy descendido'):'🆘 Apoyo reforzado'};
-          var colors={Destacado:'color:#4f7bff',Esperado:'color:#00e5c0',Descendido:'color:#ffd166',('Muy descendido'):'color:#ff6b6b'};
-          var container=document.getElementById('gr-groups');
-          container.innerHTML='';
-          Object.entries(groups).forEach(function(entry){
-            var nivel=entry[0],names=entry[1];
-            if(!names.length)return;
-            var div=document.createElement('div');div.className='gr-group-chip';
-            div.innerHTML='<strong style="'+colors[nivel]+'">'+labels[nivel]+'</strong><span style="color:var(--muted)">'+names.join(', ')+'</span>';
-            container.appendChild(div);
-          });
-        };
-
-        window.grGenerate=async function(){
-          var edad=document.getElementById('gr-edad').value;
-          var area=document.getElementById('gr-area').value;
-          var comp=document.getElementById('gr-comp').value;
-          var cap=document.getElementById('gr-cap').value;
-          var areaDatos=document.getElementById('gr-area-datos').value;
-          var tipo=grTipo;
-          var compObj=GR_COMPS.find(function(c){return c.area_curricular===area&&c.competencia===comp});
-          var desempeno=compObj?compObj.desempenos[edad]:'';
-          var edadLabel=edad==='5_anos'?'5 años':edad==='4_anos'?'4 años':'3 años';
-          var groups={Destacado:[],Esperado:[],Descendido:[],'Muy descendido':[]};
-          GR_STUDENTS.forEach(function(s){var r=s.r[areaDatos]||'Esperado';if(groups[r])groups[r].push(s.n.split(' ').slice(0,2).join(' '));});
-          var groupText=Object.entries(groups).filter(function(e){return e[1].length}).map(function(e){return '- '+e[0]+': '+e[1].join(', ')}).join('\n');
-          var printInstr=tipo==='Imprimible'?'Formato ficha imprimible A4 con encabezado (colegio Nuestra Señora de las Mercedes, nombre maestra, fecha, nombre del niño), recuadros por grupo y sección de reflexión. Actividades diferenciadas por grupo con consignas visuales claras.':
-            tipo==='Digital'?'Actividad digital interactiva con botones de respuesta, retroalimentación inmediata y animación de celebración. Instrucciones cortas. Grupos en sección lateral.':
-            tipo==='Ficha de trabajo'?'Ficha diferenciada con 3 niveles (básico, intermedio, avanzado), 2-3 consignas por nivel, espacios para dibujar/escribir. Grupos asignados a cada nivel.':
-            'Juego o dinámica grupal: nombre, materiales, pasos, rol de cada grupo y criterios de éxito. Grupos con roles diferenciados según nivel.';
-          var prompt='Eres una maestra experta en educación inicial del Perú (CNE/MINEDU). Genera un recurso pedagógico completo.\n\nDATA:\n- Edad: '+edadLabel+'\n- Área: '+area+'\n- Competencia: '+comp+'\n- Capacidad: '+cap+'\n- Desempeño esperado: '+desempeno+'\n- Tipo: '+tipo+'\n\nGRUPOS (área '+areaDatos+'):\n'+groupText+'\n\nINSTRUCCIONES: '+printInstr+'\n\nINCLUYE los nombres reales de cada grupo en el recurso. Lenguaje apropiado para '+edadLabel+'. Actividades concretas, manipulativas y lúdicas. Alineado al currículo peruano. Recurso listo para usar.';
-
-          var btn=document.getElementById('gr-gen-btn');
-          var out=document.getElementById('gr-output');
-          btn.disabled=true;btn.textContent='⏳ Generando…';
-          out.style.display='block';out.textContent='Generando recurso con IA…';
-
-          try{
-            var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-            var data=await resp.json();
-            var text=data.content&&data.content.map(function(b){return b.text||''}).join('')||'No se pudo generar.';
-            out.textContent=text;
-          }catch(e){out.textContent='Error: '+e.message;}
-          btn.disabled=false;btn.textContent='✨ Generar recurso con IA';
-        };
-
-        // Init
-        window.grUpdateComps();
-        window.grRenderGroups();
-      })();
-      </script>
 
       <!-- ══ AGENTES FAVORITOS — compacto ══ -->
       <div style="padding:14px 24px 10px;border-bottom:1px solid var(--border)">
@@ -4657,6 +4471,16 @@ REGLAS DE DISEÑO:
      'Crear tarjetas de vocabulario ilustradas',
      'Crear guía didáctica con imágenes de apoyo',
      '¿Para qué curso y asignatura es el material?',
+   ]},
+
+  {id:'gr1',dim:'pedagogica',nombre:'Genera Recursos Pedagógicos',icon:'🎓',
+   desc:'Genera recursos diferenciados para tus 33 alumnos de RAYITOS usando los resultados INDI: fichas A4, actividades digitales, juegos y más.',
+   prompt:`Eres una maestra experta en educación inicial del Perú (CNE/MINEDU), especializada en el currículo de nivel inicial peruano. Generas recursos pedagógicos diferenciados, concretos y listos para usar, alineados a las competencias del CNEB. Cuando la docente especifica una competencia, capacidad y grupo de alumnos, creas el recurso completo adaptado a cada nivel de desempeño.`,
+   preguntas:[
+     'Generar ficha imprimible A4 para toda la clase',
+     'Crear actividad digital interactiva',
+     'Diseñar ficha de trabajo diferenciada por niveles',
+     'Crear juego o dinámica grupal',
    ]},
 
   {id:'f1',dim:'formacion',nombre:'Bienestar Estudiantil',icon:'💚',desc:'Orienta programas para promover el bienestar integral de los estudiantes.',prompt:`Eres especialista en bienestar estudiantil y desarrollo socioemocional. Si hay alumnos con NEE en el contexto, destaca la importancia de su bienestar específico. Trabajas con el modelo CASEL y programas de habilidades para la vida.`,preguntas:['¿Cómo evalúas el nivel de bienestar general de tus estudiantes?','¿Qué señales de malestar emocional observas en el aula?','¿Qué programas de bienestar socioemocional están implementando?','¿Cómo articulan docentes, orientadores y apoderados para apoyar a estudiantes?','¿Qué protocolos tienen para identificar y derivar casos en riesgo?']},
@@ -7288,6 +7112,7 @@ function _buildChatView() {
       '<div class="agent-welcome-sub">¿Qué quieres hacer hoy?</div>' +
       '<div class="agent-q-grid">' + gridCards + '</div>' +
       (currentAgent.id === 'v1' ? buildRecursoSelector() : '') +
+      (currentAgent.id === 'gr1' ? buildGeneradorINDI() : '') +
       (customQs.length
         ? '<div id="aqCustomGrid" style="width:100%;max-width:680px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:7px">' + customCards + '</div>'
         : '') +
@@ -7311,6 +7136,8 @@ function _buildChatView() {
       '</div>' +
       '<div style="font-size:9px;color:var(--muted);margin-top:3px">📎 Word, Excel, PPT, PDF, imágenes · Enter para enviar</div>' +
     '</div>';
+  // Init INDI generator selects if gr1 agent
+  if (currentAgent && currentAgent.id === 'gr1') setTimeout(grInitSelects, 80);
 }
 
 function buildAgentDetail(){
@@ -7402,6 +7229,171 @@ function startChat(){
 }
 
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// GENERADOR INDI — Agente Genera Recursos Pedagógicos (gr1)
+// ══════════════════════════════════════════════════════════════
+var _GR_COMPS=[{"area_curricular":"Personal Social","competencia":"Construye su identidad","capacidades":["Se valora a sí mismo","Autorregula sus emociones"],"desempenos":{"3_anos":"Reconoce sus necesidades, sensaciones e intereses; se reconoce como miembro de su familia y aula.","4_anos":"Reconoce sus intereses, preferencias y características; las diferencia de las de los otros.","5_anos":"Reconoce sus cualidades, características y capacidades, y las diferencia de las de los otros. Se siente orgulloso de sus logros."}},{"area_curricular":"Personal Social","competencia":"Convive y participa democráticamente en la búsqueda del bien común","capacidades":["Interactúa con todas las personas","Construye normas y asume acuerdos y leyes","Participa en acciones que promueven el bienestar común"],"desempenos":{"3_anos":"Se relaciona con adultos y niños jugando en grupos pequeños.","4_anos":"Se integra en actividades grupales y juegos con sus pares. Propone ideas de juego y sus reglas.","5_anos":"Propone reglas de juego y las cumple. Realiza actividades cotidianas con sus compañeros."}},{"area_curricular":"Psicomotriz","competencia":"Se desenvuelve de manera autónoma a través de su motricidad","capacidades":["Comprende su cuerpo","Se expresa corporalmente"],"desempenos":{"3_anos":"Realiza movimientos como correr, saltar y trepar explorando su cuerpo.","4_anos":"Realiza acciones motrices básicas coordinando movimientos con seguridad.","5_anos":"Combina habilidades motrices básicas en diversos juegos."}},{"area_curricular":"Comunicación","competencia":"Se comunica oralmente en su lengua materna","capacidades":["Obtiene información","Infiere e interpreta","Adecúa, organiza y desarrolla","Utiliza recursos no verbales","Interactúa estratégicamente","Reflexiona y evalúa"],"desempenos":{"3_anos":"Expresa necesidades y emociones con palabras de uso frecuente.","4_anos":"Expresa experiencias e ideas en torno a un tema.","5_anos":"Desarrolla ideas de manera coherente. Mantiene el hilo de la conversación."}},{"area_curricular":"Comunicación","competencia":"Lee diversos tipos de textos escritos en su lengua materna","capacidades":["Obtiene información","Infiere e interpreta","Reflexiona y evalúa"],"desempenos":{"3_anos":"Identifica características de personajes en ilustraciones.","4_anos":"Identifica características de personas o animales en ilustraciones de textos.","5_anos":"Identifica palabras conocidas y siluetas en textos de su entorno."}},{"area_curricular":"Comunicación","competencia":"Crea proyectos desde los lenguajes artísticos","capacidades":["Explora y experimenta","Aplica procesos creativos","Socializa sus procesos y proyectos"],"desempenos":{"3_anos":"Explora materiales libremente descubriendo sus posibilidades.","4_anos":"Descubre efectos al combinar materiales. Representa sus ideas.","5_anos":"Explora materiales individualmente o en grupo."}},{"area_curricular":"Matemática","competencia":"Resuelve problemas de cantidad","capacidades":["Traduce cantidades","Comunica su comprensión","Usa estrategias y procedimientos"],"desempenos":{"3_anos":"Compara y agrupa objetos por características similares. Usa 'muchos' o 'pocos'.","4_anos":"Agrupa objetos y realiza conteo hasta 5. Usa 'más que', 'menos que'.","5_anos":"Establece el criterio para agrupar objetos. Realiza el conteo hasta 10."}},{"area_curricular":"Ciencia y Tecnología","competencia":"Indaga mediante métodos científicos para construir sus conocimientos","capacidades":["Problematiza situaciones","Diseña estrategias","Genera y registra datos","Analiza datos e interpreta información","Evalúa y comunica"],"desempenos":{"3_anos":"Hace preguntas sobre objetos o seres vivos. Obtiene información a través de sus sentidos.","4_anos":"Pregunta sobre el ambiente y seres vivos. Propone posibles explicaciones.","5_anos":"Plantea posibles explicaciones y predicciones. Registra sus observaciones mediante dibujos."}}];
+
+var _GR_STUDENTS=[{n:"Zeus de Piero Abad Rebolledo",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Thayza Julie Acaro Silva",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Maria Fernanda Arevalo Garcia",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Eymi Arely Arraiza Cordova",r:{C:"Esperado",D:"Esperado",M:"Esperado",S:"Esperado"}},{n:"Franchesca Raquel Abigail Balarezo Vargas",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Derek Mateo Bruno Atoche",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Eithan Yadiel Castro Cordova",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"David Daniel Coral Pingo",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Gael David Coronado Garcia",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Maria Julia Escobar Herrera",r:{C:"Esperado",D:"Esperado",M:"Esperado",S:"Esperado"}},{n:"Hansel Joshua Estrada Carcamo",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Luis Angel Imán Palomino",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Rebeca Naemi Jimenez Zeta",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Caleb Emmanuel Lopez Landa",r:{C:"Esperado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Vianca Nicol Mayo Guerrero",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Yocelin Kristell Ogoña López",r:{C:"Destacado",D:"Muy descendido",M:"Esperado",S:"Esperado"}},{n:"Sara Juliet Ojeda Benites",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Camila Sofia Palacios Castro",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Thiago Alexis Pangalima Salcedo",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Muy descendido"}},{n:"Leilany Mailen Paucar Castillo",r:{C:"Destacado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Mateo Alonso Paucar Peña",r:{C:"Esperado",D:"Esperado",M:"Destacado",S:"Esperado"}},{n:"Thiago Ismael Periche Guevara",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Tiana Zuleyka Periche Guevara",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Eithan Matheus Periche Gómez",r:{C:"Destacado",D:"Esperado",M:"Muy descendido",S:"Esperado"}},{n:"Cristian Junior Ramirez Bruno",r:{C:"Destacado",D:"Esperado",M:"Esperado",S:"Descendido"}},{n:"Abby Dayli Ruiz Ipanaque",r:{C:"Destacado",D:"Destacado",M:"Muy descendido",S:"Esperado"}},{n:"Kayla Jazzel Ruiz Sánchez",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Lohana Mercedes Salar Porras",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Luciana Santamaria Fernanadez",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Lucianan Scarlett Silbaña Remigio",r:{C:"Destacado",D:"Destacado",M:"Destacado",S:"Esperado"}},{n:"Milenka Nayeli Sosa Ayala",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}},{n:"Erik Alexander Zeta Morante",r:{C:"Destacado",D:"Muy descendido",M:"Esperado",S:"Muy descendido"}},{n:"Pedro Juaquin Zeta Tineo",r:{C:"Destacado",D:"Destacado",M:"Esperado",S:"Esperado"}}];
+
+var _grTipo = 'Imprimible';
+
+function buildGeneradorINDI() {
+  return '<div class="gr-indi-wrap" id="grIndiWrap" style="width:100%;max-width:680px;margin-top:12px">' +
+
+    // Fila 1: Edad / Área curricular / Área datos
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">' +
+      '<div><div class="gr-lbl">🎂 Edad</div>' +
+        '<select id="gr-edad" class="gr-sel"><option value="5_anos">5 años</option><option value="4_anos">4 años</option><option value="3_anos">3 años</option></select></div>' +
+      '<div><div class="gr-lbl">📚 Área curricular</div>' +
+        '<select id="gr-area" class="gr-sel" onchange="grUpdateComps()"></select></div>' +
+      '<div><div class="gr-lbl">📊 Área para grupos</div>' +
+        '<select id="gr-area-datos" class="gr-sel" onchange="grRenderGroups()">' +
+          '<option value="C">Comunicación (C)</option><option value="M">Matemática (M)</option><option value="D">Desarrollo (D)</option><option value="S">Social (S)</option>' +
+        '</select></div>' +
+    '</div>' +
+
+    // Fila 2: Competencia / Capacidad
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
+      '<div><div class="gr-lbl">🎯 Competencia</div><select id="gr-comp" class="gr-sel" onchange="grUpdateCaps()"></select></div>' +
+      '<div><div class="gr-lbl">⚡ Capacidad</div><select id="gr-cap" class="gr-sel"></select></div>' +
+    '</div>' +
+
+    // Tipo de recurso
+    '<div class="gr-lbl" style="margin-bottom:6px">📋 Tipo de recurso</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">' +
+      '<button class="gr-tipo-btn gr-tipo-active" data-tipo="Imprimible" onclick="grSelectTipo(this)">🖨️ Imprimible A4</button>' +
+      '<button class="gr-tipo-btn" data-tipo="Digital" onclick="grSelectTipo(this)">💻 Digital</button>' +
+      '<button class="gr-tipo-btn" data-tipo="Ficha de trabajo" onclick="grSelectTipo(this)">📝 Ficha</button>' +
+      '<button class="gr-tipo-btn" data-tipo="Juego" onclick="grSelectTipo(this)">🎲 Juego</button>' +
+    '</div>' +
+
+    // Grupos
+    '<div class="gr-lbl" style="margin-bottom:6px">👥 Grupos de trabajo (según resultados INDI)</div>' +
+    '<div id="gr-groups" style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px"></div>' +
+
+    // Botón generar
+    '<button id="gr-gen-btn" onclick="grGenerate()" style="width:100%;padding:11px;background:var(--accent1);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;letter-spacing:.3px;transition:.15s">✨ Generar recurso con IA</button>' +
+
+    // Output
+    '<div id="gr-output" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;color:var(--text);white-space:pre-wrap;line-height:1.7;max-height:460px;overflow-y:auto"></div>' +
+
+  '</div>';
+}
+
+function grInitSelects() {
+  // Populate Área curricular
+  var areas = [...new Set(_GR_COMPS.map(function(c){return c.area_curricular}))];
+  var asel = document.getElementById('gr-area');
+  if (!asel || asel.options.length) return; // already populated
+  areas.forEach(function(a){ var o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o); });
+  grUpdateComps();
+  grRenderGroups();
+}
+
+function grUpdateComps() {
+  var asel = document.getElementById('gr-area'); if(!asel) return;
+  var area = asel.value;
+  var sel = document.getElementById('gr-comp'); if(!sel) return;
+  sel.innerHTML = '';
+  _GR_COMPS.filter(function(c){return c.area_curricular===area}).forEach(function(c){
+    var o=document.createElement('option');o.value=c.competencia;
+    o.textContent=c.competencia.length>52?c.competencia.slice(0,52)+'…':c.competencia;
+    sel.appendChild(o);
+  });
+  grUpdateCaps();
+}
+
+function grUpdateCaps() {
+  var asel=document.getElementById('gr-area'); if(!asel) return;
+  var csel=document.getElementById('gr-comp'); if(!csel) return;
+  var sel=document.getElementById('gr-cap'); if(!sel) return;
+  sel.innerHTML='';
+  var found=_GR_COMPS.find(function(c){return c.area_curricular===asel.value&&c.competencia===csel.value});
+  if(found)found.capacidades.forEach(function(cap){var o=document.createElement('option');o.value=cap;o.textContent=cap;sel.appendChild(o);});
+  grRenderGroups();
+}
+
+function grRenderGroups() {
+  var adsel=document.getElementById('gr-area-datos'); if(!adsel) return;
+  var areaDatos=adsel.value;
+  var groups={Destacado:[],Esperado:[],Descendido:[],'Muy descendido':[]};
+  _GR_STUDENTS.forEach(function(s){var r=s.r[areaDatos]||'Esperado';if(groups[r])groups[r].push(s.n.split(' ').slice(0,2).join(' '));});
+  var labels={Destacado:'🌟 Grupo Estrella (Destacado)',Esperado:'✅ Grupo en Camino (Esperado)',Descendido:'🤝 Grupo con Apoyo (Descendido)','Muy descendido':'🆘 Grupo con Apoyo Reforzado (Muy descendido)'};
+  var colors={Destacado:'var(--accent1)',Esperado:'var(--accent2)',Descendido:'var(--accent4)','Muy descendido':'var(--accent3)'};
+  var container=document.getElementById('gr-groups'); if(!container) return;
+  container.innerHTML='';
+  Object.entries(groups).forEach(function(entry){
+    var nivel=entry[0],names=entry[1]; if(!names.length)return;
+    var div=document.createElement('div');
+    div.style.cssText='padding:6px 10px;border-radius:7px;font-size:11px;border:1px solid var(--border);background:var(--surface2)';
+    div.innerHTML='<strong style="color:'+colors[nivel]+';font-size:10px;display:block;margin-bottom:2px">'+labels[nivel]+'</strong><span style="color:var(--muted)">'+names.join(', ')+'</span>';
+    container.appendChild(div);
+  });
+}
+
+function grSelectTipo(el) {
+  document.querySelectorAll('.gr-tipo-btn').forEach(function(b){b.classList.remove('gr-tipo-active')});
+  el.classList.add('gr-tipo-active');
+  _grTipo=el.dataset.tipo;
+}
+
+async function grGenerate() {
+  var edad=(document.getElementById('gr-edad')||{}).value||'5_anos';
+  var area=(document.getElementById('gr-area')||{}).value||'';
+  var comp=(document.getElementById('gr-comp')||{}).value||'';
+  var cap=(document.getElementById('gr-cap')||{}).value||'';
+  var areaDatos=(document.getElementById('gr-area-datos')||{}).value||'C';
+  var tipo=_grTipo;
+  var compObj=_GR_COMPS.find(function(c){return c.area_curricular===area&&c.competencia===comp});
+  var desempeno=compObj?compObj.desempenos[edad]:'';
+  var edadLabel=edad==='5_anos'?'5 años':edad==='4_anos'?'4 años':'3 años';
+  var groups={Destacado:[],Esperado:[],Descendido:[],'Muy descendido':[]};
+  _GR_STUDENTS.forEach(function(s){var r=s.r[areaDatos]||'Esperado';if(groups[r])groups[r].push(s.n.split(' ').slice(0,2).join(' '));});
+  var groupText=Object.entries(groups).filter(function(e){return e[1].length}).map(function(e){return '- '+e[0]+': '+e[1].join(', ')}).join('\n');
+  var printInstr=tipo==='Imprimible'?'Formato ficha imprimible A4 con encabezado (colegio Nuestra Señora de las Mercedes, nombre maestra, fecha, nombre del niño), recuadros diferenciados por grupo con consignas visuales claras y sección de reflexión.':
+    tipo==='Digital'?'Actividad digital interactiva con botones de respuesta, retroalimentación inmediata y efecto de celebración. Instrucciones cortas. Grupos en sección visible.':
+    tipo==='Ficha de trabajo'?'Ficha diferenciada con 3 niveles (básico, intermedio, avanzado), 2-3 consignas por nivel con espacios para dibujar/escribir. Grupos asignados a cada nivel.':
+    'Juego o dinámica grupal: nombre, materiales, pasos detallados, rol de cada grupo según su nivel y criterios de éxito.';
+  var prompt='Eres una maestra experta en educación inicial del Perú (CNE/MINEDU). Genera un recurso pedagógico completo y listo para usar.\n\nCONTEXTO:\n- Edad: '+edadLabel+'\n- Área curricular: '+area+'\n- Competencia: '+comp+'\n- Capacidad: '+cap+'\n- Desempeño esperado ('+edadLabel+'): '+desempeno+'\n- Tipo de recurso: '+tipo+'\n\nGRUPOS DE TRABAJO (basados en resultados INDI, área '+areaDatos+'):\n'+groupText+'\n\nINSTRUCCIONES DEL RECURSO:\n'+printInstr+'\n\nREGLAS:\n1. Incluye los nombres reales de los alumnos en cada grupo dentro del recurso.\n2. Lenguaje apropiado para niños de '+edadLabel+'.\n3. Actividades concretas, manipulativas y lúdicas.\n4. Alineado al currículo peruano CNEB.\n5. Recurso completo y listo para usar sin edición adicional.';
+
+  var btn=document.getElementById('gr-gen-btn');
+  var out=document.getElementById('gr-output');
+  btn.disabled=true; btn.textContent='⏳ Generando recurso…';
+  out.style.display='block'; out.textContent='Generando con IA…';
+
+  try {
+    var endpoint = (typeof getApiEndpoint==='function') ? getApiEndpoint() : 'https://api.anthropic.com/v1/messages';
+    var resp=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})});
+    var data=await resp.json();
+    var text=data.content&&data.content.map(function(b){return b.text||''}).join('')||'No se pudo generar el recurso.';
+    out.textContent=text;
+    // Offer to save to docs
+    var saveBar=document.createElement('div');
+    saveBar.style.cssText='display:flex;gap:8px;margin-top:10px;justify-content:flex-end';
+    saveBar.innerHTML='<button onclick="grSaveDoc(this)" style="background:var(--accent2);color:#000;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">💾 Guardar en documentos</button><button onclick="navigator.clipboard.writeText(document.getElementById(\'gr-output\').textContent)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif">📋 Copiar</button>';
+    out.parentNode.insertBefore(saveBar,out.nextSibling);
+  } catch(e) {
+    out.textContent='Error al generar: '+e.message;
+  }
+  btn.disabled=false; btn.textContent='✨ Generar recurso con IA';
+}
+
+function grSaveDoc(btn) {
+  var text=(document.getElementById('gr-output')||{}).textContent||'';
+  if(!text||text==='Generando con IA…') return;
+  var edad=(document.getElementById('gr-edad')||{}).value||'5_anos';
+  var comp=(document.getElementById('gr-comp')||{}).value||'Recurso';
+  var tipo=_grTipo;
+  var edadLabel=edad==='5_anos'?'5 años':edad==='4_anos'?'4 años':'3 años';
+  if(typeof saveDocToRepo==='function'){
+    saveDocToRepo({titulo:tipo+' · '+comp.slice(0,40)+' · '+edadLabel, contenido:text, tipo:'guia', agente:'Genera Recursos Pedagógicos'});
+    btn.textContent='✅ Guardado';btn.disabled=true;
+  } else {
+    alert('Función de guardado no disponible en este contexto.');
+  }
+}
+
 // RECURSO SELECTOR — Agente Diseñador de Material (v1)
 // ══════════════════════════════════════════════════════════════
 var _recState = { tipo: null, formato: null };
