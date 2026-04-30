@@ -2,90 +2,121 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Evaluación Psicomotriz - RAYITOS 5 AÑOS</title>
+    <title>LIAX - Evaluación Psicomotriz RAYITOS A</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .a4-page { width: 210mm; min-height: 297mm; padding: 15mm; margin: 20px auto; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .a4-page { width: 210mm; min-height: 297mm; padding: 15mm; margin: 10px auto; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         @media print { .no-print { display: none; } .a4-page { margin: 0; box-shadow: none; } }
-        .checkbox-cell { width: 40px; text-align: center; border: 1px solid #005088; }
+        th { font-size: 10px; padding: 5px; border: 1px solid #005088; background-color: #005088; color: white; text-transform: uppercase; }
+        td { font-size: 11px; padding: 5px; border: 1px solid #005088; text-transform: uppercase; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800">
+<body class="bg-slate-100 font-sans">
 
     <div class="fixed bottom-6 right-6 no-print">
-        <button onclick="window.print()" class="bg-teal-500 hover:bg-teal-600 text-white px-8 py-4 rounded-full font-bold shadow-2xl transition-all uppercase tracking-widest">
-            🖨️ Imprimir Ficha de Evaluación
+        <button onclick="window.print()" class="bg-teal-500 hover:bg-teal-600 text-white px-6 py-3 rounded-full font-bold shadow-lg transition-all">
+            🖨️ IMPRIMIR FICHA
         </button>
     </div>
 
     <div class="a4-page">
-        <header class="flex justify-between items-center border-b-4 border-teal-500 pb-4 mb-6">
+        <div class="flex justify-between items-center border-b-4 border-teal-500 pb-2 mb-4">
             <div>
-                <h1 class="text-3xl font-black text-blue-900 leading-none">LIAX EDITORIAL</h1>
-                <p class="text-teal-600 font-bold tracking-tighter uppercase text-sm">Innovación para el Nivel Inicial</p>
+                <h1 class="text-2xl font-black text-blue-900 leading-none">LIAX EDITORIAL</h1>
+                <p class="text-teal-600 font-bold text-[10px] tracking-[3px]">RECURSOS PEDAGÓGICOS 2026</p>
             </div>
             <div class="text-right">
-                <span class="bg-blue-900 text-white px-3 py-1 rounded text-xs font-bold uppercase">Registro Pedagógico</span>
-                <p class="text-xs mt-1 font-semibold text-slate-500">Ciclo Escolar 2026</p>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-2 gap-4 mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
-            <div>
-                <p class="text-xs font-bold text-slate-400 uppercase">Sección / Aula</p>
-                <p class="font-bold text-blue-900">RAYITOS - 5 AÑOS</p>
-            </div>
-            <div>
-                <p class="text-xs font-bold text-slate-400 uppercase">Área a Evaluar</p>
-                <p class="font-bold text-teal-600 italic">Psicomotricidad (Gruesa y Fina)</p>
+                <p class="text-sm font-bold text-slate-700">AULA: <span class="text-blue-800">RAYITOS A (5 AÑOS)</span></p>
+                <p class="text-[10px] font-semibold text-slate-400 italic">Área: Psicomotricidad e Indicadores de Desarrollo</p>
             </div>
         </div>
 
-        <table class="w-full border-collapse border-2 border-blue-900">
+        <table class="w-full border-collapse">
             <thead>
-                <tr class="bg-blue-900 text-white text-[10px] uppercase tracking-wider">
-                    <th class="p-2 border border-white w-8">N°</th>
-                    <th class="p-2 border border-white text-left">Nombres y Apellidos</th>
-                    <th class="p-1 border border-white leading-tight">Equilibrio<br>(1 pie)</th>
-                    <th class="p-1 border border-white leading-tight">Salto<br>Bipodal</th>
-                    <th class="p-1 border border-white leading-tight">Coord.<br>Óculo-manual</th>
-                    <th class="p-1 border border-white leading-tight">Pinza<br>Trípode</th>
-                    <th class="p-1 border border-white leading-tight">Sigue<br>Línea</th>
+                <tr>
+                    <th rowspan="2" class="w-8">N°</th>
+                    <th rowspan="2" class="text-left px-4">Nombres y Apellidos del Estudiante</th>
+                    <th colspan="3">Motricidad Gruesa</th>
+                    <th colspan="2">Motricidad Fina</th>
+                </tr>
+                <tr>
+                    <th class="w-16">Equilibrio</th>
+                    <th class="w-16">Coordinación</th>
+                    <th class="w-16">Desplazam.</th>
+                    <th class="w-16">Prensión</th>
+                    <th class="w-16">Visomanual</th>
                 </tr>
             </thead>
-            <tbody class="text-[11px] font-medium italic">
-                <tr class="hover:bg-teal-50 transition-colors">
-                    <td class="p-2 border border-blue-900 text-center font-bold">01</td>
-                    <td class="p-2 border border-blue-900 uppercase">Ejemplo: Alumno Rayito</td>
-                    <td class="checkbox-cell">☐</td>
-                    <td class="checkbox-cell">☐</td>
-                    <td class="checkbox-cell">☐</td>
-                    <td class="checkbox-cell">☐</td>
-                    <td class="checkbox-cell">☐</td>
-                </tr>
+            <tbody>
                 <script>
-                    for(let i=2; i<=25; i++) {
+                    const alumnos = [
+                        "Zeus de Piero Abad Rebolledo",
+                        "Thayza Julie Acaro Silva",
+                        "Hansel Joshua Estrada Carcamo",
+                        "Luis Angel Imán Palomino",
+                        "Rebeca Naemi Jimenez Zeta",
+                        "Caleb Emmanuel Lopez Landa",
+                        "Vianca Nicol Mayo Guerrero",
+                        "Yocelin Kristell Ogoña López",
+                        "Sara Juliet Ojeda Benites",
+                        "Camila Sofia Palacios Castro",
+                        "Thiago Alexis Pangalima Salcedo"
+                    ];
+
+                    alumnos.forEach((nombre, index) => {
                         document.write(`
-                        <tr class="${i%2==0 ? 'bg-slate-50' : ''}">
-                            <td class="p-2 border border-blue-900 text-center font-bold text-slate-400">${i < 10 ? '0'+i : i}</td>
-                            <td class="p-2 border border-blue-900">__________________________________________</td>
-                            <td class="checkbox-cell"></td>
-                            <td class="checkbox-cell"></td>
-                            <td class="checkbox-cell"></td>
-                            <td class="checkbox-cell"></td>
-                            <td class="checkbox-cell"></td>
-                        </tr>
+                            <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}">
+                                <td class="text-center font-bold text-blue-900">${index + 1}</td>
+                                <td class="font-semibold px-4">${nombre}</td>
+                                <td class="text-center text-slate-300 font-bold">☐</td>
+                                <td class="text-center text-slate-300 font-bold">☐</td>
+                                <td class="text-center text-slate-300 font-bold">☐</td>
+                                <td class="text-center text-slate-300 font-bold">☐</td>
+                                <td class="text-center text-slate-300 font-bold">☐</td>
+                            </tr>
+                        `);
+                    });
+
+                    // Espacios adicionales para alumnos nuevos
+                    for(let i = alumnos.length + 1; i <= 15; i++) {
+                        document.write(`
+                            <tr class="bg-white">
+                                <td class="text-center font-bold text-slate-300">${i}</td>
+                                <td class="px-4">__________________________________________</td>
+                                <td class="text-center"></td><td class="text-center"></td>
+                                <td class="text-center"></td><td class="text-center"></td>
+                                <td class="text-center"></td>
+                            </tr>
                         `);
                     }
                 </script>
             </tbody>
         </table>
 
-        <footer class="mt-8 grid grid-cols-3 gap-4 text-[9px] uppercase font-bold text-slate-500 italic border-t pt-4">
-            <p>L: Logrado</p>
-            <p>EP: En Proceso</p>
-            <p>I: Inicio</p>
+        <div class="mt-6 p-3 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+            <h3 class="text-[10px] font-bold text-slate-500 uppercase mb-2">Leyenda de Calificación:</h3>
+            <div class="flex justify-around text-[10px] font-bold text-blue-900">
+                <p><span class="bg-blue-900 text-white px-2 py-0.5 rounded mr-1">L</span> LOGRADO</p>
+                <p><span class="bg-teal-500 text-white px-2 py-0.5 rounded mr-1">EP</span> EN PROCESO</p>
+                <p><span class="bg-slate-400 text-white px-2 py-0.5 rounded mr-1">I</span> INICIO</p>
+            </div>
+        </div>
+
+        <div class="mt-16 flex justify-between px-10">
+            <div class="text-center">
+                <div class="w-48 border-t border-black mb-1"></div>
+                <p class="text-[10px] font-bold uppercase">Prof. de Aula</p>
+            </div>
+            <div class="text-center">
+                <div class="w-48 border-t border-black mb-1"></div>
+                <p class="text-[10px] font-bold uppercase">Dirección / LIAX</p>
+            </div>
+        </div>
+        
+        <footer class="mt-10 text-center">
+            <p class="text-[9px] text-slate-400 italic">Material exclusivo para el Colegio: Rayitos A - Generado por LIAX Editorial © 2026</p>
         </footer>
     </div>
+
 </body>
 </html>
