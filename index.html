@@ -2,20 +2,74 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel LIAX</title>
+    <title>Generador de Recursos LIAX</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-200 p-10">
-    <div class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-2xl text-center">
-        <h2 class="text-2xl font-bold text-slate-800 mb-4">Panel de Control LIAX</h2>
-        <div class="bg-teal-50 p-6 rounded-lg border-2 border-teal-500">
-            <h3 class="font-bold text-teal-800 uppercase">Generador de Recursos</h3>
-            <p class="text-sm text-slate-600 mb-6">Haz clic abajo para ver tu ficha técnica.</p>
-            
-            <a href="recurso.html" class="bg-teal-500 text-white px-6 py-3 rounded font-bold hover:bg-teal-600 block">
-                ABRIR RECURSO →
-            </a>
+<body class="bg-slate-100 font-sans">
+    <div class="max-w-4xl mx-auto py-10 px-4">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-black text-blue-900">LIAX SMART GENERATOR</h1>
+            <p class="text-teal-600 font-bold uppercase tracking-widest">Recursos según Nivel de Logro</p>
+        </header>
+
+        <div class="bg-white p-8 rounded-2xl shadow-xl border-t-8 border-teal-500">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div>
+                    <label class="block text-xs font-black text-slate-500 mb-2 uppercase">1. Nivel del Alumno</label>
+                    <select id="nivelLogro" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700">
+                        <option value="destacado">🌟 Destacado (Reto Alto)</option>
+                        <option value="esperado">✅ Esperado (Refuerzo)</option>
+                        <option value="descendido">🆘 Descendido (Nivelación)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black text-slate-500 mb-2 uppercase">2. Formato de Recurso</label>
+                    <select id="tipoRecurso" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700">
+                        <option value="juego">🎮 Juego Motriz</option>
+                        <option value="impreso">📄 Ficha Impresa</option>
+                        <option value="digital">📱 Actividad Digital</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black text-slate-500 mb-2 uppercase">3. Competencia</label>
+                    <select id="competencia" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-700">
+                        <option value="psico">Psicomotricidad</option>
+                        <option value="comu">Comunicación</option>
+                        <option value="mat">Matemática</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="generarRecurso()" class="w-full bg-blue-900 hover:bg-teal-600 text-white font-black py-4 rounded-xl transition-all shadow-lg text-xl uppercase tracking-tighter">
+                Generar Recurso Pedagógico Especializado
+            </button>
         </div>
+
+        <div id="resultadoBusqueda" class="mt-10 hidden">
+            </div>
     </div>
+
+    <script>
+        function generarRecurso() {
+            const nivel = document.getElementById('nivelLogro').value;
+            const tipo = document.getElementById('tipoRecurso').value;
+            const resContainer = document.getElementById('resultadoBusqueda');
+            
+            resContainer.classList.remove('hidden');
+            
+            // Lógica simple para simular el generador
+            resContainer.innerHTML = `
+                <div class="bg-teal-50 border-2 border-teal-500 p-6 rounded-xl flex justify-between items-center animate-bounce">
+                    <div>
+                        <h3 class="text-xl font-bold text-teal-800 uppercase">¡Recurso de ${tipo} listo!</h3>
+                        <p class="text-slate-600 text-sm">Optimizado para nivel: <strong>${nivel}</strong></p>
+                    </div>
+                    <a href="recurso.html?mode=${nivel}&type=${tipo}" class="bg-teal-500 text-white px-6 py-3 rounded-lg font-bold">VER RECURSO</a>
+                </div>
+            `;
+        }
+    </script>
 </body>
 </html>
