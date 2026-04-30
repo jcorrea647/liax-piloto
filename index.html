@@ -2,152 +2,123 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIAX Engine - Sistema de Generación Universal</title>
+    <title>LIAX GENERATOR PRO - Full Content</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #1e3a8a; --secondary: #0d9488; --accent: #f43f5e; }
-        body { font-family: 'Outfit', sans-serif; background: #f1f5f9; }
-        .engine-container { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; }
-        .canvas-area { background: white; border-radius: 3rem 0 0 3rem; box-shadow: -20px 0 50px rgba(0,0,0,0.05); }
-        .grad-5 { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
-        .grad-17 { background: linear-gradient(135deg, #1e293b, #334155); }
-        @media print { .no-print { display: none !important; } .canvas-area { border-radius: 0; box-shadow: none; } }
+        body { font-family: 'Outfit', sans-serif; background: #0f172a; color: white; }
+        .canvas { background: white; color: #1e293b; min-height: 80vh; border-radius: 2rem; }
+        .print-only { display: none; }
+        @media print { .no-print { display: none; } .print-only { display: block; } .canvas { box-shadow: none; border: none; } }
     </style>
 </head>
-<body>
+<body class="p-4 md:p-10">
 
-<div class="engine-container">
-    <aside class="p-6 no-print space-y-8">
-        <div class="mb-10 text-center">
-            <h1 class="text-3xl font-black italic text-blue-900 tracking-tighter">LIAX CORE</h1>
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Generador Parametrizado</p>
-        </div>
-
-        <div class="space-y-4">
-            <label class="text-[10px] font-black text-slate-500 uppercase">1. Nivel Educativo</label>
-            <select id="param-edad" class="w-full p-3 rounded-xl border-2 border-slate-200 font-bold text-sm outline-none focus:border-blue-500 transition-all">
-                <option value="5">Inicial (5 años)</option>
-                <option value="12">Primaria / Media (12 años)</option>
-                <option value="17">Secundaria / Bachillerato (17 años)</option>
-            </select>
-        </div>
-
-        <div class="space-y-4">
-            <label class="text-[10px] font-black text-slate-500 uppercase">2. Área de Conocimiento</label>
-            <select id="param-area" class="w-full p-3 rounded-xl border-2 border-slate-200 font-bold text-sm outline-none focus:border-teal-500 transition-all">
-                <option value="com">Comunicación / Lengua</option>
-                <option value="mat">Matemática / Física</option>
-                <option value="per">Personal Social / Historia</option>
-            </select>
-        </div>
-
-        <div class="space-y-4">
-            <label class="text-[10px] font-black text-slate-500 uppercase">3. Diferenciación (INDI)</label>
-            <div class="grid grid-cols-1 gap-2">
-                <button onclick="setLogro('apoyo')" class="p-3 rounded-xl border-2 border-rose-200 bg-rose-50 text-rose-700 font-bold text-xs hover:bg-rose-100">ZONA DE APOYO</button>
-                <button onclick="setLogro('destacado')" class="p-3 rounded-xl border-2 border-blue-200 bg-blue-50 text-blue-700 font-bold text-xs hover:bg-blue-100">LOGRO DESTACADO</button>
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <aside class="no-print space-y-6">
+            <div class="bg-blue-600 p-6 rounded-3xl shadow-2xl">
+                <h2 class="text-2xl font-black italic">LIAX PRO</h2>
+                <p class="text-[10px] uppercase tracking-widest opacity-70">Motor de Generación 2026</p>
             </div>
-        </div>
 
-        <button onclick="renderizarMotor()" class="w-full py-4 grad-5 text-white rounded-2xl font-black shadow-xl hover:scale-105 transition-all mt-10">
-            GENERAR RECURSO
-        </button>
-    </aside>
+            <div class="bg-slate-800 p-6 rounded-3xl space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400">Estudiante / Edad</label>
+                    <select id="edad" class="w-full bg-slate-700 p-3 rounded-xl mt-1 text-sm font-bold outline-none">
+                        <option value="5">Rayitos A (5 años) - Inicial</option>
+                        <option value="17">Promoción (17 años) - Secundaria</option>
+                    </select>
+                </div>
 
-    <main class="canvas-area p-10 overflow-y-auto">
-        <div id="render-target">
-            <div class="flex flex-col items-center justify-center h-full text-slate-300">
-                <div class="text-8xl mb-4">⚙️</div>
-                <p class="font-black italic uppercase">Configura los parámetros para iniciar la generación</p>
+                <div>
+                    <label class="text-[10px] font-bold uppercase text-slate-400">Nivel de Logro (INDI)</label>
+                    <select id="logro" class="w-full bg-slate-700 p-3 rounded-xl mt-1 text-sm font-bold outline-none border-l-4 border-rose-500">
+                        <option value="apoyo">⚠️ Zona de Apoyo (Descendido)</option>
+                        <option value="destacado">🌟 Logro Destacado</option>
+                    </select>
+                </div>
+
+                <button onclick="generar()" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black hover:bg-blue-400 hover:text-white transition-all shadow-xl">
+                    GENERAR RECURSO YA
+                </button>
             </div>
-        </div>
-    </main>
-</div>
+        </aside>
 
-<script>
-    let currentLogro = 'apoyo';
-    function setLogro(val) { currentLogro = val; alert('Nivel de logro fijado: ' + val.toUpperCase()); }
+        <main class="lg:col-span-3 canvas p-8 shadow-2xl" id="display">
+            <div class="flex flex-col items-center justify-center h-full text-slate-300 italic">
+                <p>Configura los parámetros y presiona "GENERAR RECURSO YA"</p>
+            </div>
+        </main>
+    </div>
 
-    function renderizarMotor() {
-        const edad = document.getElementById('param-edad').value;
-        const area = document.getElementById('param-area').value;
-        const target = document.getElementById('render-target');
+    <script>
+        function generar() {
+            const edad = document.getElementById('edad').value;
+            const logro = document.getElementById('logro').value;
+            const display = document.getElementById('display');
 
-        // Lógica de Selección de Componente Maestro
-        if (edad == "5") {
-            renderFicha5Anos(area, target);
-        } else if (edad == "17") {
-            renderFicha17Anos(area, target);
-        } else {
-            target.innerHTML = `<div class="p-20 text-center font-black">NIVEL INTERMEDIO EN DESARROLLO...</div>`;
+            if (edad === "5") {
+                // GENERACIÓN PARA 5 AÑOS (PIURA)
+                display.innerHTML = `
+                    <div class="border-8 border-teal-500 rounded-[3rem] overflow-hidden bg-white">
+                        <div class="bg-teal-600 p-8 text-white flex justify-between items-center">
+                            <div><h2 class="text-4xl font-black italic uppercase">LIAX JUNIOR</h2><p>COMUNICACIÓN • PIURA</p></div>
+                            <span class="text-6xl">🎨</span>
+                        </div>
+                        <div class="p-10 space-y-10">
+                            <div class="bg-rose-50 p-6 rounded-3xl border-2 border-rose-200">
+                                <h3 class="font-black text-rose-700 uppercase mb-4">📍 ZONA DE APOYO: Conciencia Fonológica</h3>
+                                <div class="grid grid-cols-2 gap-8 items-center">
+                                    <div class="text-center">
+                                        <div class="text-9xl">🐦</div>
+                                        <p class="text-2xl font-black tracking-widest mt-4">chi - LA - lo</p>
+                                    </div>
+                                    <div class="space-y-4">
+                                        <p class="font-bold text-slate-700 italic">"El chilalo del algarrobo, no le tiene miedo al lobo."</p>
+                                        <p class="text-sm bg-white p-4 rounded-xl shadow-sm"><strong>Instrucción:</strong> Zeus y Thiago deben palmear cada sílaba mientras pintan el ave.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4">
+                                ${['Mango', 'Paita', 'Sol'].map(item => `<div class="border-4 border-dashed border-slate-200 h-32 rounded-2xl flex items-center justify-center text-slate-200 font-bold uppercase">${item}</div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // GENERACIÓN PARA 17 AÑOS (SECUNDARIA)
+                display.innerHTML = `
+                    <div class="border-8 border-slate-900 rounded-3xl overflow-hidden bg-white">
+                        <div class="bg-slate-900 p-8 text-white flex justify-between items-center">
+                            <div><h2 class="text-3xl font-black italic uppercase">LIAX ACADEMY</h2><p>ANÁLISIS CRÍTICO • NIVEL SUPERIOR</p></div>
+                            <span class="text-5xl">🖋️</span>
+                        </div>
+                        <div class="p-10 space-y-8">
+                            <div class="border-l-8 border-blue-600 p-6 bg-blue-50 rounded-r-2xl">
+                                <h3 class="font-black text-blue-900 uppercase mb-2">Desafío: Geopolítica de los Recursos en el Siglo XXI</h3>
+                                <p class="text-sm text-slate-600 leading-relaxed">Analice el impacto socioeconómico de la desalinización de agua en la costa norte peruana frente al estrés hídrico global. Elabore una hipótesis argumentativa de 500 palabras.</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-6">
+                                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200">
+                                    <p class="text-xs font-black text-slate-400 uppercase mb-3 underline">Rúbrica (INDI Destacado)</p>
+                                    <ul class="text-[11px] space-y-2 text-slate-600">
+                                        <li>• Coherencia sistémica en la propuesta.</li>
+                                        <li>• Uso de fuentes académicas citadas.</li>
+                                        <li>• Análisis de variables multicausales.</li>
+                                    </ul>
+                                </div>
+                                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200">
+                                    <p class="text-xs font-black text-slate-400 uppercase mb-3 underline">Recursos de Apoyo</p>
+                                    <button class="w-full bg-slate-800 text-white p-2 rounded text-[10px] mb-2 uppercase">Ver Gráfico de Estrés Hídrico</button>
+                                    <button class="w-full bg-slate-800 text-white p-2 rounded text-[10px] uppercase">Descargar Paper UNP</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
         }
-    }
-
-    // --- COMPONENTE: INICIAL 5 AÑOS ---
-    function renderFicha5Anos(area, target) {
-        target.innerHTML = `
-            <div class="max-w-4xl mx-auto border-4 border-teal-500 rounded-[3rem] overflow-hidden bg-white shadow-2xl">
-                <div class="bg-teal-600 p-8 text-white flex justify-between items-center">
-                    <div>
-                        <h2 class="text-3xl font-black uppercase italic tracking-tighter">Recurso LIAX Junior</h2>
-                        <p class="text-xs font-bold opacity-80 uppercase tracking-widest">Nivel 5 Años • ${currentLogro}</p>
-                    </div>
-                    <span class="text-6xl">🎨</span>
-                </div>
-                <div class="p-10 space-y-8 text-center">
-                    <div class="grid grid-cols-2 gap-8">
-                        <div class="p-10 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
-                             <p class="text-[10px] font-black text-slate-400 mb-4 uppercase">Actividad: Puzzle de Encastre</p>
-                             <div class="text-6xl mb-4">🐦</div>
-                             <p class="font-bold">Segmentación del Chilalo</p>
-                        </div>
-                        <div class="p-10 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
-                             <p class="text-[10px] font-black text-slate-400 mb-4 uppercase">Actividad: Conciencia Fonológica</p>
-                             <div class="text-6xl mb-4">🥭</div>
-                             <p class="font-bold">Rimas de Tambogrande</p>
-                        </div>
-                    </div>
-                    <button class="no-print bg-slate-900 text-white px-8 py-3 rounded-full font-bold">DESCARGAR SET COMPLETO (16 PIEZAS)</button>
-                </div>
-            </div>`;
-    }
-
-    // --- COMPONENTE: SECUNDARIA 17 AÑOS ---
-    function renderFicha17Anos(area, target) {
-        const contenido = area === 'mat' 
-            ? { t: "Análisis de Mecánica Cuántica", sub: "Cálculo de Probabilidad de Onda", ico: "⚛️" }
-            : { t: "Ensayo Argumentativo Crítico", sub: "Sociología en la Era Digital", ico: "🖋️" };
-
-        target.innerHTML = `
-            <div class="max-w-4xl mx-auto border-4 border-slate-800 rounded-[2rem] overflow-hidden bg-white shadow-2xl">
-                <div class="bg-slate-900 p-8 text-white flex justify-between items-center">
-                    <div>
-                        <h2 class="text-2xl font-black uppercase tracking-tighter">${contenido.t}</h2>
-                        <p class="text-xs font-bold opacity-80 uppercase tracking-widest">Secundaria Superior • 17 Años • ${currentLogro}</p>
-                    </div>
-                    <span class="text-5xl">${contenido.ico}</span>
-                </div>
-                <div class="p-10">
-                    <div class="bg-slate-50 p-6 rounded-xl border-l-8 border-slate-900 mb-8">
-                        <h4 class="font-black text-sm uppercase mb-2">Desafío Cognitivo Complejo:</h4>
-                        <p class="text-slate-600 text-sm leading-relaxed">${contenido.sub}. Desarrolla una hipótesis basada en los datos adjuntos y propón una solución sistémica.</p>
-                    </div>
-                    <div class="grid grid-cols-1 gap-4">
-                        <div class="h-32 border border-slate-200 rounded-xl p-4 text-[10px] text-slate-300 font-mono">
-                            // Módulo de Simulación / Entrada de Datos Académicos
-                            [Escribe aquí tu análisis crítico...]
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase">Rúbrica de Evaluación: Pensamiento Crítico 4.0</span>
-                            <button class="bg-blue-600 text-white px-6 py-2 rounded-lg text-[10px] font-black uppercase">Generar Caso de Estudio</button>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-    }
-</script>
+    </script>
 </body>
 </html>
