@@ -8773,6 +8773,33 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
 function _indiGetContext() {
   if (!window.INDI_RESULTS || !window.INDI_RESULTS.length) return '';
   var rows = window.INDI_RESULTS;
+
+  // ── Si el docente seleccionó alumnos específicos, filtrar el contexto INDI a solo esos ──
+  // CTX.alumnos contiene IDs de DB.alumnos; los matcheamos por nombre con las filas INDI.
+  var filtered = false;
+  try {
+    if (typeof CTX !== 'undefined' && CTX.alumnos && CTX.alumnos.size > 0
+        && typeof DB !== 'undefined' && DB.alumnos) {
+      var nombresSelec = new Set(
+        DB.alumnos
+          .filter(function(a){ return CTX.alumnos.has(a.id); })
+          .map(function(a){ return (a.nombre||'').trim().toLowerCase(); })
+      );
+      if (nombresSelec.size > 0) {
+        var rowsFiltered = rows.filter(function(r){
+          return nombresSelec.has((r.NOMBRE_COMPLETO||'').trim().toLowerCase());
+        });
+        if (rowsFiltered.length > 0) {
+          rows = rowsFiltered;
+          filtered = true;
+          console.log('[INDI ctx] Filtrado a '+rowsFiltered.length+' filas para '+nombresSelec.size+' alumno(s) seleccionado(s)');
+        } else {
+          console.warn('[INDI ctx] CTX.alumnos tiene selección pero no matchea ninguna fila INDI por nombre — usando todas las filas');
+        }
+      }
+    }
+  } catch(e) { console.warn('[INDI ctx] Error filtrando por alumnos seleccionados:', e.message); }
+
   var alumnos = {};
   rows.forEach(function(r) {
     var nom = r.NOMBRE_COMPLETO;
@@ -8782,19 +8809,30 @@ function _indiGetContext() {
     if (r.CURSO) alumnos[nom].curso = r.CURSO;
     if (r.LETRA) alumnos[nom].letra = r.LETRA;
   });
-  var lines = [
-    '=== RESULTADOS INDI CARGADOS — DATOS REALES DEL CURSO ===',
-    'INSTRUCCIÓN OBLIGATORIA: Tienes acceso a los resultados INDI reales de este curso. ÚSALOS DIRECTAMENTE para responder.',
-    '- NO digas que no tienes datos, NO pidas que se carguen, NO inventes alumnos: TODA la información está aquí abajo.',
-    '- Cita nombres específicos de alumnos cuando corresponda.',
-    '- Genera análisis, informes y recomendaciones basados en estos datos concretos, no en información hipotética.',
-    ''
-  ];
+  var headerLines = filtered
+    ? [
+        '=== RESULTADOS INDI — ALUMNOS ESPECÍFICOS SELECCIONADOS POR EL DOCENTE ===',
+        'INSTRUCCIÓN OBLIGATORIA: El docente filtró el análisis a SOLO ESTOS alumnos.',
+        '- Tu respuesta debe enfocarse EXCLUSIVAMENTE en los alumnos listados abajo.',
+        '- NO menciones, listes ni analices a otros alumnos del curso.',
+        '- Si el docente pide "informe", "priorización", "análisis" o cualquier otra tarea, hazlo SOLO para estos alumnos.',
+        '- Si la tarea no aplica a un alumno solo (ej: "distribución del grupo"), avísalo y enfócate en lo que sí aplique al subset.',
+        ''
+      ]
+    : [
+        '=== RESULTADOS INDI CARGADOS — DATOS REALES DEL CURSO ===',
+        'INSTRUCCIÓN OBLIGATORIA: Tienes acceso a los resultados INDI reales de este curso. ÚSALOS DIRECTAMENTE para responder.',
+        '- NO digas que no tienes datos, NO pidas que se carguen, NO inventes alumnos: TODA la información está aquí abajo.',
+        '- Cita nombres específicos de alumnos cuando corresponda.',
+        '- Genera análisis, informes y recomendaciones basados en estos datos concretos, no en información hipotética.',
+        ''
+      ];
+  var lines = headerLines.slice();
   var meta = rows[0];
   if (meta.COLEGIO) lines.push('Colegio: ' + meta.COLEGIO);
   if (meta.CURSO)   lines.push('Curso: ' + meta.CURSO + (meta.LETRA ? ' ' + meta.LETRA : ''));
   if (meta.MAESTRA) lines.push('Docente: ' + meta.MAESTRA);
-  lines.push('Total alumnos: ' + Object.keys(alumnos).length);
+  lines.push((filtered ? 'Alumnos seleccionados: ' : 'Total alumnos: ') + Object.keys(alumnos).length);
   lines.push('');
   Object.keys(alumnos).forEach(function(nom) {
     var a = alumnos[nom];
@@ -8803,7 +8841,11 @@ function _indiGetContext() {
   });
   lines.push('');
   lines.push('=== FIN RESULTADOS INDI ===');
-  lines.push('RECORDATORIO FINAL: Cuando el docente pida un informe, análisis, priorización o recomendaciones, basa tu respuesta 100% en los datos de arriba. No los ignores.');
+  if (filtered) {
+    lines.push('RECORDATORIO FINAL: El docente seleccionó SOLO los alumnos listados arriba. Tu respuesta debe ser específica para ellos. NO incluyas a otros alumnos del curso aunque tengas memoria de cargas anteriores.');
+  } else {
+    lines.push('RECORDATORIO FINAL: Cuando el docente pida un informe, análisis, priorización o recomendaciones, basa tu respuesta 100% en los datos de arriba. No los ignores.');
+  }
   return lines.join('\n');
 }
 
