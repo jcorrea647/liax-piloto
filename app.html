@@ -24546,7 +24546,10 @@ function openConvViewer(agentId, savedAt) {
   }
   _cvAgentId = agentId;
   _cvSession = session;
-  _cvAgent   = AGENTS.find(function(a){ return a.id === agentId; }) || null;
+  // Buscar agente en built-in O custom
+  _cvAgent = AGENTS.find(function(a){ return a.id === agentId; })
+          || (window.customAgents||[]).find(function(a){ return a.id === agentId; })
+          || null;
 
   // Header
   document.getElementById('cv-icon').textContent  = _cvAgent ? _cvAgent.icon : '💬';
@@ -24579,6 +24582,27 @@ function openConvViewer(agentId, savedAt) {
   );
 
   document.getElementById('convViewer').classList.add('open');
+
+  // Click fuera del modal interno → cerrar visor (evita que el overlay bloquee toda la UI)
+  // Se asigna solo una vez por overlay para no acumular handlers.
+  var ov = document.getElementById('convViewer');
+  if (ov && !ov._cvOutsideClickAttached) {
+    ov._cvOutsideClickAttached = true;
+    ov.addEventListener('click', function(e){
+      // Si el click es directamente sobre el overlay (no sobre el box interno), cerrar
+      if (e.target === ov) closeConvViewer();
+    });
+  }
+  // ESC también cierra el visor
+  if (!window._cvEscAttached) {
+    window._cvEscAttached = true;
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') {
+        var v = document.getElementById('convViewer');
+        if (v && v.classList.contains('open')) closeConvViewer();
+      }
+    });
+  }
 
   // Scroll to bottom + focus
   setTimeout(function(){
