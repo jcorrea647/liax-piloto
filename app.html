@@ -5588,15 +5588,15 @@ function renderCursoResumen() {
         if (isolated > 0) alertPills += `<span style="background:rgba(255,165,0,0.15);color:#ffd166;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700">🟡 ${isolated} aislados</span>`;
       }
     }
-    // ── Alertas INDI ──
+    // ── Alertas INDI — alumnos con áreas críticas (independiente del nivel global) ──
     if (typeof _indiGetRowsForCurso === 'function') {
       const indiRows = _indiGetRowsForCurso(curso);
       if (indiRows.length) {
         const indiStats = _indiClassifyAlumnos(indiRows);
-        const muy  = indiStats.byLevel['Muy descendido'].length;
-        const desc = indiStats.byLevel['Descendido'].length;
-        if (muy > 0)  alertPills += `<span style="background:rgba(224,82,82,0.18);color:#e05252;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700">🔴 ${muy} INDI muy desc.</span>`;
-        if (desc > 0) alertPills += `<span style="background:rgba(255,209,102,0.18);color:#ffd166;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700">🟡 ${desc} INDI desc.</span>`;
+        const muy  = indiStats.withMuyDesc || 0;
+        const desc = indiStats.withDesc || 0;
+        if (muy > 0)  alertPills += `<span style="background:rgba(224,82,82,0.18);color:#e05252;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700">🔴 ${muy} con área muy desc.</span>`;
+        if (desc > 0) alertPills += `<span style="background:rgba(255,209,102,0.18);color:#ffd166;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700">🟡 ${desc} con área desc.</span>`;
       }
     }
     return `<div class="resumen-curso-card">
@@ -8595,7 +8595,7 @@ function _indiGetRowsForCurso(curso) {
 // Clasifica cada alumno por su NIVEL DOMINANTE (peor nivel detectado)
 // Excepto: si TODAS las evaluaciones son "Destacado" → Destacado
 function _indiClassifyAlumnos(rows) {
-  var empty = { total:0, alumnos:[], byLevel:{'Destacado':[],'Esperado':[],'Descendido':[],'Muy descendido':[]}, areas:[], evalCount:0 };
+  var empty = { total:0, alumnos:[], byLevel:{'Destacado':[],'Esperado':[],'Descendido':[],'Muy descendido':[]}, areas:[], evalCount:0, withMuyDesc:0, withDesc:0 };
   if (!rows || !rows.length) return empty;
 
   var alumnoMap = {};
@@ -8609,17 +8609,35 @@ function _indiClassifyAlumnos(rows) {
     if (areaKey) areasSet[areaKey] = { area: r.AREA||'', subarea: r.SUBAREA||'' };
   });
 
+  // Orden de prioridad para tie-breaking — preferimos el nivel más positivo
+  // (no es coherente clasificar como "Muy descendido" a un alumno con la mayoría
+  // de áreas en Destacado/Esperado y solo 1 área crítica)
+  var levelPriority = ['Destacado', 'Esperado', 'Descendido', 'Muy descendido'];
+
   var alumnos = Object.keys(alumnoMap).map(function(k){
     var a = alumnoMap[k];
     var levels = a.evaluations.map(function(e){ return e.resultado; }).filter(Boolean);
+    var counts = { 'Destacado':0, 'Esperado':0, 'Descendido':0, 'Muy descendido':0 };
+    levels.forEach(function(l){ if (counts[l] !== undefined) counts[l]++; });
+
+    // Nivel global = MODA (nivel más frecuente). En empates gana el nivel más positivo.
     var nivel = '—';
     if (levels.length) {
-      if (levels.some(function(l){ return l === 'Muy descendido'; })) nivel = 'Muy descendido';
-      else if (levels.some(function(l){ return l === 'Descendido'; })) nivel = 'Descendido';
-      else if (levels.every(function(l){ return l === 'Destacado'; })) nivel = 'Destacado';
-      else nivel = 'Esperado';
+      var maxCount = 0;
+      levelPriority.forEach(function(level){
+        if (counts[level] > maxCount) {
+          maxCount = counts[level];
+          nivel = level;
+        }
+      });
     }
+
     a.nivel = nivel;
+    a.counts = counts;
+    // Áreas críticas: las evaluaciones en Descendido o Muy descendido (independiente del nivel global)
+    a.criticalEvals = a.evaluations.filter(function(e){
+      return e.resultado === 'Muy descendido' || e.resultado === 'Descendido';
+    });
     return a;
   });
   alumnos.sort(function(a,b){ return a.nombre.localeCompare(b.nombre, 'es'); });
@@ -8627,12 +8645,19 @@ function _indiClassifyAlumnos(rows) {
   var byLevel = { 'Destacado':[], 'Esperado':[], 'Descendido':[], 'Muy descendido':[] };
   alumnos.forEach(function(a){ if (byLevel[a.nivel]) byLevel[a.nivel].push(a); });
 
+  // Conteos para alertas — alumnos con CUALQUIER área crítica (independiente del nivel global).
+  // Útiles para los pills de Mi Aula y la pestaña Alertas.
+  var withMuyDesc = alumnos.filter(function(a){ return a.counts['Muy descendido'] > 0; }).length;
+  var withDesc    = alumnos.filter(function(a){ return a.counts['Descendido'] > 0 && a.counts['Muy descendido'] === 0; }).length;
+
   return {
     total: alumnos.length,
     alumnos: alumnos,
     byLevel: byLevel,
     areas: Object.keys(areasSet).sort(),
-    evalCount: rows.length
+    evalCount: rows.length,
+    withMuyDesc: withMuyDesc,
+    withDesc: withDesc
   };
 }
 
@@ -8888,22 +8913,40 @@ function _indiLevelBadge(nivel) {
   return '<span style="background:'+k.bg+';color:'+k.c+';border-radius:14px;padding:3px 9px;font-size:10px;font-weight:700;white-space:nowrap;display:inline-flex;align-items:center;gap:4px">'+k.icon+' '+nivel+'</span>';
 }
 
-// Badge + subtítulo con áreas críticas (solo cuando el nivel es Descendido o Muy descendido)
+// Badge + subtítulo con áreas críticas — SIEMPRE muestra las áreas en Descendido o
+// Muy descendido (independiente del nivel global), porque incluso un alumno
+// clasificado como Destacado puede tener un área que requiere atención específica.
 function _indiLevelBadgeDetailed(a) {
   if (!a || !a.nivel || a.nivel === '—') return _indiLevelBadge(a && a.nivel);
   var badge = _indiLevelBadge(a.nivel);
-  if (a.nivel !== 'Descendido' && a.nivel !== 'Muy descendido') return badge;
-
-  // Listar las áreas que disparan el nivel global
-  var criticas = (a.evaluations||[]).filter(function(e){ return e.resultado === a.nivel; });
-  if (!criticas.length) return badge;
-  var labels = criticas.map(function(e){
-    return (e.area || '?') + (e.subarea && e.subarea !== 'NINGUNO' ? '·' + e.subarea : '');
+  var criticas = a.criticalEvals || (a.evaluations||[]).filter(function(e){
+    return e.resultado === 'Muy descendido' || e.resultado === 'Descendido';
   });
-  var shown = labels.slice(0, 3).join(', ');
-  var more = labels.length > 3 ? ' +' + (labels.length - 3) : '';
+  if (!criticas.length) return badge;
+
+  var formatArea = function(e){
+    return (e.area || '?') + (e.subarea && e.subarea !== 'NINGUNO' ? '·' + e.subarea : '');
+  };
+  var muyDesc = criticas.filter(function(e){ return e.resultado === 'Muy descendido'; });
+  var desc    = criticas.filter(function(e){ return e.resultado === 'Descendido'; });
+
+  var lines = [];
+  if (muyDesc.length) {
+    var lbl = muyDesc.map(formatArea);
+    var shown = lbl.slice(0,2).join(', ');
+    var more = lbl.length > 2 ? ' +'+(lbl.length-2) : '';
+    lines.push('<span style="color:#e05252">🔴 '+muyDesc.length+': '+shown+more+'</span>');
+  }
+  if (desc.length) {
+    var lbl = desc.map(formatArea);
+    var shown = lbl.slice(0,2).join(', ');
+    var more = lbl.length > 2 ? ' +'+(lbl.length-2) : '';
+    lines.push('<span style="color:#d9a020">🟡 '+desc.length+': '+shown+more+'</span>');
+  }
+
+  var allLabels = criticas.map(formatArea).join(', ');
   return badge
-    + '<div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.3;font-weight:600" title="Áreas: '+labels.join(', ')+'">en '+shown+more+'</div>';
+    + '<div style="font-size:9px;margin-top:4px;line-height:1.4;font-weight:600;text-align:center" title="Áreas a reforzar: '+allLabels+'">'+lines.join('<br>')+'</div>';
 }
 
 function _indiCellLevel(nivel) {
@@ -9015,32 +9058,49 @@ function _indiViewDetalle(allRows, alumnosFiltrados) {
     + '</tbody></table></div>';
 }
 
-// VISTA: Alertas (alumnos con Muy descendido o Descendido, agrupados)
+// VISTA: Alertas — agrupa alumnos con áreas críticas (independiente del nivel global).
+// Un alumno con global "Destacado" pero un área en Muy descendido SÍ aparece aquí.
 function _indiViewAlertas(alumnos) {
-  var muy = alumnos.filter(function(a){ return a.nivel === 'Muy descendido'; });
-  var desc = alumnos.filter(function(a){ return a.nivel === 'Descendido'; });
+  // Con al menos un área en Muy descendido (sin importar nivel global)
+  var muy = alumnos.filter(function(a){
+    return (a.counts && a.counts['Muy descendido'] > 0) ||
+           (a.criticalEvals||[]).some(function(e){ return e.resultado === 'Muy descendido'; });
+  });
+  // Con al menos un área en Descendido pero NINGUNA en Muy descendido
+  var desc = alumnos.filter(function(a){
+    var hasMuy = (a.counts && a.counts['Muy descendido'] > 0) ||
+                 (a.criticalEvals||[]).some(function(e){ return e.resultado === 'Muy descendido'; });
+    if (hasMuy) return false;
+    return (a.counts && a.counts['Descendido'] > 0) ||
+           (a.criticalEvals||[]).some(function(e){ return e.resultado === 'Descendido'; });
+  });
 
   if (!muy.length && !desc.length) {
-    return '<div style="padding:60px 20px;text-align:center;color:var(--muted)"><div style="font-size:42px;margin-bottom:10px">✅</div><div style="font-size:14px;font-weight:700;color:#3ecf8e">Sin alertas críticas</div><div style="font-size:11px;margin-top:6px">Ningún alumno está clasificado como Descendido o Muy descendido</div></div>';
+    return '<div style="padding:60px 20px;text-align:center;color:var(--muted)"><div style="font-size:42px;margin-bottom:10px">✅</div><div style="font-size:14px;font-weight:700;color:#3ecf8e">Sin alertas</div><div style="font-size:11px;margin-top:6px">Ningún alumno tiene áreas en Descendido o Muy descendido</div></div>';
   }
 
-  var renderGroup = function(titulo, alumnos, color, bgColor){
+  var renderGroup = function(titulo, subtitulo, alumnos, color, bgColor){
     if (!alumnos.length) return '';
     return '<div style="margin-bottom:14px">'
-      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 22px">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 22px;flex-wrap:wrap">'
       +   '<span style="background:'+bgColor+';color:'+color+';border-radius:8px;padding:4px 11px;font-size:11px;font-weight:800;font-family:\'Syne\',sans-serif">'+titulo+'</span>'
-      +   '<span style="font-size:11px;color:var(--muted)">'+alumnos.length+' alumno'+(alumnos.length===1?'':'s')+'</span>'
+      +   '<span style="font-size:11px;color:var(--muted)">'+alumnos.length+' alumno'+(alumnos.length===1?'':'s')+' · '+subtitulo+'</span>'
       + '</div>'
       + '<div style="padding:0 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px">'
       + alumnos.map(function(a){
-          var areasCriticas = a.evaluations.filter(function(e){ return e.resultado === 'Muy descendido' || e.resultado === 'Descendido'; });
+          var areasCriticas = (a.criticalEvals && a.criticalEvals.length)
+            ? a.criticalEvals
+            : a.evaluations.filter(function(e){ return e.resultado === 'Muy descendido' || e.resultado === 'Descendido'; });
           return '<div style="background:'+bgColor+';border:1px solid '+color+'44;border-radius:10px;padding:10px 13px">'
-            + '<div style="font-weight:700;font-size:12px;margin-bottom:5px">'+a.nombre+(a.edad?' · '+a.edad+' años':'')+'</div>'
-            + '<div style="font-size:10px;color:var(--muted);margin-bottom:6px">Áreas críticas:</div>'
+            + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap">'
+            +   '<span style="font-weight:700;font-size:12px;flex:1;min-width:0">'+a.nombre+(a.edad?' · '+a.edad+'a':'')+'</span>'
+            +   _indiLevelBadge(a.nivel)
+            + '</div>'
+            + '<div style="font-size:10px;color:var(--muted);margin-bottom:6px">'+areasCriticas.length+' área'+(areasCriticas.length===1?'':'s')+' a reforzar:</div>'
             + '<div style="display:flex;flex-wrap:wrap;gap:4px">'
             +   areasCriticas.map(function(e){
                   var label = (e.area + (e.subarea ? ' · ' + e.subarea : '')).trim();
-                  return '<span style="background:var(--surface);border:1px solid var(--border);color:'+(e.resultado==='Muy descendido'?'#e05252':'#ffd166')+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px">'+label+'</span>';
+                  return '<span style="background:var(--surface);border:1px solid var(--border);color:'+(e.resultado==='Muy descendido'?'#e05252':'#d9a020')+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px">'+(e.resultado==='Muy descendido'?'🔴':'🟡')+' '+label+'</span>';
                 }).join('')
             + '</div>'
             + '</div>';
@@ -9050,8 +9110,8 @@ function _indiViewAlertas(alumnos) {
   };
 
   return '<div style="padding:18px 0">'
-    + renderGroup('🔴 MUY DESCENDIDO — Atención prioritaria', muy, '#e05252', 'rgba(224,82,82,0.10)')
-    + renderGroup('🟡 DESCENDIDO — Necesita reforzamiento', desc, '#ffd166', 'rgba(255,209,102,0.10)')
+    + renderGroup('🔴 ÁREAS EN MUY DESCENDIDO', 'atención prioritaria', muy, '#e05252', 'rgba(224,82,82,0.10)')
+    + renderGroup('🟡 ÁREAS EN DESCENDIDO', 'necesitan reforzamiento', desc, '#ffd166', 'rgba(255,209,102,0.10)')
     + '</div>';
 }
 
