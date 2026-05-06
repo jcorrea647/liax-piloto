@@ -5878,10 +5878,12 @@ async function nominaGuardar(cursoEncoded) {
   DB.alumnos = DB.alumnos.filter(function(a){ return a.esp !== curso; });
   alumnos.sort(function(a,b){ return (a.nombre||'').localeCompare(b.nombre||'', 'es'); });
   alumnos.forEach(function(a, i) {
+    // FIX: aceptar 'Sí' (con tilde) y 'Si' (sin tilde) como NEE = true
+    var esNee = (a.nee === 'Sí' || a.nee === 'Si');
     DB.alumnos.push({
       id: 'alu_mem_' + uid + '_' + i + '_' + curso.replace(/\s/g,''),
       nombre: a.nombre, esp: curso, rut: a.rut || '',
-      nee: a.nee === 'Si' ? 'Si' : '', neeT: a.nee_tipo || '',
+      nee: esNee ? 'Si' : '', neeT: a.nee_tipo || '',
       notas: [], asistencia: [], user_id: uid
     });
   });
@@ -5901,13 +5903,16 @@ async function nominaGuardar(cursoEncoded) {
     var ts = Date.now();
     // Insertar nuevos
     var inserts = alumnos.map(function(a, i) {
+      // FIX: aceptar 'Sí' (con tilde) y 'Si' (sin tilde)
+      var esNee = (a.nee === 'Sí' || a.nee === 'Si');
       var row = {
         id:           'alu_' + ts + '_' + i,
         nombre:       a.nombre,
         curso_nombre: curso,
         rut:          a.rut || '',
         email:        '',
-        nee:          a.nee === 'Si' ? 'Si' : '',
+        nee:          esNee ? 'Si' : '',
+        nee_tipo:     a.nee_tipo || '',  // FIX: persistir el diagnóstico (TEA, dislexia, etc.)
         user_id:      _supaUser.id
       };
       if (colegioId) row.colegio_id = colegioId;
@@ -20441,12 +20446,19 @@ function selectAllCtx(type) {
     base.forEach(function(a){ CTX.alumnos.add(a.id); });
     ctxRenderAlus();
   } else if (type === 'nee') {
-    DB.alumnos.forEach(function(a){
+    // FIX: filtrar por curso seleccionado (mismo patrón que selectAllCtx('alu'))
+    // Sin esto, recorre TODOS los alumnos del DB incluyendo seed demo y otros cursos.
+    var base = DB.alumnos;
+    if (CTX.cursos.size) base = base.filter(function(a){ return CTX.cursos.has(a.esp); });
+    base.forEach(function(a){
       if (a.nee || a.neeT) CTX.alumnos.add(a.id);
     });
     ctxRenderAlus();
   } else if (type === 'prioritario') {
-    DB.alumnos.forEach(function(a){
+    // FIX: filtrar por curso seleccionado (consistencia con NEE)
+    var base = DB.alumnos;
+    if (CTX.cursos.size) base = base.filter(function(a){ return CTX.cursos.has(a.esp); });
+    base.forEach(function(a){
       if (a.prioritario === 'Si' || a.prioritario === 'Sí' || a.prioritario === true) CTX.alumnos.add(a.id);
     });
     ctxRenderAlus();
@@ -39135,7 +39147,7 @@ async function _supaLoadAlumnos() {
             rol:            'alumno',
             esp:            a.curso_nombre || '',
             nee:            a.nee || '',
-            neeT:           '',
+            neeT:           a.nee_tipo || '',  // FIX: leer diagnóstico de NEE desde Supabase
             exp:            0,
             avatar:         (((a.nombre||'').split(' ')[0]||'')[0] || '').toUpperCase() + (((a.nombre||'').split(' ')[1]||'')[0] || '').toUpperCase(),
             establecimiento: '',
