@@ -8652,6 +8652,17 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     stat.style.color = 'var(--muted)';
 
     // ══════════════════════════════════════════════════════════════
+    // 🛡️ RESPALDO DE SEGURIDAD — snapshot antes de tocar nada
+    //    Si algo sale mal, los datos quedan recuperables desde
+    //    localStorage (ver _liaxBackupList() en consola).
+    // ══════════════════════════════════════════════════════════════
+    try {
+      if (typeof _liaxSnapshotIndi === 'function') {
+        await _liaxSnapshotIndi('pre-carga-excel');
+      }
+    } catch(e) { console.warn('[Backup] No se pudo crear snapshot pre-carga:', e.message); }
+
+    // ══════════════════════════════════════════════════════════════
     // 0. PRESERVACIÓN NEE — capturar datos NEE/NEE-T ANTES de borrar
     //    Los datos NEE (TEA, TDAH, dislexia, etc.) que el docente cargó
     //    deben conservarse al recargar el Excel de resultados. Se matchea
@@ -10593,23 +10604,36 @@ async function sendChat(){
     // Agente visual con imágenes: abrir visor de documento
     if (currentAgent && currentAgent.visual && /\[(?:GENERA|GENERAR|CREA|CREAR):/i.test(reply)) {
       var _dvId = 'visdoc_' + Date.now();
-      document.getElementById(lid).outerHTML = makeBubbleAI(
-        '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;cursor:pointer" onclick="liaxOpenVisualDoc(\'' + _dvId + '\')">' +
-        '<span style="font-size:18px">\uD83D\uDCC4</span>' +
-        '<div><div style="font-size:12px;font-weight:700">Documento generado con im\u00e1genes IA</div>' +
-        '<div style="font-size:10px;color:var(--muted)">Clic para abrir — im\u00e1genes generadas con Together AI FLUX</div></div>' +
-        '<span style="margin-left:auto;font-size:16px">\u2192</span></div>',
-        undefined, _provBadge
-      );
+      // FIX: validar que el bubble de loading aún exista (el usuario pudo
+      // haber navegado, cambiado de agente, o cerrado el chat mientras la IA respondía).
+      var _loadEl = document.getElementById(lid);
+      if (_loadEl) {
+        _loadEl.outerHTML = makeBubbleAI(
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;cursor:pointer" onclick="liaxOpenVisualDoc(\'' + _dvId + '\')">' +
+          '<span style="font-size:18px">\uD83D\uDCC4</span>' +
+          '<div><div style="font-size:12px;font-weight:700">Documento generado con im\u00e1genes IA</div>' +
+          '<div style="font-size:10px;color:var(--muted)">Clic para abrir — im\u00e1genes generadas con Together AI FLUX</div></div>' +
+          '<span style="margin-left:auto;font-size:16px">\u2192</span></div>',
+          undefined, _provBadge
+        );
+      } else {
+        console.warn('[Liax] Bubble de loading desapareció antes de la respuesta — abortando render');
+      }
       window._liaxVisualDocs = window._liaxVisualDocs || {};
       window._liaxVisualDocs[_dvId] = { text: reply, agent: currentAgent.nombre, icon: currentAgent.icon };
     } else {
-      document.getElementById(lid).outerHTML = makeBubbleAI(formatMsg(reply), undefined, _provBadge);
+      // FIX: misma protección defensiva
+      var _loadEl2 = document.getElementById(lid);
+      if (_loadEl2) _loadEl2.outerHTML = makeBubbleAI(formatMsg(reply), undefined, _provBadge);
+      else console.warn('[Liax] Bubble de loading desapareció antes de la respuesta — abortando render');
     }
   setTimeout(checkNiveles, 500);
   } catch(e){
     var _isLocalErr = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    document.getElementById(lid).outerHTML = makeBubbleAI('<span style="color:var(--accent3)">' + (e.message||'Error al conectar con la IA.') + (_isLocalErr ? ' <button onclick="openApiKeyModal()" style="font-size:10px;background:var(--dim3);border:1px solid var(--accent3)44;color:var(--accent3);border-radius:4px;padding:1px 6px;cursor:pointer;font-family:DM Sans,sans-serif;margin-left:6px">Configurar API Key</button>' : '') + '</span>');
+    // FIX: misma protección defensiva en el path de error
+    var _loadElErr = document.getElementById(lid);
+    if (_loadElErr) _loadElErr.outerHTML = makeBubbleAI('<span style="color:var(--accent3)">' + (e.message||'Error al conectar con la IA.') + (_isLocalErr ? ' <button onclick="openApiKeyModal()" style="font-size:10px;background:var(--dim3);border:1px solid var(--accent3)44;color:var(--accent3);border-radius:4px;padding:1px 6px;cursor:pointer;font-family:DM Sans,sans-serif;margin-left:6px">Configurar API Key</button>' : '') + '</span>');
+    else console.warn('[Liax] Error en sendChat (' + (e.message||e) + ') pero el bubble ya no existe');
   }
   area.scrollTop=area.scrollHeight;
 }
@@ -39483,11 +39507,183 @@ async function _supaLoadIndiResultados() {
       // Re-intentar más tarde porque DB.alumnos / cursos pueden cargarse después
       setTimeout(_indiRefreshUI, 500);
       setTimeout(_indiRefreshUI, 2000);
+
+      // ── SNAPSHOT AUTOMÁTICO en localStorage ──
+      // Cada carga exitosa = un respaldo. Mantiene los últimos 5 snapshots.
+      // Ver _liaxBackupList() / _liaxBackupDownload() / _liaxBackupRestore() en consola.
+      try { _liaxSnapshotIndi('auto-load', data); } catch(e) { console.warn('[Backup] No se pudo guardar snapshot:', e.message); }
     } else {
       console.warn('[INDI] La query devolvió 0 registros. ¿Los resultados están guardados con otro user_id, o RLS está bloqueando?');
     }
   } catch(e) { console.warn('[INDI] Error cargando resultados:', e.message); }
 }
+
+// ════════════════════════════════════════════════════════════════════
+// SISTEMA DE RESPALDOS AUTOMÁTICOS — Capa de seguridad anti pérdida
+// ════════════════════════════════════════════════════════════════════
+// Guarda automáticamente snapshots de alumnos + indi_resultados en
+// localStorage del navegador. Cada carga exitosa de la app dispara un
+// respaldo. Mantiene los últimos 5. Permite descargar como JSON y
+// restaurar ante pérdida de datos en Supabase.
+//
+// Uso desde consola (F12 → Console):
+//   _liaxBackupList()                  → ver respaldos disponibles
+//   _liaxBackupDownload(0)             → descargar el respaldo más reciente como .json
+//   _liaxBackupRestore(0)              → restaurar el respaldo más reciente a Supabase
+//   _liaxBackupNow()                   → forzar un respaldo manual ahora
+// ════════════════════════════════════════════════════════════════════
+
+var _LIAX_BACKUP_KEY_PREFIX = 'liax_backup_indi_';
+var _LIAX_BACKUP_MAX = 5;
+
+async function _liaxSnapshotIndi(motivo, indiResultadosData) {
+  if (!_supaUser || !_supa) return null;
+  try {
+    // Si no recibimos los resultados, los leemos
+    var indiData = indiResultadosData;
+    if (!indiData) {
+      var indiQ = await _supa.from('indi_resultados').select('*').eq('user_id', _supaUser.id);
+      indiData = indiQ.data || [];
+    }
+    // Siempre leemos los alumnos actuales
+    var aluQ = await _supa.from('alumnos').select('*').eq('user_id', _supaUser.id);
+    var aluData = aluQ.data || [];
+
+    if (!indiData.length && !aluData.length) {
+      console.log('[Backup] Sin datos que respaldar (alumnos=0, resultados=0)');
+      return null;
+    }
+
+    var snapshot = {
+      timestamp: new Date().toISOString(),
+      user_id: _supaUser.id,
+      motivo: motivo || 'manual',
+      counts: { alumnos: aluData.length, indi_resultados: indiData.length },
+      alumnos: aluData,
+      indi_resultados: indiData,
+    };
+
+    var key = _LIAX_BACKUP_KEY_PREFIX + Date.now();
+    localStorage.setItem(key, JSON.stringify(snapshot));
+
+    // Rotar — mantener solo los últimos N
+    var allKeys = Object.keys(localStorage)
+      .filter(function(k){ return k.indexOf(_LIAX_BACKUP_KEY_PREFIX) === 0; })
+      .sort()
+      .reverse();
+    if (allKeys.length > _LIAX_BACKUP_MAX) {
+      allKeys.slice(_LIAX_BACKUP_MAX).forEach(function(oldKey){
+        localStorage.removeItem(oldKey);
+      });
+    }
+
+    console.log('[Backup] ✓ Snapshot guardado (' + motivo + '): '
+      + aluData.length + ' alumnos, ' + indiData.length + ' resultados');
+    return snapshot;
+  } catch(e) {
+    console.warn('[Backup] Error creando snapshot:', e.message);
+    return null;
+  }
+}
+
+function _liaxBackupList() {
+  var keys = Object.keys(localStorage)
+    .filter(function(k){ return k.indexOf(_LIAX_BACKUP_KEY_PREFIX) === 0; })
+    .sort()
+    .reverse();
+  if (!keys.length) {
+    console.log('[Backup] Sin respaldos disponibles');
+    return [];
+  }
+  console.log('[Backup] Respaldos disponibles (más reciente primero):');
+  var list = keys.map(function(k, i) {
+    try {
+      var s = JSON.parse(localStorage.getItem(k));
+      var fecha = new Date(s.timestamp).toLocaleString('es-CL');
+      console.log('  [' + i + '] ' + fecha + ' · ' + s.motivo
+        + ' · ' + s.counts.alumnos + ' alumnos, ' + s.counts.indi_resultados + ' resultados');
+      return { idx: i, key: k, fecha: fecha, motivo: s.motivo, counts: s.counts };
+    } catch(e) {
+      return { idx: i, key: k, error: e.message };
+    }
+  });
+  console.log('Para descargar:  _liaxBackupDownload(idx)');
+  console.log('Para restaurar:  _liaxBackupRestore(idx)');
+  return list;
+}
+
+function _liaxBackupDownload(idx) {
+  idx = idx || 0;
+  var keys = Object.keys(localStorage)
+    .filter(function(k){ return k.indexOf(_LIAX_BACKUP_KEY_PREFIX) === 0; })
+    .sort().reverse();
+  if (!keys[idx]) { console.warn('[Backup] No existe respaldo #' + idx); return; }
+  var data = localStorage.getItem(keys[idx]);
+  var snapshot = JSON.parse(data);
+  var blob = new Blob([data], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var ts = snapshot.timestamp.replace(/[:.]/g,'-').slice(0,19);
+  a.href = url; a.download = 'liax-respaldo-' + ts + '.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  console.log('[Backup] ✓ Descargando respaldo: ' + a.download);
+}
+
+async function _liaxBackupRestore(idx) {
+  idx = idx || 0;
+  var keys = Object.keys(localStorage)
+    .filter(function(k){ return k.indexOf(_LIAX_BACKUP_KEY_PREFIX) === 0; })
+    .sort().reverse();
+  if (!keys[idx]) { console.warn('[Backup] No existe respaldo #' + idx); return false; }
+  if (!_supa || !_supaUser) { console.warn('[Backup] Necesitas estar conectado a Supabase'); return false; }
+
+  var snapshot = JSON.parse(localStorage.getItem(keys[idx]));
+  var fecha = new Date(snapshot.timestamp).toLocaleString('es-CL');
+  if (!confirm('¿Restaurar respaldo del ' + fecha + '?\n\n'
+      + snapshot.counts.alumnos + ' alumnos\n'
+      + snapshot.counts.indi_resultados + ' resultados\n\n'
+      + 'Esta acción inserta los datos del respaldo en Supabase. '
+      + 'Si ya existen datos con los mismos IDs, NO se sobrescriben (upsert seguro).')) {
+    return false;
+  }
+
+  console.log('[Backup] Restaurando respaldo del ' + fecha + '...');
+  try {
+    if (snapshot.alumnos && snapshot.alumnos.length) {
+      var aluRes = await _supa.from('alumnos').upsert(snapshot.alumnos, { onConflict: 'id' });
+      if (aluRes.error) console.warn('[Backup] Alumnos parcial:', aluRes.error.message);
+      else console.log('[Backup] ✓ Alumnos restaurados:', snapshot.alumnos.length);
+    }
+    if (snapshot.indi_resultados && snapshot.indi_resultados.length) {
+      var indiRes = await _supa.from('indi_resultados').upsert(snapshot.indi_resultados, { onConflict: 'id' });
+      if (indiRes.error) console.warn('[Backup] Resultados parcial:', indiRes.error.message);
+      else console.log('[Backup] ✓ Resultados restaurados:', snapshot.indi_resultados.length);
+    }
+    console.log('[Backup] ✓ Restauración completada. Refrescá la app (Cmd+Shift+R) para ver los datos.');
+    return true;
+  } catch(e) {
+    console.error('[Backup] Error restaurando:', e.message);
+    return false;
+  }
+}
+
+async function _liaxBackupNow() {
+  return await _liaxSnapshotIndi('manual');
+}
+
+// Exponer en window para acceso desde consola
+if (typeof window !== 'undefined') {
+  window._liaxSnapshotIndi   = _liaxSnapshotIndi;
+  window._liaxBackupList     = _liaxBackupList;
+  window._liaxBackupDownload = _liaxBackupDownload;
+  window._liaxBackupRestore  = _liaxBackupRestore;
+  window._liaxBackupNow      = _liaxBackupNow;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// FIN del sistema de respaldos
+// ════════════════════════════════════════════════════════════════════
 
 function _indiRegisterFiles(silent) {
   if (!window.INDI_RESULTS || !window.INDI_RESULTS.length) return;
