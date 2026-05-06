@@ -5322,17 +5322,19 @@ function renderCursoResumen() {
       const indiBlock = (typeof _indiBuildEmptyStateCard === 'function') ? _indiBuildEmptyStateCard(curso) : '';
       const tieneIndi = !!indiBlock;
       return `<div class="curso-resumen-card" style="margin-bottom:16px">
-        <div class="curso-resumen-header" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--surface2);border-radius:12px;border:1.5px solid var(--border)">
+        <div class="curso-resumen-header" style="background:#fff;border:0.5px solid var(--border);border-radius:12px;padding:18px 22px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
           <div style="flex:1;min-width:0">
-            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:900;color:var(--text);letter-spacing:-0.5px;line-height:1.1">${curso}</div>
-            <div style="font-size:13px;color:var(--muted);margin-top:2px;font-weight:600">${nAluCurso} alumnos</div>
+            <div style="font-size:11px;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:4px;font-weight:500">Curso</div>
+            <div style="font-size:22px;font-weight:500;color:var(--text);line-height:1.2;margin-bottom:4px">${curso}</div>
+            <div style="font-size:13px;color:var(--muted);font-weight:400">${nAluCurso} alumnos</div>
           </div>
           <button onclick="abrirNominaModal('${encodeURIComponent(curso)}')"
-            style="background:var(--accent2);color:#fff;border:none;
-                   border-radius:10px;padding:10px 18px;font-size:14px;font-weight:800;cursor:pointer;
-                   font-family:'Syne',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap;
-                   box-shadow:0 3px 10px var(--accent2)44;flex-shrink:0">
-            📋 Nómina
+            style="background:none;color:var(--text);border:0.5px solid var(--border);
+                   border-radius:8px;padding:6px 14px;font-size:13px;font-weight:500;cursor:pointer;
+                   font-family:inherit;white-space:nowrap;flex-shrink:0;transition:background .15s"
+            onmouseover="this.style.background='var(--surface2)'"
+            onmouseout="this.style.background='none'">
+            Ver nómina
           </button>
         </div>
         ${indiBlock}
@@ -9420,40 +9422,55 @@ function _indiBuildEmptyStateCard(curso) {
   var total = stats.total || 1;
   var pct = function(n){ return Math.round(n/total*100); };
 
-  var bar = [
-    dest>0 ? '<div title="Destacado: '+dest+'" style="flex:'+dest+';background:#3ecf8e;height:100%"></div>' : '',
-    esp >0 ? '<div title="Esperado: '+esp+'"  style="flex:'+esp+';background:#4a9eff;height:100%"></div>' : '',
-    desc>0 ? '<div title="Descendido: '+desc+'" style="flex:'+desc+';background:#ffd166;height:100%"></div>' : '',
-    muy >0 ? '<div title="Muy descendido: '+muy+'" style="flex:'+muy+';background:#e05252;height:100%"></div>' : ''
-  ].join('');
+  // KPI card (nivel)
+  var kpiCard = function(label, color, n, p, dim) {
+    return ''
+      + '<div style="padding:12px 14px;background:var(--surface2);border-radius:8px">'
+      +   '<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">'
+      +     '<span style="width:8px;height:8px;border-radius:50%;background:'+color+';display:inline-block;flex-shrink:0"></span>'
+      +     '<span style="font-size:12px;color:var(--muted);font-weight:400">'+label+'</span>'
+      +   '</div>'
+      +   '<div style="font-size:20px;font-weight:500;color:'+(dim?'var(--muted)':'var(--text)')+'">'+n+' <span style="font-size:12px;color:var(--muted);font-weight:400">· '+p+'%</span></div>'
+      + '</div>';
+  };
+
+  // Barra de distribución (segmentos sin gap)
+  var bar = ''
+    + '<div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--surface2);margin-bottom:16px">'
+    +   (dest>0 ? '<div title="Destacado: '+dest+'" style="width:'+pct(dest)+'%;background:#639922"></div>' : '')
+    +   (esp >0 ? '<div title="Esperado: '+esp +'" style="width:'+pct(esp)+'%;background:#378ADD"></div>' : '')
+    +   (desc>0 ? '<div title="Descendido: '+desc+'" style="width:'+pct(desc)+'%;background:#EF9F27"></div>' : '')
+    +   (muy >0 ? '<div title="Muy descendido: '+muy+'" style="width:'+pct(muy)+'%;background:#E24B4A"></div>' : '')
+    + '</div>';
+
+  // Bloque alertas
+  var alertText = '';
+  if (stats.withMuyDesc > 0) alertText += stats.withMuyDesc+' alumno'+(stats.withMuyDesc===1?'':'s')+' con un área en muy descendido';
+  if (stats.withDesc > 0) alertText += (alertText?' · ':'') + stats.withDesc+' con un área en descendido';
+  var alertBlock = (alertText
+    ? '<div style="background:#FAEEDA;border-radius:8px;padding:11px 14px;margin-top:14px">'
+      + '<div style="font-size:12px;color:#854F0B;font-weight:500;margin-bottom:3px">Áreas a reforzar</div>'
+      + '<div style="font-size:13px;color:#633806;line-height:1.5">'+alertText+'</div>'
+      + '</div>'
+    : '');
 
   return ''
-    + '<div style="margin-top:10px;background:linear-gradient(135deg,rgba(167,139,250,0.08),rgba(79,123,255,0.06));border:1px solid rgba(167,139,250,0.3);border-radius:12px;padding:14px 16px">'
-    +   '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">'
-    +     '<div style="display:flex;align-items:center;gap:10px">'
-    +       '<span style="font-size:22px">📊</span>'
-    +       '<div>'
-    +         '<div style="font-family:\'Syne\',sans-serif;font-size:14px;font-weight:800;color:#a78bfa">Resultados INDI cargados</div>'
-    +         '<div style="font-size:11px;color:var(--muted)">'+stats.total+' alumnos · '+stats.evalCount+' evaluaciones · '+stats.areas.length+' áreas</div>'
-    +       '</div>'
+    + '<div style="margin-top:10px;background:#fff;border:0.5px solid var(--border);border-radius:12px;padding:18px 22px">'
+    +   '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">'
+    +     '<div>'
+    +       '<div style="font-size:14px;font-weight:500;color:var(--text)">Resultados INDI</div>'
+    +       '<div style="font-size:12px;color:var(--muted);margin-top:2px">'+stats.evalCount+' evaluaciones · '+stats.areas.length+' áreas</div>'
     +     '</div>'
-    +     '<button onclick="openIndiResultadosModal(\''+encodeURIComponent(curso)+'\')" style="background:linear-gradient(135deg,#7c3aed,#4f7bff);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;font-family:\'Syne\',sans-serif;display:flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(124,58,237,0.4)">🗂️ Ver base de datos INDI</button>'
+    +     '<button onclick="openIndiResultadosModal(\''+encodeURIComponent(curso)+'\')" style="background:none;color:var(--text);border:0.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;transition:background .15s" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'none\'">Ver detalle</button>'
     +   '</div>'
-    +   '<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:1px;margin-bottom:10px;background:var(--border)">'+bar+'</div>'
-    +   '<div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px">Nivel global (moda de evaluaciones)</div>'
-    +   '<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px">'
-    +     '<span style="background:rgba(62,207,142,0.15);color:#3ecf8e;border-radius:20px;padding:4px 11px;font-weight:700">🟢 Destacado: '+dest+' ('+pct(dest)+'%)</span>'
-    +     '<span style="background:rgba(74,158,255,0.15);color:#4a9eff;border-radius:20px;padding:4px 11px;font-weight:700">🔵 Esperado: '+esp+' ('+pct(esp)+'%)</span>'
-    +     '<span style="background:rgba(255,209,102,0.15);color:#ffd166;border-radius:20px;padding:4px 11px;font-weight:700">🟡 Descendido: '+desc+' ('+pct(desc)+'%)</span>'
-    +     '<span style="background:rgba(224,82,82,0.18);color:#e05252;border-radius:20px;padding:4px 11px;font-weight:700">🔴 Muy descendido: '+muy+' ('+pct(muy)+'%)</span>'
+    +   bar
+    +   '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">'
+    +     kpiCard('Destacado', '#639922', dest, pct(dest), false)
+    +     kpiCard('Esperado',  '#378ADD', esp,  pct(esp),  false)
+    +     kpiCard('Descendido', '#EF9F27', desc, pct(desc), desc===0)
+    +     kpiCard('Muy descendido', '#E24B4A', muy, pct(muy), muy===0)
     +   '</div>'
-    + ((stats.withMuyDesc > 0 || stats.withDesc > 0)
-        ? '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(167,139,250,0.3);display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
-          + '<span style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700">⚠️ Áreas a reforzar:</span>'
-          + (stats.withMuyDesc > 0 ? '<span style="background:rgba(224,82,82,0.18);color:#e05252;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">'+stats.withMuyDesc+' alumno'+(stats.withMuyDesc===1?'':'s')+' con área muy descendida</span>' : '')
-          + (stats.withDesc > 0 ? '<span style="background:rgba(255,209,102,0.18);color:#d9a020;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">'+stats.withDesc+' con área descendida</span>' : '')
-        + '</div>'
-        : '')
+    +   alertBlock
     + '</div>';
 }
 
