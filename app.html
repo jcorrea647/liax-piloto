@@ -20317,11 +20317,33 @@ function ctxRenderList(type) {
 }
 
 // ── Alumno list renderer ──────────────────────────────────────
+// Devuelve los alumnos relevantes para el contexto del docente actual.
+// Si es rol docente: filtra a sus alumnos (los que él subió + los de sus cursos asignados).
+// Si es otro rol o no hay sesión: devuelve DB.alumnos completo (comportamiento original).
+// Esto evita que botones "Todos / NEE / Prioritarios" arrastren alumnos del seed demo
+// cuando el docente no tiene un curso preseleccionado.
+function _getCtxAlumnosBase() {
+  if (typeof currentRole === 'undefined' || currentRole !== 'docente') return DB.alumnos.slice();
+  if (typeof currentDocenteId === 'undefined' || !currentDocenteId) return DB.alumnos.slice();
+  // Cursos asignados al docente (de su perfil + de los alumnos que él haya cargado)
+  var doc = DB.docentes.find(function(d){ return d.id === currentDocenteId; });
+  var misCursos = new Set((doc && doc.cursosAsignados ? doc.cursosAsignados : []).map(function(c){ return c.curso; }).filter(Boolean));
+  (DB.alumnos||[]).forEach(function(a){
+    if (a.user_id === currentDocenteId && a.esp) misCursos.add(a.esp);
+  });
+  // Si por alguna razón el docente no tiene cursos detectados, no filtres (fallback seguro)
+  if (misCursos.size === 0) return DB.alumnos.slice();
+  return DB.alumnos.filter(function(a){
+    // Incluye a los alumnos cargados por este docente o que estén en sus cursos asignados
+    return a.user_id === currentDocenteId || misCursos.has(a.esp);
+  });
+}
+
 function ctxRenderAlus(filter) {
   var listEl = document.getElementById('ctxAluList');
   if (!listEl) return;
 
-  var base = DB.alumnos.slice();
+  var base = _getCtxAlumnosBase();
   if (CTX.cursos.size) base = base.filter(function(a){ return CTX.cursos.has(a.esp); });
   if (filter) base = base.filter(function(a){ return a.nombre.toLowerCase().includes(filter.toLowerCase()); });
   base.sort(function(a,b){
@@ -20441,22 +20463,22 @@ function selectAllCtx(type) {
     ctxRenderList('comp');
     _updateCtxCompLabel();
   } else if (type === 'alu') {
-    var base = DB.alumnos;
+    var base = _getCtxAlumnosBase();
     if (CTX.cursos.size) base = base.filter(function(a){ return CTX.cursos.has(a.esp); });
     base.forEach(function(a){ CTX.alumnos.add(a.id); });
     ctxRenderAlus();
   } else if (type === 'nee') {
     // FIX: filtrar por curso seleccionado (mismo patrón que selectAllCtx('alu'))
-    // Sin esto, recorre TODOS los alumnos del DB incluyendo seed demo y otros cursos.
-    var base = DB.alumnos;
+    // y por base de alumnos del docente para no incluir seed demo de otros cursos.
+    var base = _getCtxAlumnosBase();
     if (CTX.cursos.size) base = base.filter(function(a){ return CTX.cursos.has(a.esp); });
     base.forEach(function(a){
       if (a.nee || a.neeT) CTX.alumnos.add(a.id);
     });
     ctxRenderAlus();
   } else if (type === 'prioritario') {
-    // FIX: filtrar por curso seleccionado (consistencia con NEE)
-    var base = DB.alumnos;
+    // FIX: mismo filtro que NEE para consistencia
+    var base = _getCtxAlumnosBase();
     if (CTX.cursos.size) base = base.filter(function(a){ return CTX.cursos.has(a.esp); });
     base.forEach(function(a){
       if (a.prioritario === 'Si' || a.prioritario === 'Sí' || a.prioritario === true) CTX.alumnos.add(a.id);
