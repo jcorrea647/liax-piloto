@@ -5357,7 +5357,9 @@ function renderCursoResumen() {
     const dsCurso = base.filter(d => d.curso === curso);
     const nAluCurso = DB.alumnos.filter(a => a.esp === curso).length;
     if (!dsCurso.length) {
-      // Curso sin datos — mostrar tarjeta destacada
+      // Curso sin datos tradicionales — pero puede tener INDI
+      const indiBlock = (typeof _indiBuildEmptyStateCard === 'function') ? _indiBuildEmptyStateCard(curso) : '';
+      const tieneIndi = !!indiBlock;
       return `<div class="curso-resumen-card" style="margin-bottom:16px">
         <div class="curso-resumen-header" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--surface2);border-radius:12px;border:1.5px solid var(--border)">
           <div style="flex:1;min-width:0">
@@ -5372,10 +5374,11 @@ function renderCursoResumen() {
             📋 Nómina
           </button>
         </div>
-        <div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:8px;margin-top:8px">
+        ${indiBlock}
+        ${!tieneIndi ? `<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:8px;margin-top:8px">
           Sin datos cargados aún —
           <button onclick="openNuevoDato()" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:12px;font-family:DM Sans,sans-serif;text-decoration:underline">Cargar datos</button>
-        </div>
+        </div>` : ''}
       </div>`;
     }
 
@@ -5549,7 +5552,13 @@ function renderCursoResumen() {
         </div>`;
     }
 
-    const bloques = [notasHtml, asistHtml, evalHtml, socioHtml, anotHtml].filter(Boolean);
+    // ── INDI (resumen breve) ──
+    let indiHtml = '';
+    if (typeof _indiBuildResumenBlock === 'function') {
+      indiHtml = _indiBuildResumenBlock(curso);
+    }
+
+    const bloques = [notasHtml, asistHtml, evalHtml, socioHtml, anotHtml, indiHtml].filter(Boolean);
     if (!bloques.length) return '';
 
     // Count alumnos in curso
@@ -5577,6 +5586,17 @@ function renderCursoResumen() {
       if (pCol) {
         const isolated = dsSocio.rows.filter(r => r[pCol] === 'Aislado').length;
         if (isolated > 0) alertPills += `<span style="background:rgba(255,165,0,0.15);color:#ffd166;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700">🟡 ${isolated} aislados</span>`;
+      }
+    }
+    // ── Alertas INDI ──
+    if (typeof _indiGetRowsForCurso === 'function') {
+      const indiRows = _indiGetRowsForCurso(curso);
+      if (indiRows.length) {
+        const indiStats = _indiClassifyAlumnos(indiRows);
+        const muy  = indiStats.byLevel['Muy descendido'].length;
+        const desc = indiStats.byLevel['Descendido'].length;
+        if (muy > 0)  alertPills += `<span style="background:rgba(224,82,82,0.18);color:#e05252;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700">🔴 ${muy} INDI muy desc.</span>`;
+        if (desc > 0) alertPills += `<span style="background:rgba(255,209,102,0.18);color:#ffd166;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700">🟡 ${desc} INDI desc.</span>`;
       }
     }
     return `<div class="resumen-curso-card">
@@ -8547,6 +8567,474 @@ function _indiGetContext() {
   });
   lines.push('=== FIN RESULTADOS INDI ===');
   return lines.join('\n');
+}
+
+// ══════════════════════════════════════════════════════════════
+// VISOR INDI EN MI AULA — Resumen breve + Modal base de datos
+// ══════════════════════════════════════════════════════════════
+
+// Devuelve las filas INDI que pertenecen a un curso dado
+function _indiGetRowsForCurso(curso) {
+  if (!window.INDI_RESULTS || !window.INDI_RESULTS.length) return [];
+  var norm = function(s){ return (s||'').trim().toLowerCase().replace(/\s+/g,' '); };
+  var cN = norm(curso);
+  var indiCN = norm(window.INDI_CURSO);
+  if (cN && cN === indiCN) return window.INDI_RESULTS;
+  // Fallback: filtrar por CURSO + LETRA del row
+  var filtered = window.INDI_RESULTS.filter(function(r){
+    var rC = norm(((r.CURSO||'') + ' ' + (r.LETRA||'')).trim());
+    return rC === cN;
+  });
+  // Si INDI_CURSO existe y coincide aproximadamente, devolver todo
+  if (!filtered.length && indiCN && (cN.indexOf(indiCN) >= 0 || indiCN.indexOf(cN) >= 0)) {
+    return window.INDI_RESULTS;
+  }
+  return filtered;
+}
+
+// Clasifica cada alumno por su NIVEL DOMINANTE (peor nivel detectado)
+// Excepto: si TODAS las evaluaciones son "Destacado" → Destacado
+function _indiClassifyAlumnos(rows) {
+  var empty = { total:0, alumnos:[], byLevel:{'Destacado':[],'Esperado':[],'Descendido':[],'Muy descendido':[]}, areas:[], evalCount:0 };
+  if (!rows || !rows.length) return empty;
+
+  var alumnoMap = {};
+  var areasSet = {};
+  rows.forEach(function(r){
+    var nom = (r.NOMBRE_COMPLETO||'').trim();
+    if (!nom) return;
+    if (!alumnoMap[nom]) alumnoMap[nom] = { nombre: nom, edad: r.EDAD||'', evaluations: [] };
+    alumnoMap[nom].evaluations.push({ area: r.AREA||'', subarea: r.SUBAREA||'', resultado: r.RESULTADO||'' });
+    var areaKey = ((r.AREA||'') + (r.SUBAREA ? ' · ' + r.SUBAREA : '')).trim();
+    if (areaKey) areasSet[areaKey] = { area: r.AREA||'', subarea: r.SUBAREA||'' };
+  });
+
+  var alumnos = Object.keys(alumnoMap).map(function(k){
+    var a = alumnoMap[k];
+    var levels = a.evaluations.map(function(e){ return e.resultado; }).filter(Boolean);
+    var nivel = '—';
+    if (levels.length) {
+      if (levels.some(function(l){ return l === 'Muy descendido'; })) nivel = 'Muy descendido';
+      else if (levels.some(function(l){ return l === 'Descendido'; })) nivel = 'Descendido';
+      else if (levels.every(function(l){ return l === 'Destacado'; })) nivel = 'Destacado';
+      else nivel = 'Esperado';
+    }
+    a.nivel = nivel;
+    return a;
+  });
+  alumnos.sort(function(a,b){ return a.nombre.localeCompare(b.nombre, 'es'); });
+
+  var byLevel = { 'Destacado':[], 'Esperado':[], 'Descendido':[], 'Muy descendido':[] };
+  alumnos.forEach(function(a){ if (byLevel[a.nivel]) byLevel[a.nivel].push(a); });
+
+  return {
+    total: alumnos.length,
+    alumnos: alumnos,
+    byLevel: byLevel,
+    areas: Object.keys(areasSet).sort(),
+    evalCount: rows.length
+  };
+}
+
+// Construye el bloque "resumen breve" para insertar en la tarjeta del curso (Mi Aula)
+function _indiBuildResumenBlock(curso) {
+  var rows = _indiGetRowsForCurso(curso);
+  if (!rows.length) return '';
+  var stats = _indiClassifyAlumnos(rows);
+  if (!stats.total) return '';
+
+  var dest = stats.byLevel['Destacado'].length;
+  var esp  = stats.byLevel['Esperado'].length;
+  var desc = stats.byLevel['Descendido'].length;
+  var muy  = stats.byLevel['Muy descendido'].length;
+  var total = stats.total || 1;
+
+  // Barra apilada (siempre suma total)
+  var bar = [
+    dest>0 ? '<div title="Destacado: '+dest+'" style="flex:'+dest+';background:#3ecf8e;height:100%"></div>' : '',
+    esp >0 ? '<div title="Esperado: '+esp+'"  style="flex:'+esp+';background:#4a9eff;height:100%"></div>' : '',
+    desc>0 ? '<div title="Descendido: '+desc+'" style="flex:'+desc+';background:#ffd166;height:100%"></div>' : '',
+    muy >0 ? '<div title="Muy descendido: '+muy+'" style="flex:'+muy+';background:#e05252;height:100%"></div>' : ''
+  ].join('');
+
+  var pct = function(n){ return Math.round(n/total*100); };
+  var safeCurso = (curso||'').replace(/'/g,"\\'");
+
+  return ''
+    + '<div class="resumen-tipo-block" onclick="openIndiResultadosModal(\''+encodeURIComponent(curso)+'\')" style="cursor:pointer">'
+    +   '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+    +     '<div style="font-size:10px;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.5px">📊 INDI</div>'
+    +     '<div style="font-size:9px;color:var(--muted)">'+stats.total+' alumnos · '+stats.evalCount+' eval.</div>'
+    +   '</div>'
+    +   '<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:1px;margin-bottom:10px">'+bar+'</div>'
+    +   '<div class="resumen-stat-row"><span style="color:var(--muted)">🟢 Destacado</span><span class="stat-val-ok">'+dest+' <span style="font-size:9px;opacity:.7">('+pct(dest)+'%)</span></span></div>'
+    +   '<div class="resumen-stat-row"><span style="color:var(--muted)">🔵 Esperado</span><span style="color:#4a9eff;font-weight:700">'+esp+' <span style="font-size:9px;opacity:.7">('+pct(esp)+'%)</span></span></div>'
+    +   '<div class="resumen-stat-row"><span style="color:var(--muted)">🟡 Descendido</span><span class="'+(desc>0?'stat-val-warn':'stat-val-ok')+'">'+desc+' <span style="font-size:9px;opacity:.7">('+pct(desc)+'%)</span></span></div>'
+    +   '<div class="resumen-stat-row"><span style="color:var(--muted)">🔴 Muy descendido</span><span class="'+(muy>0?'stat-val-crit':'stat-val-ok')+'">'+muy+' <span style="font-size:9px;opacity:.7">('+pct(muy)+'%)</span></span></div>'
+    +   '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)55;text-align:center;font-size:10px;color:#a78bfa;font-weight:700">🔍 Ver base de datos →</div>'
+    + '</div>';
+}
+
+// Construye el bloque "destacado" para cuando el curso solo tiene INDI (caso vacío de otros datos)
+function _indiBuildEmptyStateCard(curso) {
+  var rows = _indiGetRowsForCurso(curso);
+  if (!rows.length) return '';
+  var stats = _indiClassifyAlumnos(rows);
+  if (!stats.total) return '';
+
+  var dest = stats.byLevel['Destacado'].length;
+  var esp  = stats.byLevel['Esperado'].length;
+  var desc = stats.byLevel['Descendido'].length;
+  var muy  = stats.byLevel['Muy descendido'].length;
+  var total = stats.total || 1;
+  var pct = function(n){ return Math.round(n/total*100); };
+
+  var bar = [
+    dest>0 ? '<div title="Destacado: '+dest+'" style="flex:'+dest+';background:#3ecf8e;height:100%"></div>' : '',
+    esp >0 ? '<div title="Esperado: '+esp+'"  style="flex:'+esp+';background:#4a9eff;height:100%"></div>' : '',
+    desc>0 ? '<div title="Descendido: '+desc+'" style="flex:'+desc+';background:#ffd166;height:100%"></div>' : '',
+    muy >0 ? '<div title="Muy descendido: '+muy+'" style="flex:'+muy+';background:#e05252;height:100%"></div>' : ''
+  ].join('');
+
+  return ''
+    + '<div style="margin-top:10px;background:linear-gradient(135deg,rgba(167,139,250,0.08),rgba(79,123,255,0.06));border:1px solid rgba(167,139,250,0.3);border-radius:12px;padding:14px 16px">'
+    +   '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">'
+    +     '<div style="display:flex;align-items:center;gap:10px">'
+    +       '<span style="font-size:22px">📊</span>'
+    +       '<div>'
+    +         '<div style="font-family:\'Syne\',sans-serif;font-size:14px;font-weight:800;color:#a78bfa">Resultados INDI cargados</div>'
+    +         '<div style="font-size:11px;color:var(--muted)">'+stats.total+' alumnos · '+stats.evalCount+' evaluaciones · '+stats.areas.length+' áreas</div>'
+    +       '</div>'
+    +     '</div>'
+    +     '<button onclick="openIndiResultadosModal(\''+encodeURIComponent(curso)+'\')" style="background:linear-gradient(135deg,#7c3aed,#4f7bff);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;font-family:\'Syne\',sans-serif;display:flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(124,58,237,0.4)">🗂️ Ver base de datos INDI</button>'
+    +   '</div>'
+    +   '<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:1px;margin-bottom:10px;background:var(--border)">'+bar+'</div>'
+    +   '<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px">'
+    +     '<span style="background:rgba(62,207,142,0.15);color:#3ecf8e;border-radius:20px;padding:4px 11px;font-weight:700">🟢 Destacado: '+dest+' ('+pct(dest)+'%)</span>'
+    +     '<span style="background:rgba(74,158,255,0.15);color:#4a9eff;border-radius:20px;padding:4px 11px;font-weight:700">🔵 Esperado: '+esp+' ('+pct(esp)+'%)</span>'
+    +     '<span style="background:rgba(255,209,102,0.15);color:#ffd166;border-radius:20px;padding:4px 11px;font-weight:700">🟡 Descendido: '+desc+' ('+pct(desc)+'%)</span>'
+    +     '<span style="background:rgba(224,82,82,0.18);color:#e05252;border-radius:20px;padding:4px 11px;font-weight:700">🔴 Muy descendido: '+muy+' ('+pct(muy)+'%)</span>'
+    +   '</div>'
+    + '</div>';
+}
+
+// ── MODAL: BASE DE DATOS INDI ─────────────────────────────────
+window._indiModalState = { curso:'', view:'pivote', search:'', levelFilter:'' };
+
+function openIndiResultadosModal(cursoEncoded) {
+  if (document.getElementById('indiResultsPortal')) {
+    document.getElementById('indiResultsPortal').remove();
+  }
+  var curso = decodeURIComponent(cursoEncoded);
+  window._indiModalState = { curso:curso, view:'pivote', search:'', levelFilter:'' };
+
+  var portal = document.createElement('div');
+  portal.id = 'indiResultsPortal';
+  portal.style.cssText = 'position:fixed;inset:0;background:#00000099;z-index:9998;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+  portal.innerHTML = '<div id="indiResultsModal" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:1180px;margin:auto;box-shadow:0 24px 60px #00000099;overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 40px)"></div>';
+  portal.addEventListener('click', function(e){ if(e.target===portal) portal.remove(); });
+  document.body.appendChild(portal);
+  _indiRenderModalContent();
+}
+
+function _indiCloseModal() {
+  var p = document.getElementById('indiResultsPortal');
+  if (p) p.remove();
+}
+
+function _indiSetView(view) {
+  window._indiModalState.view = view;
+  _indiRenderModalContent();
+}
+
+function _indiSetSearch(val) {
+  window._indiModalState.search = val || '';
+  _indiRenderModalBody();
+}
+
+function _indiSetLevelFilter(val) {
+  window._indiModalState.levelFilter = val || '';
+  _indiRenderModalBody();
+}
+
+function _indiRenderModalContent() {
+  var modal = document.getElementById('indiResultsModal');
+  if (!modal) return;
+  var curso = window._indiModalState.curso;
+  var rows = _indiGetRowsForCurso(curso);
+  var stats = _indiClassifyAlumnos(rows);
+
+  var dest = stats.byLevel['Destacado'].length;
+  var esp  = stats.byLevel['Esperado'].length;
+  var desc = stats.byLevel['Descendido'].length;
+  var muy  = stats.byLevel['Muy descendido'].length;
+  var total = stats.total || 1;
+  var pct = function(n){ return Math.round(n/total*100); };
+  var view = window._indiModalState.view;
+
+  modal.innerHTML = ''
+    // Header
+    + '<div style="display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(79,123,255,0.04))">'
+    +   '<span style="font-size:22px">📊</span>'
+    +   '<div style="flex:1">'
+    +     '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:17px">Base de Datos INDI</div>'
+    +     '<div style="font-size:11px;color:var(--muted)">Curso: <strong>'+curso+'</strong> · '+stats.total+' alumnos · '+stats.evalCount+' evaluaciones · '+stats.areas.length+' áreas</div>'
+    +   '</div>'
+    +   '<button onclick="_indiExportCsv()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 13px;font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:5px">📥 Exportar CSV</button>'
+    +   '<button onclick="_indiCloseModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;padding:4px 8px">✕</button>'
+    + '</div>'
+
+    // Stats bar
+    + '<div style="padding:14px 22px;border-bottom:1px solid var(--border);background:var(--surface2)">'
+    +   '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+    +     _indiStatCard('🟢','Destacado',dest,pct(dest),'#3ecf8e')
+    +     + _indiStatCard('🔵','Esperado',esp,pct(esp),'#4a9eff')
+    +     + _indiStatCard('🟡','Descendido',desc,pct(desc),'#ffd166')
+    +     + _indiStatCard('🔴','Muy descendido',muy,pct(muy),'#e05252')
+    +   '</div>'
+    +   '<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:1px;background:var(--border)">'
+    +     (dest>0 ? '<div style="flex:'+dest+';background:#3ecf8e"></div>' : '')
+    +     + (esp>0  ? '<div style="flex:'+esp+';background:#4a9eff"></div>' : '')
+    +     + (desc>0 ? '<div style="flex:'+desc+';background:#ffd166"></div>' : '')
+    +     + (muy>0  ? '<div style="flex:'+muy+';background:#e05252"></div>' : '')
+    +   '</div>'
+    + '</div>'
+
+    // Tabs + Filters
+    + '<div style="display:flex;align-items:center;gap:10px;padding:12px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap">'
+    +   '<div style="display:flex;gap:4px;background:var(--surface2);padding:4px;border-radius:9px">'
+    +     _indiTabBtn('pivote','🔲 Pivote por área',view)
+    +     + _indiTabBtn('alumnos','👤 Por alumno',view)
+    +     + _indiTabBtn('detalle','📋 Tabla detallada',view)
+    +     + _indiTabBtn('alertas','🚨 Alertas',view)
+    +   '</div>'
+    +   '<input id="indiSearchInput" type="text" placeholder="🔍 Buscar alumno..." value="'+(window._indiModalState.search||'').replace(/"/g,'&quot;')+'" oninput="_indiSetSearch(this.value)" '
+    +     'style="flex:1;min-width:160px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:12px;font-family:DM Sans,sans-serif;outline:none">'
+    +   '<select onchange="_indiSetLevelFilter(this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:12px;font-family:DM Sans,sans-serif;outline:none;cursor:pointer">'
+    +     '<option value="">Todos los niveles</option>'
+    +     '<option value="Muy descendido"'+(window._indiModalState.levelFilter==='Muy descendido'?' selected':'')+'>🔴 Solo Muy descendido</option>'
+    +     '<option value="Descendido"'+(window._indiModalState.levelFilter==='Descendido'?' selected':'')+'>🟡 Solo Descendido</option>'
+    +     '<option value="Esperado"'+(window._indiModalState.levelFilter==='Esperado'?' selected':'')+'>🔵 Solo Esperado</option>'
+    +     '<option value="Destacado"'+(window._indiModalState.levelFilter==='Destacado'?' selected':'')+'>🟢 Solo Destacado</option>'
+    +   '</select>'
+    + '</div>'
+
+    // Body (rendered separately so we can refresh on filter change)
+    + '<div id="indiModalBody" style="flex:1;overflow:auto"></div>';
+
+  _indiRenderModalBody();
+}
+
+function _indiTabBtn(id,label,active){
+  var isActive = active === id;
+  return '<button onclick="_indiSetView(\''+id+'\')" style="background:'+(isActive?'var(--surface)':'transparent')+';border:none;color:'+(isActive?'var(--accent2)':'var(--muted)')+';border-radius:6px;padding:6px 13px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;'+(isActive?'box-shadow:0 1px 3px #00000033':'')+'">'+label+'</button>';
+}
+
+function _indiStatCard(icon,label,n,pct,color){
+  return '<div style="flex:1;min-width:140px;background:var(--surface);border:1px solid var(--border);border-left:3px solid '+color+';border-radius:9px;padding:10px 13px">'
+    + '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700">'+icon+' '+label+'</div>'
+    + '<div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">'
+    +   '<span style="font-size:22px;font-weight:800;color:'+color+';line-height:1">'+n+'</span>'
+    +   '<span style="font-size:11px;color:var(--muted);font-weight:600">'+pct+'% alumnos</span>'
+    + '</div>'
+    + '</div>';
+}
+
+function _indiRenderModalBody() {
+  var body = document.getElementById('indiModalBody');
+  if (!body) return;
+  var curso = window._indiModalState.curso;
+  var view = window._indiModalState.view;
+  var rows = _indiGetRowsForCurso(curso);
+  var stats = _indiClassifyAlumnos(rows);
+
+  // Apply filters
+  var search = (window._indiModalState.search||'').toLowerCase().trim();
+  var levelFilter = window._indiModalState.levelFilter || '';
+  var alumnos = stats.alumnos.filter(function(a){
+    if (search && a.nombre.toLowerCase().indexOf(search) < 0) return false;
+    if (levelFilter && a.nivel !== levelFilter) return false;
+    return true;
+  });
+
+  if (!alumnos.length) {
+    body.innerHTML = '<div style="padding:60px 20px;text-align:center;color:var(--muted)"><div style="font-size:36px;margin-bottom:10px">🔎</div><div style="font-size:13px">No hay alumnos que coincidan con los filtros</div></div>';
+    return;
+  }
+
+  if (view === 'pivote')      body.innerHTML = _indiViewPivote(alumnos, stats.areas);
+  else if (view === 'alumnos') body.innerHTML = _indiViewAlumnos(alumnos);
+  else if (view === 'detalle') body.innerHTML = _indiViewDetalle(rows, alumnos);
+  else if (view === 'alertas') body.innerHTML = _indiViewAlertas(alumnos);
+}
+
+// Color/badge helper para niveles
+function _indiLevelBadge(nivel) {
+  if (!nivel) return '<span style="color:var(--muted);font-size:11px">—</span>';
+  var conf = {
+    'Destacado':       {bg:'rgba(62,207,142,0.15)',  c:'#3ecf8e', icon:'🟢'},
+    'Esperado':        {bg:'rgba(74,158,255,0.15)',  c:'#4a9eff', icon:'🔵'},
+    'Descendido':      {bg:'rgba(255,209,102,0.18)', c:'#ffd166', icon:'🟡'},
+    'Muy descendido':  {bg:'rgba(224,82,82,0.20)',   c:'#e05252', icon:'🔴'}
+  };
+  var k = conf[nivel] || {bg:'var(--surface2)', c:'var(--muted)', icon:'⚪'};
+  return '<span style="background:'+k.bg+';color:'+k.c+';border-radius:14px;padding:3px 9px;font-size:10px;font-weight:700;white-space:nowrap;display:inline-flex;align-items:center;gap:4px">'+k.icon+' '+nivel+'</span>';
+}
+
+function _indiCellLevel(nivel) {
+  if (!nivel) return '<td style="padding:8px 10px;text-align:center;color:var(--muted);font-size:10px">—</td>';
+  var conf = {
+    'Destacado':      {bg:'rgba(62,207,142,0.18)',  c:'#3ecf8e'},
+    'Esperado':       {bg:'rgba(74,158,255,0.15)',  c:'#4a9eff'},
+    'Descendido':     {bg:'rgba(255,209,102,0.18)', c:'#ffd166'},
+    'Muy descendido': {bg:'rgba(224,82,82,0.22)',   c:'#e05252'}
+  };
+  var k = conf[nivel] || {bg:'transparent', c:'var(--muted)'};
+  return '<td style="padding:6px 8px;text-align:center;background:'+k.bg+';color:'+k.c+';font-size:10px;font-weight:700;border:1px solid var(--border)33;white-space:nowrap">'+nivel+'</td>';
+}
+
+// VISTA: Pivote por área (rows = alumnos, cols = areas)
+function _indiViewPivote(alumnos, areas) {
+  if (!areas.length) return '<div style="padding:30px;text-align:center;color:var(--muted)">No hay áreas registradas</div>';
+  var head = '<thead><tr>'
+    + '<th style="position:sticky;left:0;background:var(--surface2);padding:10px 12px;text-align:left;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);min-width:240px;z-index:2">Alumno</th>'
+    + '<th style="padding:10px 8px;text-align:center;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);background:var(--surface2);min-width:80px">Edad</th>'
+    + '<th style="padding:10px 8px;text-align:center;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);background:var(--surface2);min-width:120px">Nivel global</th>'
+    + areas.map(function(a){ return '<th style="padding:10px 8px;text-align:center;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);background:var(--surface2);min-width:120px">'+a+'</th>'; }).join('')
+    + '</tr></thead>';
+
+  var body = '<tbody>' + alumnos.map(function(a, i){
+    var byArea = {};
+    a.evaluations.forEach(function(e){
+      var key = (e.area + (e.subarea ? ' · ' + e.subarea : '')).trim();
+      byArea[key] = e.resultado;
+    });
+    return '<tr style="background:'+(i%2===0?'transparent':'var(--surface2)44')+'">'
+      + '<td style="position:sticky;left:0;background:'+(i%2===0?'var(--surface)':'var(--surface2)')+';padding:8px 12px;font-size:12px;font-weight:600;border-bottom:1px solid var(--border)44;z-index:1">'+a.nombre+'</td>'
+      + '<td style="padding:8px;text-align:center;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border)44">'+(a.edad||'—')+'</td>'
+      + '<td style="padding:8px;text-align:center;border-bottom:1px solid var(--border)44">'+_indiLevelBadge(a.nivel)+'</td>'
+      + areas.map(function(ar){ return _indiCellLevel(byArea[ar]); }).join('')
+      + '</tr>';
+  }).join('') + '</tbody>';
+
+  return '<div style="overflow:auto;max-height:calc(100vh - 360px)"><table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif">'+head+body+'</table></div>';
+}
+
+// VISTA: Por alumno (cards expandidos)
+function _indiViewAlumnos(alumnos) {
+  return '<div style="padding:18px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">'
+    + alumnos.map(function(a){
+      return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:12px 14px">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">'
+        +   '<div style="font-weight:700;font-size:13px;flex:1;line-height:1.3">'+a.nombre+'</div>'
+        +   _indiLevelBadge(a.nivel)
+        + '</div>'
+        + (a.edad ? '<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+a.edad+' años · '+a.evaluations.length+' áreas evaluadas</div>' : '<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+a.evaluations.length+' áreas evaluadas</div>')
+        + '<div style="display:flex;flex-direction:column;gap:4px">'
+        +   a.evaluations.map(function(e){
+              var label = (e.area + (e.subarea ? ' · ' + e.subarea : '')).trim() || '—';
+              return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;padding:4px 0;border-bottom:1px solid var(--border)33">'
+                + '<span style="color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+label+'">'+label+'</span>'
+                + _indiLevelBadge(e.resultado)
+                + '</div>';
+            }).join('')
+        + '</div>'
+        + '</div>';
+    }).join('')
+    + '</div>';
+}
+
+// VISTA: Tabla detallada (1 fila por evaluación)
+function _indiViewDetalle(allRows, alumnosFiltrados) {
+  var visibles = {};
+  alumnosFiltrados.forEach(function(a){ visibles[a.nombre] = true; });
+  var rows = allRows.filter(function(r){ return visibles[(r.NOMBRE_COMPLETO||'').trim()]; });
+
+  return '<div style="overflow:auto;max-height:calc(100vh - 360px)"><table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif">'
+    + '<thead><tr>'
+    +   '<th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);background:var(--surface2);position:sticky;top:0">Alumno</th>'
+    +   '<th style="padding:10px 12px;text-align:center;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);background:var(--surface2);position:sticky;top:0">Edad</th>'
+    +   '<th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);background:var(--surface2);position:sticky;top:0">Área</th>'
+    +   '<th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);background:var(--surface2);position:sticky;top:0">Subárea</th>'
+    +   '<th style="padding:10px 12px;text-align:center;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);background:var(--surface2);position:sticky;top:0">Resultado</th>'
+    + '</tr></thead><tbody>'
+    + rows.map(function(r, i){
+        return '<tr style="background:'+(i%2===0?'transparent':'var(--surface2)44')+'">'
+          + '<td style="padding:7px 12px;font-size:12px;border-bottom:1px solid var(--border)44">'+(r.NOMBRE_COMPLETO||'')+'</td>'
+          + '<td style="padding:7px 12px;font-size:11px;color:var(--muted);text-align:center;border-bottom:1px solid var(--border)44">'+(r.EDAD||'—')+'</td>'
+          + '<td style="padding:7px 12px;font-size:11px;border-bottom:1px solid var(--border)44">'+(r.AREA||'—')+'</td>'
+          + '<td style="padding:7px 12px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border)44">'+(r.SUBAREA||'—')+'</td>'
+          + '<td style="padding:7px 12px;text-align:center;border-bottom:1px solid var(--border)44">'+_indiLevelBadge(r.RESULTADO)+'</td>'
+          + '</tr>';
+      }).join('')
+    + '</tbody></table></div>';
+}
+
+// VISTA: Alertas (alumnos con Muy descendido o Descendido, agrupados)
+function _indiViewAlertas(alumnos) {
+  var muy = alumnos.filter(function(a){ return a.nivel === 'Muy descendido'; });
+  var desc = alumnos.filter(function(a){ return a.nivel === 'Descendido'; });
+
+  if (!muy.length && !desc.length) {
+    return '<div style="padding:60px 20px;text-align:center;color:var(--muted)"><div style="font-size:42px;margin-bottom:10px">✅</div><div style="font-size:14px;font-weight:700;color:#3ecf8e">Sin alertas críticas</div><div style="font-size:11px;margin-top:6px">Ningún alumno está clasificado como Descendido o Muy descendido</div></div>';
+  }
+
+  var renderGroup = function(titulo, alumnos, color, bgColor){
+    if (!alumnos.length) return '';
+    return '<div style="margin-bottom:14px">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 22px">'
+      +   '<span style="background:'+bgColor+';color:'+color+';border-radius:8px;padding:4px 11px;font-size:11px;font-weight:800;font-family:\'Syne\',sans-serif">'+titulo+'</span>'
+      +   '<span style="font-size:11px;color:var(--muted)">'+alumnos.length+' alumno'+(alumnos.length===1?'':'s')+'</span>'
+      + '</div>'
+      + '<div style="padding:0 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px">'
+      + alumnos.map(function(a){
+          var areasCriticas = a.evaluations.filter(function(e){ return e.resultado === 'Muy descendido' || e.resultado === 'Descendido'; });
+          return '<div style="background:'+bgColor+';border:1px solid '+color+'44;border-radius:10px;padding:10px 13px">'
+            + '<div style="font-weight:700;font-size:12px;margin-bottom:5px">'+a.nombre+(a.edad?' · '+a.edad+' años':'')+'</div>'
+            + '<div style="font-size:10px;color:var(--muted);margin-bottom:6px">Áreas críticas:</div>'
+            + '<div style="display:flex;flex-wrap:wrap;gap:4px">'
+            +   areasCriticas.map(function(e){
+                  var label = (e.area + (e.subarea ? ' · ' + e.subarea : '')).trim();
+                  return '<span style="background:var(--surface);border:1px solid var(--border);color:'+(e.resultado==='Muy descendido'?'#e05252':'#ffd166')+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px">'+label+'</span>';
+                }).join('')
+            + '</div>'
+            + '</div>';
+        }).join('')
+      + '</div>'
+      + '</div>';
+  };
+
+  return '<div style="padding:18px 0">'
+    + renderGroup('🔴 MUY DESCENDIDO — Atención prioritaria', muy, '#e05252', 'rgba(224,82,82,0.10)')
+    + renderGroup('🟡 DESCENDIDO — Necesita reforzamiento', desc, '#ffd166', 'rgba(255,209,102,0.10)')
+    + '</div>';
+}
+
+// Exportar resultados a CSV
+function _indiExportCsv() {
+  var curso = window._indiModalState.curso;
+  var rows = _indiGetRowsForCurso(curso);
+  if (!rows.length) { alert('No hay datos para exportar'); return; }
+
+  var stats = _indiClassifyAlumnos(rows);
+  var nivelDe = {};
+  stats.alumnos.forEach(function(a){ nivelDe[a.nombre] = a.nivel; });
+
+  var csv = 'NOMBRE_COMPLETO,EDAD,AREA,SUBAREA,RESULTADO,NIVEL_GLOBAL_ALUMNO\n';
+  rows.forEach(function(r){
+    var nom = (r.NOMBRE_COMPLETO||'').replace(/"/g,'""');
+    var area = (r.AREA||'').replace(/"/g,'""');
+    var sub = (r.SUBAREA||'').replace(/"/g,'""');
+    var res = (r.RESULTADO||'').replace(/"/g,'""');
+    var glb = (nivelDe[(r.NOMBRE_COMPLETO||'').trim()]||'').replace(/"/g,'""');
+    csv += '"'+nom+'",'+(r.EDAD||'')+',"'+area+'","'+sub+'","'+res+'","'+glb+'"\n';
+  });
+
+  var blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'INDI_'+(curso||'export').replace(/\s+/g,'_')+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
 function liaxToggleOpt(btn) {
