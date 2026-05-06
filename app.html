@@ -7004,25 +7004,63 @@ function openAgent(id, autoPrompt, sessionToRestore){
   currentAgent = AGENTS.find(a=>a.id===id) || (window.customAgents||[]).find(a=>a.id===id);
   if(!currentAgent) return;
 
-  // ── Carga on-demand de INDI si el agente es INDI-aware y no hay datos en memoria ──
-  // Cubre el caso del refresh: usuario entra directo al agente antes de que
-  // _supaLoadIndiResultados haya terminado (o haya arrancado, si el rol tardó en setearse).
-  // Sin esto, el banner muestra "Sin resultados" hasta que el usuario visita Mi Aula.
-  if (typeof _indiIsAgentAware === 'function' && _indiIsAgentAware(currentAgent)
-      && typeof _indiHasData === 'function' && !_indiHasData()
-      && typeof _supa !== 'undefined' && _supa
-      && typeof _supaUser !== 'undefined' && _supaUser
-      && typeof _supaLoadIndiResultados === 'function'
-      && !window._indiLoadInFlight) {
-    window._indiLoadInFlight = true;
-    console.log('[INDI] Agente INDI-aware abierto sin datos en memoria — cargando desde Supabase...');
-    _supaLoadIndiResultados().finally(function(){
-      window._indiLoadInFlight = false;
-      // Refrescar el banner del agente cuando lleguen los datos
-      if (typeof _indiRefreshAgentBanner === 'function') {
-        try { _indiRefreshAgentBanner(); } catch(e) {}
+  // ── WATCHDOG INDI: garantizar que el banner se actualice cuando los datos lleguen ──
+  // En refresh, _supaUser puede no estar listo cuando el usuario abre el agente; o la
+  // cadena normal de carga aún no terminó. Este watchdog hace polling cada 700ms hasta
+  // 20 segundos: si en algún momento aparecen los datos en memoria O _supaUser se vuelve
+  // disponible, dispara la carga / refresca el banner.
+  if (typeof _indiIsAgentAware === 'function' && _indiIsAgentAware(currentAgent)) {
+    // Cancelar watchdog previo si existía
+    if (window._indiWatchdog) { clearInterval(window._indiWatchdog); window._indiWatchdog = null; }
+
+    var _watchTries = 0;
+    var _watchMax = 30; // 30 × 700ms = 21 segundos
+    var _watchTriggered = false;
+
+    var _watchTick = function() {
+      _watchTries++;
+
+      // Caso 1: ya hay datos cargados (por cualquier ruta) → refrescar banner y salir
+      if (typeof _indiHasData === 'function' && _indiHasData()) {
+        console.log('[INDI watchdog] Datos disponibles en memoria — refrescando banner.');
+        if (typeof _indiRefreshAgentBanner === 'function') {
+          try { _indiRefreshAgentBanner(); } catch(e) {}
+        }
+        clearInterval(window._indiWatchdog);
+        window._indiWatchdog = null;
+        return;
       }
-    });
+
+      // Caso 2: _supaUser disponible y aún no disparamos carga → dispararla
+      if (typeof _supa !== 'undefined' && _supa
+          && typeof _supaUser !== 'undefined' && _supaUser
+          && typeof _supaLoadIndiResultados === 'function'
+          && !_watchTriggered
+          && !window._indiLoadInFlight) {
+        _watchTriggered = true;
+        window._indiLoadInFlight = true;
+        console.log('[INDI watchdog] _supaUser listo — disparando carga (intento '+_watchTries+').');
+        _supaLoadIndiResultados().finally(function(){
+          window._indiLoadInFlight = false;
+          if (typeof _indiRefreshAgentBanner === 'function') {
+            try { _indiRefreshAgentBanner(); } catch(e) {}
+          }
+        });
+      }
+
+      // Caso 3: timeout
+      if (_watchTries >= _watchMax) {
+        console.warn('[INDI watchdog] Timeout: 21s sin datos. _supaUser:',
+          (typeof _supaUser !== 'undefined' ? !!_supaUser : 'undefined'),
+          'INDI_RESULTS:', window.INDI_RESULTS ? window.INDI_RESULTS.length : 'null');
+        clearInterval(window._indiWatchdog);
+        window._indiWatchdog = null;
+      }
+    };
+
+    // Primer tick inmediato, luego cada 700ms
+    setTimeout(_watchTick, 0);
+    window._indiWatchdog = setInterval(_watchTick, 700);
   }
 
   // Store session to restore — used below after modal setup
@@ -10347,6 +10385,8 @@ function closeModal(){
   if (app3) app3.style.gridTemplateColumns = '';
   // Clear cache for closed agent
   if (currentAgent) delete _chatHistoryCache[currentAgent.id];
+  // Cancel INDI watchdog if running
+  if (window._indiWatchdog) { clearInterval(window._indiWatchdog); window._indiWatchdog = null; }
   currentAgent=null; chatHistory=[];
 }
 
