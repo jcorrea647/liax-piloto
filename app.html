@@ -8988,11 +8988,13 @@ function _indiShowNeedDataModal(question) {
 
 // Refresca el banner si el agente está abierto (útil tras cargar resultados)
 function _indiRefreshAgentBanner() {
-  // Si la welcome screen del agente está visible, re-renderizar TODO _buildChatView
-  // para que también se actualicen los marcadores 📊 en las tarjetas de preguntas,
-  // no solo el banner. Esto cubre el caso de carga on-demand al refrescar.
+  // Si la welcome screen del agente está visible Y estamos en el panel chat,
+  // re-renderizar TODO _buildChatView para actualizar banner + marcadores 📊 en preguntas.
+  // CRÍTICO: si el usuario está en otro panel (archivos, historial, etc.), NO re-renderizar
+  // porque sobrescribiría el contenido visible y haría un "flash" molesto.
   var welcomeScreen = document.getElementById('agentWelcomeScreen');
-  if (welcomeScreen && window.currentAgent && typeof _buildChatView === 'function') {
+  var isChatPanelActive = (typeof currentAgentPanel === 'undefined') || currentAgentPanel === 'chat';
+  if (welcomeScreen && isChatPanelActive && window.currentAgent && typeof _buildChatView === 'function') {
     try {
       _buildChatView();
       console.log('[INDI] Welcome view del agente re-renderizada con datos INDI.');
@@ -9001,7 +9003,7 @@ function _indiRefreshAgentBanner() {
       console.warn('[INDI] _buildChatView fallo, fallback a refrescar solo banner:', e);
     }
   }
-  // Fallback: refrescar solo el banner (caso de la vista de chat con pills)
+  // Fallback: refrescar solo el banner si existe en el DOM (caso vista chat con pills)
   var existing = document.getElementById('indiAgentBanner');
   if (!existing || !window.currentAgent) return;
   var newHtml = _indiBuildAgentBanner(window.currentAgent);
@@ -38859,7 +38861,11 @@ function _indiRegisterFiles(silent) {
     console.log('[INDI] Archivo registrado en agente ('+mode+'):', ag.nombre, '| id:', ag.id);
   });
   if (count === 0) console.warn('[INDI] No hubo match con _INDI_AGENT_PATTERNS. Agentes existentes:', allAgents.map(function(a){ return a.nombre; }));
-  if (currentAgent && typeof renderFilesPanel === 'function') renderFilesPanel();
+  // Solo re-renderizar el panel de Archivos si está visible AHORA (currentAgentPanel === 'archivos').
+  // Si no, llamar renderFilesPanel sobrescribe el chat/welcome view del agente con el listado de archivos.
+  if (currentAgent && currentAgentPanel === 'archivos' && typeof renderFilesPanel === 'function') {
+    renderFilesPanel();
+  }
   // Refresca el banner si hay un agente abierto
   if (typeof _indiRefreshAgentBanner === 'function') _indiRefreshAgentBanner();
   if (!silent) showSaveToast('📊 Excel cargado en Archivos de agentes (' + count + ' agente' + (count!==1?'s':'') + ')');
