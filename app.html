@@ -22716,6 +22716,24 @@ function initMisCursosPanel() {
   renderCursoChips();
   renderCursoResumen();
   renderDatosCurso();
+
+  // ── Carga on-demand de INDI si no está en memoria ──
+  // Este es un fallback: si por cualquier razón _supaLoadIndiResultados no se ejecutó
+  // o no terminó cuando el usuario entra a Mi Aula, lo disparamos aquí.
+  if (typeof _supa !== 'undefined' && _supa && _supaUser
+      && (!window.INDI_RESULTS || !window.INDI_RESULTS.length)
+      && typeof _supaLoadIndiResultados === 'function'
+      && !window._indiLoadInFlight) {
+    window._indiLoadInFlight = true;
+    console.log('[INDI] Mi Aula abierto sin datos en memoria — cargando desde Supabase...');
+    _supaLoadIndiResultados().finally(function(){
+      window._indiLoadInFlight = false;
+      // Re-render una vez termina (renderCursoResumen es idempotente)
+      if (typeof renderCursoResumen === 'function') {
+        try { renderCursoResumen(); } catch(e) {}
+      }
+    });
+  }
 }
 
 
@@ -38429,10 +38447,18 @@ async function _supaLoadAlumnos() {
 }
 
 async function _supaLoadIndiResultados() {
-  if (!_supaUser) return;
+  if (!_supaUser) {
+    console.warn('[INDI] _supaLoadIndiResultados: no _supaUser, abortando');
+    return;
+  }
+  console.log('[INDI] _supaLoadIndiResultados: iniciando carga para user_id=', _supaUser.id);
   try {
     var { data, error } = await _supa.from('indi_resultados').select('*').eq('user_id', _supaUser.id);
-    if (error) throw error;
+    if (error) {
+      console.error('[INDI] Error en query:', error);
+      throw error;
+    }
+    console.log('[INDI] Query OK — registros recibidos:', data ? data.length : 0);
     if (data && data.length) {
       window.INDI_RESULTS = data.map(function(r) {
         return {
@@ -38485,6 +38511,8 @@ async function _supaLoadIndiResultados() {
       // Re-intentar más tarde porque DB.alumnos / cursos pueden cargarse después
       setTimeout(_indiRefreshUI, 500);
       setTimeout(_indiRefreshUI, 2000);
+    } else {
+      console.warn('[INDI] La query devolvió 0 registros. ¿Los resultados están guardados con otro user_id, o RLS está bloqueando?');
     }
   } catch(e) { console.warn('[INDI] Error cargando resultados:', e.message); }
 }
