@@ -15072,12 +15072,30 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
   // Track section index for alternating styles
   let sectionIdx = 0;
 
+  // ── Detección de informes multi-alumno ──────────────────────
+  // Cuando la IA genera un documento con varios informes en uno (patrón
+  // "## INFORME 1: NOMBRE", "## INFORME 2: NOMBRE", etc.), forzamos que
+  // cada uno empiece en una página nueva para que el docente pueda
+  // imprimir y entregar uno por familia.
+  let _informeIdx = 0;
+  const _RX_INFORME_NUEVO = /^#{1,3}\s+INFORME(\s+\d+)?\s*[:\-—]/i;
+
   while (i < rawLines.length) {
     const raw = rawLines[i];
     const t   = raw.trim();
 
     // ── Empty line ───────────────────────────────────────────
     if (!t) { y += PARAH; i++; continue; }
+
+    // ── Salto de página entre informes de alumno ────────────
+    if (_RX_INFORME_NUEVO.test(t)) {
+      _informeIdx++;
+      // El primer informe se queda donde está (probablemente en la
+      // portada o justo después). Del segundo en adelante, página nueva.
+      if (_informeIdx > 1 && y > 60) {
+        newPage();
+      }
+    }
 
     // ── H1 (# Heading) ──────────────────────────────────────
     if (t.startsWith('# ') && !t.startsWith('## ')) {
@@ -15163,19 +15181,38 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
       if (!tableRows.length) continue;
 
       const cols = tableRows[0].length;
+      if (cols < 1) continue;
+
+      // ── FIX: normalizar todas las filas a exactamente `cols` columnas ──
+      // La IA a veces genera tablas con filas desbalanceadas (un `|` extra o
+      // faltante dentro de una celda). Sin esto, los índices fuera de rango
+      // generan NaN en los anchos y rompen jsPDF.text.
+      for (let ri = 0; ri < tableRows.length; ri++) {
+        const row = tableRows[ri];
+        if (row.length > cols) tableRows[ri] = row.slice(0, cols);
+        else while (tableRows[ri].length < cols) tableRows[ri].push('');
+      }
 
       // Dynamic column widths based on content length
       const colRatios = Array(cols).fill(0);
       tableRows.forEach(row => {
         row.forEach((cell, ci) => {
-          colRatios[ci] = Math.max(colRatios[ci], Math.min(cell.length, 60));
+          if (ci >= cols) return; // safety: nunca fuera de rango
+          const len = (cell == null ? '' : String(cell)).length;
+          colRatios[ci] = Math.max(colRatios[ci] || 0, Math.min(len, 60));
         });
       });
-      const totalRatio = colRatios.reduce((a,b) => a+b, 0) || 1;
-      const colWidths = colRatios.map(r => Math.max((r / totalRatio) * pageW, pageW / (cols * 2)));
+      const totalRatio = colRatios.reduce((a,b) => a + (Number.isFinite(b) ? b : 0), 0) || 1;
+      const colWidths = colRatios.map(r => {
+        const safe = Number.isFinite(r) ? r : 0;
+        return Math.max((safe / totalRatio) * pageW, pageW / (cols * 2));
+      });
       // Normalize so they sum to pageW
-      const sumW = colWidths.reduce((a,b)=>a+b,0);
-      const normColWidths = colWidths.map(w => w * pageW / sumW);
+      const sumW = colWidths.reduce((a,b)=>a+b,0) || 1;
+      const normColWidths = colWidths.map(w => {
+        const v = (w * pageW) / sumW;
+        return Number.isFinite(v) && v > 0 ? v : (pageW / cols);
+      });
       const colW = pageW / cols; // fallback
       const CELL_LINEH = 4.5;
       const CELL_PAD   = 4;
@@ -15191,12 +15228,21 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
         const fSize = isHeader ? 7.5 : 8.5;
         return row.map((cell, ci) => {
           font(fSize, isHeader ? 'bold' : 'normal');
-          return doc.splitTextToSize(cell || '', normColWidths[ci] - 6);
+          // FIX: garantizar string + ancho positivo razonable
+          const safeCell = (cell == null ? '' : String(cell));
+          const safeWidth = Math.max(8, (normColWidths[ci] || colW) - 6);
+          try {
+            const lines = doc.splitTextToSize(safeCell, safeWidth);
+            return Array.isArray(lines) && lines.length ? lines.filter(l => typeof l === 'string') : [''];
+          } catch(e) {
+            console.warn('[Liax PDF] splitTextToSize falló:', safeCell.slice(0,40), e.message);
+            return [safeCell.slice(0, 60)];
+          }
         });
       });
 
       const rowHeights = wrappedRows.map((cells, ri) => {
-        const maxLines = Math.max(...cells.map(c => c.length));
+        const maxLines = cells.length ? Math.max(...cells.map(c => (c && c.length) || 1)) : 1;
         const minH = ri === 0 ? 9 : 8;
         return Math.max(minH, maxLines * CELL_LINEH + CELL_PAD * 2);
       });
@@ -15218,7 +15264,11 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
               const hcx = colXs[ci] + (ci === 0 ? 5 : 3);
               font(7.5, 'bold'); ink(C.white);
               wLines.forEach((wl, li) => {
-                doc.text(wl, hcx, y + CELL_PAD + li * CELL_LINEH + 1.5);
+                // FIX: validar argumentos antes de pasar a jsPDF.text
+                if (typeof wl !== 'string') return;
+                const ty = y + CELL_PAD + li * CELL_LINEH + 1.5;
+                if (!Number.isFinite(hcx) || !Number.isFinite(ty)) return;
+                try { doc.text(wl, hcx, ty); } catch(e) {}
               });
             });
             y += hh;
@@ -15233,7 +15283,11 @@ async function exportDocToPDF(title, rawContent, agentName, savedAt) {
           font(isHeader ? 7.5 : 8.5, isHeader ? 'bold' : 'normal');
           ink(isHeader ? C.white : C.text);
           wLines.forEach((wl, li) => {
-            doc.text(wl, cx, y + CELL_PAD + li * CELL_LINEH);
+            // FIX: validar argumentos antes de pasar a jsPDF.text
+            if (typeof wl !== 'string') return;
+            const ty = y + CELL_PAD + li * CELL_LINEH;
+            if (!Number.isFinite(cx) || !Number.isFinite(ty)) return;
+            try { doc.text(wl, cx, ty); } catch(e) {}
           });
         });
 
@@ -19581,42 +19635,65 @@ function printInformeAlumno(nombre) {
   win.onload = () => { win.print(); };
 }
 
-function buildPrintHTML(nombre, alumno, texto) {
-  const html = texto
+// ── HELPERS COMPARTIDOS PARA IMPRESIÓN DE INFORMES ───────────
+// Devuelve solo el bloque del informe (sin <html><head><body>) para
+// permitir concatenar múltiples informes en un mismo documento al imprimir
+// "todos". Usar HTML completos por alumno producía DOCTYPEs duplicados,
+// lo que rompía silenciosamente las reglas de page-break del navegador.
+function _buildInformeBlockHTML(nombre, alumno, texto) {
+  const html = (texto || '')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/^#{1,3} (.+)$/gm,'<h3>$1</h3>')
     .replace(/\n\n/g,'</p><p>')
     .replace(/\n/g,'<br>');
   const colegio = alumno.establecimiento || '—';
-  return `<!DOCTYPE html><html><head><meta charset="utf-8">
-  <title>Informe — ${nombre}</title>
-  <style>
-    body{font-family:Arial,sans-serif;max-width:700px;margin:40px auto;font-size:13px;line-height:1.8;color:#222}
-    .header{text-align:center;border-bottom:3px solid #1e2850;padding-bottom:16px;margin-bottom:24px}
+  return `<section class="informe">
+    <div class="header">
+      <div class="logo">${colegio}</div>
+      <div class="subtitle">INFORME DE RENDIMIENTO PARA APODERADO · ${new Date().getFullYear()}</div>
+      <div style="margin-top:10px;font-size:14px;font-weight:700">${nombre} — ${alumno.esp||'—'}</div>
+    </div>
+    <div class="informe-body"><p>${html}</p></div>
+    <div class="footer">
+      <span>${new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'})}</span>
+      <span>${colegio}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:40px">
+      <div class="sign-line">Firma Docente Jefe</div>
+      <div class="sign-line">Firma Apoderado</div>
+    </div>
+  </section>`;
+}
+
+// CSS unificado. Las reglas de salto de página usan tanto la sintaxis legacy
+// (page-break-before) como la moderna (break-before: page) para máxima
+// compatibilidad entre Chrome, Firefox y Safari. Se aplican fuera y dentro
+// de @media print porque algunos navegadores solo respetan unas u otras.
+function _buildInformePrintCSS() {
+  return `
+    body{font-family:Arial,sans-serif;font-size:13px;line-height:1.8;color:#222;margin:0}
+    .informe{max-width:700px;margin:40px auto;padding:0;page-break-before:always;break-before:page;page-break-inside:auto}
+    .informe:first-of-type{page-break-before:auto;break-before:auto}
+    .informe .header{text-align:center;border-bottom:3px solid #1e2850;padding-bottom:16px;margin-bottom:24px;page-break-after:avoid;break-after:avoid}
     .logo{font-size:22px;font-weight:800;color:#1e2850;margin-bottom:4px}
     .subtitle{font-size:11px;color:#666}
-    h3{color:#1e2850;font-size:13px;margin-top:20px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+    h3{color:#1e2850;font-size:13px;margin-top:20px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;page-break-after:avoid;break-after:avoid}
     p{margin:0 0 12px}
     strong{color:#1e2850}
     .footer{margin-top:40px;border-top:1px solid #ccc;padding-top:14px;font-size:11px;color:#888;display:flex;justify-content:space-between}
     .sign-line{border-top:1px solid #333;width:200px;margin-top:40px;text-align:center;font-size:11px;padding-top:4px}
     @page{margin:20mm}
-  <\/style><\/head><body>
-  <div class="header">
-    <div class="logo">${colegio}</div>
-    <div class="subtitle">INFORME DE RENDIMIENTO PARA APODERADO · ${new Date().getFullYear()}</div>
-    <div style="margin-top:10px;font-size:14px;font-weight:700">${nombre} — ${alumno.esp||'—'}</div>
-  </div>
-  <div>${html}</div>
-  <div class="footer">
-    <span>${new Date().toLocaleDateString('es-CL',{year:'numeric',month:'long',day:'numeric'})}</span>
-    <span>${colegio}</span>
-  </div>
-  <div style="display:flex;justify-content:space-between;margin-top:40px">
-    <div class="sign-line">Firma Docente Jefe</div>
-    <div class="sign-line">Firma Apoderado</div>
-  </div>
-  </body></html>`;
+    @media print {
+      .informe{page-break-before:always;break-before:page}
+      .informe:first-of-type{page-break-before:auto;break-before:auto}
+    }
+  `;
+}
+
+function buildPrintHTML(nombre, alumno, texto) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Informe — ${nombre}</title>
+  <style>${_buildInformePrintCSS()}<\/style><\/head><body>${_buildInformeBlockHTML(nombre, alumno, texto)}</body></html>`;
 }
 
 // ── Download PDF single ───────────────────────────────────────
@@ -19665,15 +19742,23 @@ function downloadInformeApoderadoPDF(nombre) {
 }
 
 // ── Print ALL ─────────────────────────────────────────────────
+// Genera UN solo documento HTML con todos los informes. Cada informe
+// está envuelto en <section class="informe"> y el CSS aplica
+// page-break-before:always a cada uno (excepto al primero), forzando
+// que cada alumno empiece en una página nueva al imprimir o al
+// "Guardar como PDF" desde Chrome.
 function printAllInformes() {
   const cached = Object.keys(INFORME_CACHE);
   if (!cached.length) { alert('Primero genera al menos un informe'); return; }
   const win = window.open('', '_blank');
-  const pages = cached.map(nombre => {
+  const blocks = cached.map(nombre => {
     const alumno = DB.alumnos.find(a=>a.nombre===nombre)||{esp:'—',establecimiento:'—'};
-    return buildPrintHTML(nombre, alumno, INFORME_CACHE[nombre]);
-  }).join('<div style="page-break-after:always"></div>');
-  win.document.write(pages);
+    return _buildInformeBlockHTML(nombre, alumno, INFORME_CACHE[nombre]);
+  }).join('');
+  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Informes para apoderados — ${cached.length} alumno${cached.length!==1?'s':''}</title>
+  <style>${_buildInformePrintCSS()}<\/style><\/head><body>${blocks}</body></html>`;
+  win.document.write(fullHTML);
   win.document.close();
   win.onload = () => win.print();
 }
