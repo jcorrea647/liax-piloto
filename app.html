@@ -8699,10 +8699,8 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
       if (delC.error) console.warn('[INDI] Error borrando cursos:', delC.error.message);
       else console.log('[INDI] Cursos anteriores eliminados');
 
-      // Borrar TODOS los alumnos anteriores del usuario (sin filtrar por curso)
-      var delA = await _supa.from('alumnos').delete().eq('user_id', _supaUser.id);
-      if (delA.error) console.warn('[INDI] Error borrando alumnos:', delA.error.message);
-      else console.log('[INDI] Alumnos anteriores eliminados');
+      // (Borrado de alumnos eliminado de aquí — ahora se hace DESPUÉS
+      // del insert nuevo, ver más abajo en patrón seguro insert-first)
     }
 
     // Limpiar DB local también
@@ -8757,8 +8755,6 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     // Save to Supabase if connected
     stat.textContent = '⏳ Guardando ' + alumnos.length + ' alumnos en Supabase...';
     if (_supa && _supaUser) {
-      // Alumnos ya borrados arriba
-
       var ts = Date.now();
       var inserts = alumnos.map(function(nombre, i) {
         var _prev = prevNeeMap[_neeKey(nombre)] || { nee:'', neeT:'' };
@@ -8766,16 +8762,29 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
         if (colegioId) row.colegio_id = colegioId;
         return row;
       });
+
+      // PATRÓN SEGURO: INSERT primero. Si falla, abortamos sin tocar datos viejos.
       var insRes = await _supa.from('alumnos').insert(inserts);
-      if (insRes.error) throw new Error('Error insertando alumnos: ' + insRes.error.message);
-      console.log('[INDI] Alumnos insertados en Supabase:', inserts.length);
+      if (insRes.error) {
+        console.error('[INDI] Error insertando alumnos — datos viejos NO se tocaron:', insRes.error.message);
+        throw new Error('Error insertando alumnos: ' + insRes.error.message);
+      }
+      console.log('[INDI] ✓ Alumnos insertados en Supabase:', inserts.length);
+
+      // Solo si insert funcionó, borramos los alumnos viejos (sin tocar los recién insertados)
+      var newAluPrefix = 'indi_' + ts + '_';
+      var delAOld = await _supa.from('alumnos').delete()
+        .eq('user_id', _supaUser.id)
+        .not('id', 'like', newAluPrefix + '%');
+      if (delAOld.error) console.warn('[INDI] Error borrando alumnos viejos (nuevos OK):', delAOld.error.message);
+      else console.log('[INDI] ✓ Alumnos viejos limpiados');
 
       // ── Guardar resultados INDI en tabla indi_resultados ──
+      // PATRÓN SEGURO (HARDENING): inserta primero los nuevos, después
+      // borra los viejos. Si el insert falla, los datos previos quedan
+      // intactos. Antes el patrón era delete-first, lo que dejaba la
+      // tabla vacía si el insert fallaba silenciosamente.
       stat.textContent = '⏳ Guardando resultados INDI...';
-      var delIndiQ = _supa.from('indi_resultados').delete().eq('user_id', _supaUser.id);
-      if (colegioId) delIndiQ = delIndiQ.eq('colegio_id', colegioId);
-      var delIndi = await delIndiQ;
-      if (delIndi.error) console.warn('[INDI] Error borrando resultados previos:', delIndi.error.message);
       var indiRows = rows.map(function(r, i) {
         var row = {
           id:           'indi_res_' + ts + '_' + i,
@@ -8790,9 +8799,25 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
         if (colegioId) row.colegio_id = colegioId;
         return row;
       });
+
+      // 1. INSERT primero — si falla, abortamos sin borrar nada
       var indiRes = await _supa.from('indi_resultados').insert(indiRows);
-      if (indiRes.error) console.warn('[INDI] Error guardando resultados:', indiRes.error.message);
-      else console.log('[INDI] Resultados INDI guardados en Supabase:', indiRows.length);
+      if (indiRes.error) {
+        console.error('[INDI] Error insertando resultados — datos viejos NO se tocaron:', indiRes.error.message);
+        throw new Error('Error insertando resultados INDI: ' + indiRes.error.message);
+      }
+      console.log('[INDI] ✓ Resultados INDI insertados en Supabase:', indiRows.length);
+
+      // 2. Solo si el insert funcionó, borramos los registros viejos
+      //    (los que NO tienen el timestamp actual).
+      var newPrefix = 'indi_res_' + ts + '_';
+      var delIndiQ = _supa.from('indi_resultados').delete()
+        .eq('user_id', _supaUser.id)
+        .not('id', 'like', newPrefix + '%');
+      if (colegioId) delIndiQ = delIndiQ.eq('colegio_id', colegioId);
+      var delIndi = await delIndiQ;
+      if (delIndi.error) console.warn('[INDI] Error borrando resultados viejos (nuevos OK):', delIndi.error.message);
+      else console.log('[INDI] ✓ Resultados viejos limpiados — solo quedan los recién insertados');
 
       // Assign course to docente
       if (typeof _guardarDocenteCurso === 'function') {
