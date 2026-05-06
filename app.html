@@ -9685,6 +9685,14 @@ async function sendChat(){
     'REGLAS DEL SISTEMA LIAX — OBLIGATORIAS EN TODO MOMENTO',
     '════════════════════════════════════════════════════════',
     '',
+    'HISTORIAL DE CONVERSACIÓN — REGLA CRÍTICA (PRIORIDAD MÁXIMA):',
+    '- ANTES de hacer CUALQUIER pregunta al usuario, REVISA TODO EL HISTORIAL de mensajes previos en esta conversación.',
+    '- Si el usuario YA respondió esa pregunta o YA dio esa información en algún mensaje anterior, NO LA REPITAS.',
+    '- Acumula la información que el usuario te ha ido entregando turno tras turno: tema, edad, duración, asignatura, etc.',
+    '- En cada respuesta nueva, primero RESUME mentalmente lo que ya sabes del historial, después decide qué falta.',
+    '- Solo pregunta lo que realmente FALTA por saber. Si tienes suficiente info, AVANZA a la siguiente etapa o entrega lo solicitado.',
+    '- PROHIBIDO preguntar lo mismo dos veces. PROHIBIDO ignorar respuestas previas del usuario.',
+    '',
     'FORMATO:',
     '- Usa ## para títulos de sección, guión (-) para listas.',
     '- NUNCA uses introducciones vacías: "¡Claro!", "Por supuesto!", "Entendido!", "¡Claro que sí!".',
@@ -9771,6 +9779,10 @@ async function sendChat(){
     datosCtx +
     interAgentCtx +
     '\n\n=== RECUERDA: eres ' + currentAgent.nombre + '. Tu rol absoluto está definido arriba. No lo abandones. ===' +
+    // Recordatorio de historial cuando hay conversación previa — evita preguntas repetidas
+    (chatHistory.length > 2
+      ? '\n\n=== ATENCIÓN — REVISA EL HISTORIAL ===\nEsta conversación ya tiene mensajes previos. ANTES de preguntar al usuario CUALQUIER cosa, revisa qué información YA TE HA DADO en sus mensajes anteriores. Si ya respondió tema, edad, duración, asignatura, materiales o cualquier otro dato que necesites, ÚSALO directamente. NO le hagas la misma pregunta dos veces. Avanza al siguiente paso o entrega lo solicitado.\n=== FIN ATENCIÓN ==='
+      : '') +
     // Recordatorio INDI: si el agente está cargado y tiene data, refuérzalo al final
     ((typeof _indiGetAgentMode === 'function'
       && _indiGetAgentMode(currentAgent)
