@@ -8155,17 +8155,48 @@ function makeBubbleUser(html, id) {
   '</div>';
 }
 
-function makeBubbleLoading(id) {
+function makeBubbleLoading(id, progressMsg) {
   const icon = currentAgent ? currentAgent.icon : '🤖';
+  var progressHtml = progressMsg
+    ? '<div style="margin-top:8px;font-size:11px;color:var(--muted);font-style:italic;line-height:1.4">' + progressMsg + '</div>'
+    : '';
   return '<div class="chat-row" id="' + id + '">' +
     '<div class="chat-avatar chat-avatar-ai">' + icon + '</div>' +
     '<div class="chat-bubble-wrap">' +
       '<div class="chat-bubble-meta"><span class="chat-bubble-name">Asistente</span></div>' +
       '<div class="chat-bubble chat-bubble-ai" style="padding:12px 16px">' +
         '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' +
+        progressHtml +
       '</div>' +
     '</div>' +
   '</div>';
+}
+
+// Detecta si el mensaje del usuario implica una operación masiva sobre alumnos INDI.
+// Devuelve { isBulk:bool, count:number, msg:string } con info útil para el loading.
+function _indiDetectBulkOperation(userMsg) {
+  if (!userMsg) return { isBulk: false };
+  if (!window.INDI_RESULTS || !window.INDI_RESULTS.length) return { isBulk: false };
+  var m = (userMsg||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  var bulkPatterns = [
+    'cada alumno', 'cada estudiante', 'cada nino', 'cada uno',
+    'todos los alumnos', 'todos los estudiantes', 'todos los ninos',
+    'por alumno', 'por estudiante', 'por nino',
+    'para cada', 'individualmente',
+    'informes para todos', 'informe para todos',
+    'genera los informes', 'genera informes', 'generar informes'
+  ];
+  var matched = bulkPatterns.some(function(p){ return m.indexOf(p) >= 0; });
+  if (!matched) return { isBulk: false };
+  var nAlumnos = [...new Set(window.INDI_RESULTS.map(function(r){ return r.NOMBRE_COMPLETO; }))].length;
+  // Estimación honesta basada en informes detallados (~250-400 palabras por alumno)
+  var estMin = Math.max(1, Math.round(nAlumnos * 3 / 60));
+  var estMax = Math.max(2, Math.round(nAlumnos * 5 / 60));
+  return {
+    isBulk: true,
+    count: nAlumnos,
+    msg: '⏳ Generando '+nAlumnos+' informes detallados — toma entre '+estMin+' y '+estMax+' minutos. Estamos priorizando calidad sobre velocidad: cada alumno tendrá su informe completo con datos reales y recomendaciones específicas. La respuesta aparece toda al final.'
+  };
 }
 
 
@@ -9621,7 +9652,11 @@ async function sendChat(){
     }
   } catch(e) {}
   const lid='load'+Date.now();
-  area.insertAdjacentHTML('beforeend', makeBubbleLoading(lid));
+  // Si es operación masiva sobre alumnos INDI, mostrar loading con estimación
+  var _bulkInfo = (typeof _indiDetectBulkOperation === 'function')
+    ? _indiDetectBulkOperation(finalMsg)
+    : { isBulk: false };
+  area.insertAdjacentHTML('beforeend', makeBubbleLoading(lid, _bulkInfo.isBulk ? _bulkInfo.msg : null));
   area.scrollTop=area.scrollHeight;
 
   // Clear attachment preview
@@ -9743,6 +9778,11 @@ async function sendChat(){
       && _indiHasData())
       ? '\n=== INSTRUCCIÓN FINAL — DATOS INDI DISPONIBLES ===\nLos RESULTADOS INDI de este curso están cargados en este mismo prompt (búscalos arriba bajo "RESULTADOS INDI" o "RESUMEN INDI"). Tu respuesta DEBE basarse en esos datos reales. NUNCA digas que no los tienes. NUNCA pidas que el docente los cargue. NUNCA inventes alumnos o resultados ficticios.\n=== FIN INSTRUCCIÓN FINAL ==='
       : '') +
+    // Si es operación masiva (informe por alumno, etc.), garantizar que el modelo
+    // genere un informe completo para CADA alumno sin omitir ni resumir.
+    (_bulkInfo.isBulk
+      ? '\n\n=== INSTRUCCIÓN PARA INFORME MULTI-ALUMNO ===\nEl docente pidió un informe POR ALUMNO o PARA CADA ALUMNO. Importante:\n1. Genera un informe COMPLETO y DETALLADO para CADA UNO de los '+_bulkInfo.count+' alumnos del curso.\n2. NO omitas alumnos. NO digas "el resto siguen patrones similares" — escribí el informe de cada uno con su nombre real.\n3. Ordena los alumnos comenzando por los que tienen más áreas críticas (Muy descendido / Descendido).\n4. Usa los datos reales de los resultados INDI cargados arriba: nombre exacto del alumno, áreas evaluadas con su nivel obtenido.\n5. Cada informe debe incluir: niveles por área, fortalezas, áreas a reforzar, recomendaciones pedagógicas concretas y específicas para ese alumno.\n6. Tomate el tiempo necesario. La calidad y completitud son más importantes que la velocidad.\n=== FIN INSTRUCCIÓN ==='
+      : '') +
     // ── Instrucción clave: usar contexto activo, no preguntar lo que ya está definido ──
     (function() {
       var dd = (typeof _docDropData !== 'undefined') ? _docDropData : {};
@@ -9805,6 +9845,9 @@ async function sendChat(){
       && _indiHasData())
       ? '\n=== INSTRUCCIÓN FINAL — DATOS INDI DISPONIBLES ===\nLos RESULTADOS INDI de este curso están cargados en este mismo prompt (búscalos arriba bajo "RESULTADOS INDI" o "RESUMEN INDI"). Tu respuesta DEBE basarse en esos datos reales. NUNCA digas que no los tienes. NUNCA pidas que el docente los cargue. NUNCA inventes alumnos o resultados ficticios.\n=== FIN INSTRUCCIÓN FINAL ==='
       : '');
+    var _bulkReminder = (_bulkInfo.isBulk
+      ? '\n\n=== INSTRUCCIÓN PARA INFORME MULTI-ALUMNO ===\nEl docente pidió un informe POR ALUMNO. Genera un informe COMPLETO y DETALLADO para CADA UNO de los '+_bulkInfo.count+' alumnos del curso. NO omitas alumnos. NO digas "el resto siguen patrones similares". Usa los datos reales de los resultados INDI cargados arriba. Cada informe debe incluir: niveles por área, fortalezas, áreas a reforzar, recomendaciones pedagógicas concretas. La calidad y completitud son más importantes que la velocidad.\n=== FIN INSTRUCCIÓN ==='
+      : '');
     system =
       agentRoleBlock +
       STYLE_RULES +
@@ -9816,7 +9859,8 @@ async function sendChat(){
       // Truncar datos no esenciales si el prompt es muy largo
       (datosCtx ? datosCtx.slice(0, 800) : '') +
       '\n\n=== RECUERDA: eres ' + currentAgent.nombre + '. Tu rol absoluto está definido arriba. No lo abandones. ===' +
-      _indiReminder;
+      _indiReminder +
+      _bulkReminder;
     console.log('[INDI] System prompt truncado (>'+MAX_SYSTEM+' chars). indiCtx preservado:', indiCtx ? indiCtx.length+' chars' : 'sin INDI');
   }
 
@@ -9859,11 +9903,22 @@ async function sendChat(){
                      _msgLower.includes('.xlsx') || _msgLower.includes('.csv');
   // Detectar también por nombre del agente actual
   var _agentNameLower = (currentAgent && currentAgent.nombre ? currentAgent.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'') : '');
-  var _isInforme   = _msgLower.includes('informe') || _msgLower.includes('genera') ||
-                     _msgLower.includes('crea el') || _msgLower.includes('redact') ||
-                     _msgLower.includes('escribe') || _msgLower.includes('elabora') ||
-                     // Agentes que siempre generan documentos largos
-                     /planificaci|proyecto|unidad|secuencia|rubrica|recurso|informe|desempen|instrumento/.test(_agentNameLower);
+
+  // ¿El agente genera documentos largos por naturaleza? (afecta solo selección de modelo/tokens)
+  var _isLongDocAgent = /planificaci|proyecto|unidad|secuencia|rubrica|recurso|informe|desempen|instrumento/.test(_agentNameLower);
+
+  // ¿El mensaje ACTUAL del usuario es un comando explícito de generación?
+  // (afecta selección de modelo Y la decisión de colapsar historial)
+  var _isGenCommandInMsg = _msgLower.includes('informe') || _msgLower.includes('genera') ||
+                           _msgLower.includes('crea el') || _msgLower.includes('crea la') ||
+                           _msgLower.includes('redact') ||
+                           _msgLower.includes('escribe') || _msgLower.includes('elabora') ||
+                           _msgLower.includes('haz el') || _msgLower.includes('haz la') ||
+                           _msgLower.includes('prepara');
+
+  // _isInforme combina ambos para selección de tokens (mantiene compatibilidad)
+  var _isInforme   = _isGenCommandInMsg || _isLongDocAgent;
+
   var _isDocumento = _msgLower.includes('planificaci') || _msgLower.includes('rúbrica') ||
                      _msgLower.includes('rubrica') || _msgLower.includes('guía') ||
                      _msgLower.includes('guia') || _msgLower.includes('completo') ||
@@ -9906,14 +9961,38 @@ async function sendChat(){
   }
 
   // ── Construir historial limpio para enviar ────────────────
+  // CORREGIDO: solo colapsar historial cuando el mensaje actual ES un comando explícito
+  // de generación AND el asistente NO acaba de hacer una pregunta (porque entonces el
+  // mensaje del usuario es una RESPUESTA, no un comando de generación nuevo).
   var _historyToSend;
-  if (_isInforme && chatHistory.length > 2) {
-    // Para informes: solo el último mensaje del usuario — sin historial que confunda
+  var _shouldCollapseHistory = false;
+  if (_isGenCommandInMsg && chatHistory.length > 2) {
+    // Buscar el último mensaje del asistente
+    var _lastAssistantContent = '';
+    for (var _i = chatHistory.length - 2; _i >= 0; _i--) {
+      if (chatHistory[_i].role === 'assistant') {
+        _lastAssistantContent = (typeof chatHistory[_i].content === 'string')
+          ? chatHistory[_i].content
+          : '';
+        break;
+      }
+    }
+    // ¿El asistente acaba de hacer una pregunta? (termina con ? o tiene varios ? cerca del final)
+    var _trimmedLast = _lastAssistantContent.trim();
+    var _last200 = _trimmedLast.slice(-200);
+    var _assistantAskedQuestion = /\?[\s)\]"'»]*$/.test(_trimmedLast) ||
+                                  (_last200.match(/\?/g) || []).length >= 2;
+    // Solo colapsar si NO está respondiendo a una pregunta del asistente
+    _shouldCollapseHistory = !_assistantAskedQuestion;
+  }
+
+  if (_shouldCollapseHistory) {
+    // Comando de generación nuevo — colapsar a solo último mensaje del usuario
     var _lastUserMsg = chatHistory[chatHistory.length - 1];
     _historyToSend = [_lastUserMsg];
+    console.log('[CHAT] Historial colapsado a último mensaje (comando de generación nuevo).');
   } else {
-    // Para conversaciones normales: máx últimos 10 turnos (5 user + 5 assistant)
-    // Esto evita que el historial crezca indefinidamente y compita con el system prompt
+    // Conversación normal o respuesta a pregunta del asistente — preservar historial
     var _maxTurns = 10;
     _historyToSend = chatHistory.length > _maxTurns
       ? chatHistory.slice(-_maxTurns)
