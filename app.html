@@ -7283,18 +7283,27 @@ function startChat(){
       welcome+=` ⚠️ Detecto ${neeAlus.length} alumno(s) con NEE: **${neeAlus.map(a=>a.nombre.split(' ').slice(0,2).join(' ')).join(', ')}**. Al planificar y responder incluiré sugerencias diferenciadas para ellos.`;
     }
   }
-  // ── Aviso INDI si hay resultados cargados y el agente los usa ──
-  var _indiAgentes = ['análisis de resultados','analisis de resultados','informe desempeño','informe de desempeño','informe desempeno','informe de desempeno','análisis','analisis','resultado','logros de aprendizaje'];
-  var _agNombreLow = (currentAgent.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  var _usaIndi = _indiAgentes.some(function(k){ return _agNombreLow.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,'')); });
-  if (_usaIndi && window.INDI_RESULTS && window.INDI_RESULTS.length) {
+  // ── Aviso INDI según modo del agente (detalle / resumen) ──
+  var _indiMode = (typeof _indiGetAgentMode === 'function') ? _indiGetAgentMode(currentAgent) : null;
+  if (_indiMode && _indiHasData && _indiHasData()) {
     var _indiAlumnos = [...new Set(window.INDI_RESULTS.map(function(r){ return r.NOMBRE_COMPLETO; }))];
-    var _indiCurso = window.INDI_CURSO || (window.INDI_RESULTS[0] && (window.INDI_RESULTS[0].CURSO||'') + ' ' + (window.INDI_RESULTS[0].LETRA||'')).trim() || '';
-    welcome += '\n\n📊 **Tengo cargados los resultados INDI** de **' + _indiAlumnos.length + ' alumnos**' + (_indiCurso ? ' del curso **' + _indiCurso + '**' : '') + '. Puedo analizar el desempeño de cada alumno, identificar áreas críticas y generar recomendaciones personalizadas basadas en esos datos. ¿Quieres que comience con un análisis general o prefieres enfocarnos en un alumno específico?';
+    var _indiCurso = window.INDI_CURSO || ((window.INDI_RESULTS[0] && (window.INDI_RESULTS[0].CURSO||'') + ' ' + (window.INDI_RESULTS[0].LETRA||'')).trim()) || '';
+    if (_indiMode === 'detalle') {
+      welcome += '\n\n📊 **Resultados INDI cargados** — '+_indiAlumnos.length+' alumnos del curso **'+_indiCurso+'**. Voy a usarlos en cada respuesta para generar análisis e informes específicos por alumno. Las preguntas marcadas con 📊 los aprovechan directamente.';
+    } else {
+      welcome += '\n\n📊 **Resultados INDI cargados** — distribución del curso **'+_indiCurso+'** ('+_indiAlumnos.length+' alumnos). Voy a usar esta distribución agregada para priorizar contenidos y proponer agrupamientos en tu planificación. Las preguntas marcadas con 📊 los aprovechan.';
+    }
+  } else if (_indiMode && !(_indiHasData && _indiHasData())) {
+    welcome += '\n\n⚠️ **Sin resultados INDI cargados.** Este agente trabaja mejor con datos reales — carga los resultados desde la pantalla Inicio para sacarle el máximo provecho.';
   }
   welcome+=` ¿Con qué te puedo ayudar?`;
   chatHistory=[{role:'assistant',content:welcome}];
+  // Marca preguntas con 📊 individualmente según si necesitan datos INDI
+  var _qNeedsData = function(q){
+    return (typeof _indiQuestionNeedsData === 'function') && _indiQuestionNeedsData(currentAgent, q);
+  };
   document.getElementById('mBody').innerHTML=`
+    ${(typeof _indiBuildAgentBanner==='function')?_indiBuildAgentBanner(currentAgent):''}
     <div class="chat-area" id="chatArea"></div>
     <div id="attachPreview" style="display:none;padding:6px 0 4px;display:flex;flex-wrap:wrap;gap:5px"></div>
     <div class="chat-input-row" style="align-items:flex-end">
@@ -7309,7 +7318,7 @@ function startChat(){
     <div style="margin-top:9px">
       <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Preguntas sugeridas</div>
       <div style="display:flex;flex-wrap:wrap;gap:4px">
-        ${currentAgent.preguntas.map(q=>`<span onclick="useQuestion('${q.replace(/'/g,"\\'")}',true)" style="font-size:10px;padding:3px 8px;border-radius:18px;background:${c.bg};color:${c.text};cursor:pointer;border:1px solid ${c.border}">${q.length>46?q.slice(0,46)+'…':q}</span>`).join('')}
+        ${currentAgent.preguntas.map(q=>{const lbl=q.length>46?q.slice(0,46)+'…':q;const prefix=_qNeedsData(q)?'📊 ':'';return `<span onclick="useQuestion('${q.replace(/'/g,"\\'")}',true)" style="font-size:10px;padding:3px 8px;border-radius:18px;background:${c.bg};color:${c.text};cursor:pointer;border:1px solid ${c.border}" title="${prefix?'Esta pregunta usa los resultados INDI':''}">${prefix}${lbl}</span>`;}).join('')}
       </div>
     </div>`;
 }
@@ -7863,6 +7872,13 @@ function removeAttach(idx, chipEl) {
 }
 
 function useQuestion(q,autoSend=false){
+  // Si esta pregunta específica necesita datos INDI Y no están cargados, mostrar modal
+  if (typeof currentAgent !== 'undefined' && currentAgent
+      && typeof _indiQuestionNeedsData === 'function' && _indiQuestionNeedsData(currentAgent, q)
+      && typeof _indiHasData === 'function' && !_indiHasData()) {
+    if (typeof _indiShowNeedDataModal === 'function') _indiShowNeedDataModal(q);
+    return;
+  }
   const inp=document.getElementById('chatInput');
   if(inp){inp.value=q; if(autoSend)sendChat();}
 }
@@ -8530,6 +8546,11 @@ async function _indiFinalize(rows, cursoNombre, btn, txt, stat) {
     // Register file in agents panel
     _indiRegisterFiles();
 
+    // Si el usuario venía de un agente sin datos, ofrecer volver
+    if (window._indiPendingReturn && typeof _indiShowReturnToAgentToast === 'function') {
+      setTimeout(function(){ _indiShowReturnToAgentToast(); }, 600);
+    }
+
   } catch(e) {
     console.error('[INDI] Error guardando curso:', e);
     // Still mark as loaded even if Supabase failed
@@ -8567,6 +8588,299 @@ function _indiGetContext() {
   });
   lines.push('=== FIN RESULTADOS INDI ===');
   return lines.join('\n');
+}
+
+// ══════════════════════════════════════════════════════════════
+// INDI EN AGENTES — Detección, contexto por modo, banners
+// ══════════════════════════════════════════════════════════════
+// Lista configurable de patrones (nombres normalizados sin tildes) que identifican
+// agentes INDI-aware. Se matchea por substring para que funcione con variaciones
+// de mayúsculas, prefijos como "PLANIFICACIÓN CURRICULAR:" etc.
+window._INDI_AGENT_PATTERNS = {
+  // Modo "detalle" — el modelo necesita info por alumno (informes individuales)
+  detalle: [
+    'analisis de resultados',
+    'logros de aprendizaje',
+    'informe desempeno por alumno',
+    'informe de desempeno por alumno',
+    'informe desempeno',
+    'informe de desempeno'
+  ],
+  // Modo "resumen" — el modelo necesita distribución agregada (planificación curricular)
+  resumen: [
+    'planificacion curricular plan anual',
+    'planificacion curricular plan annual',
+    'planificacion curricular unidad',
+    'plan anual',
+    'plan annual',
+    'unidad y sesion de aprendizaje',
+    'unidad de aprendizaje',
+    'sesion de aprendizaje'
+  ]
+};
+
+function _indiNorm(s) {
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+}
+
+// Devuelve 'detalle', 'resumen' o null según el agente
+function _indiGetAgentMode(agente) {
+  if (!agente || !agente.nombre) return null;
+  var n = _indiNorm(agente.nombre);
+  var P = window._INDI_AGENT_PATTERNS;
+  if (P.detalle.some(function(p){ return n.indexOf(p) >= 0; })) return 'detalle';
+  if (P.resumen.some(function(p){ return n.indexOf(p) >= 0; })) return 'resumen';
+  return null;
+}
+
+function _indiIsAgentAware(agente) { return _indiGetAgentMode(agente) !== null; }
+function _indiHasData() { return !!(window.INDI_RESULTS && window.INDI_RESULTS.length); }
+
+// Contexto AGREGADO para planificación curricular — muestra distribución del curso
+// y áreas prioritarias, sin el detalle individual por alumno.
+function _indiGetContextResumen() {
+  if (!_indiHasData()) return '';
+  var rows = window.INDI_RESULTS;
+  var stats = (typeof _indiClassifyAlumnos === 'function') ? _indiClassifyAlumnos(rows) : null;
+  if (!stats) return _indiGetContext();
+
+  var lines = ['=== RESUMEN INDI DEL CURSO (datos para planificar) ==='];
+  var meta = rows[0] || {};
+  if (meta.COLEGIO) lines.push('Colegio: ' + meta.COLEGIO);
+  lines.push('Curso: ' + (window.INDI_CURSO || ''));
+  if (meta.MAESTRA) lines.push('Docente: ' + meta.MAESTRA);
+  lines.push('Total alumnos: ' + stats.total);
+  lines.push('');
+  lines.push('DISTRIBUCION POR NIVEL GLOBAL (moda de las areas evaluadas por cada alumno):');
+  ['Destacado','Esperado','Descendido','Muy descendido'].forEach(function(n){
+    var c = stats.byLevel[n].length;
+    var pct = stats.total ? Math.round(c/stats.total*100) : 0;
+    lines.push('  - ' + n + ': ' + c + ' alumnos (' + pct + '%)');
+  });
+  lines.push('');
+  lines.push('ALERTAS GENERALES:');
+  lines.push('  - Alumnos con al menos un area en Muy descendido: ' + stats.withMuyDesc);
+  lines.push('  - Alumnos con al menos un area en Descendido (sin Muy desc): ' + stats.withDesc);
+  lines.push('');
+  lines.push('DISTRIBUCION POR AREA EVALUADA (ordenadas por nivel de alerta):');
+  var areaStats = {};
+  rows.forEach(function(r){
+    var key = (r.AREA||'') + (r.SUBAREA && r.SUBAREA !== 'NINGUNO' ? ' · '+r.SUBAREA : '');
+    if (!areaStats[key]) areaStats[key] = { 'Destacado':0, 'Esperado':0, 'Descendido':0, 'Muy descendido':0, total:0 };
+    if (areaStats[key][r.RESULTADO] !== undefined) areaStats[key][r.RESULTADO]++;
+    areaStats[key].total++;
+  });
+  var areaList = Object.keys(areaStats).map(function(k){
+    var s = areaStats[k];
+    var alertScore = s['Muy descendido']*3 + s['Descendido'];
+    return { area: k, stats: s, alertScore: alertScore };
+  });
+  areaList.sort(function(a,b){ return b.alertScore - a.alertScore; });
+  areaList.forEach(function(a){
+    if (!a.stats.total) return;
+    var s = a.stats, t = s.total;
+    var prioritaria = (s['Muy descendido']+s['Descendido']) >= t*0.3 ? ' [AREA PRIORITARIA]' : '';
+    lines.push('  - ' + a.area + prioritaria + ': '
+      + Math.round(s['Muy descendido']/t*100)+'% MD · '
+      + Math.round(s['Descendido']/t*100)+'% D · '
+      + Math.round(s['Esperado']/t*100)+'% E · '
+      + Math.round(s['Destacado']/t*100)+'% Dest');
+  });
+  lines.push('');
+  lines.push('USA ESTA DISTRIBUCION PARA PRIORIZAR CONTENIDOS, AGRUPAMIENTOS Y APOYOS DIFERENCIADOS EN TU PLANIFICACION.');
+  lines.push('=== FIN RESUMEN INDI ===');
+  return lines.join('\n');
+}
+
+// Devuelve el contexto adecuado según el agente (detalle / resumen / vacio)
+function _indiGetContextForAgent(agente) {
+  var mode = _indiGetAgentMode(agente);
+  if (mode === 'detalle') return _indiGetContext();
+  if (mode === 'resumen') return _indiGetContextResumen();
+  return '';
+}
+
+// Banner persistente arriba del chat del agente
+function _indiBuildAgentBanner(agente) {
+  if (!_indiIsAgentAware(agente)) return '';
+  var mode = _indiGetAgentMode(agente);
+  if (_indiHasData()) {
+    var stats = _indiClassifyAlumnos(window.INDI_RESULTS);
+    var alerts = (stats.withMuyDesc||0) + (stats.withDesc||0);
+    var alertText = alerts > 0 ? ' · <strong style="color:#d9a020">'+alerts+' alumno'+(alerts===1?'':'s')+' con áreas a reforzar</strong>' : '';
+    var modeLabel = mode === 'resumen' ? 'la distribución del curso' : 'el detalle por alumno';
+    return '<div id="indiAgentBanner" style="background:linear-gradient(90deg,rgba(124,58,237,0.12),rgba(79,123,255,0.08));border:1px solid rgba(124,58,237,0.3);border-radius:9px;padding:8px 14px;margin:0 0 12px;display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap">'
+      + '<span style="font-size:14px">📊</span>'
+      + '<div style="flex:1;min-width:200px;line-height:1.4"><strong style="color:#a78bfa">Resultados INDI cargados</strong> — '+stats.total+' alumnos · '+(window.INDI_CURSO||'curso')+' <span style="color:var(--muted);font-size:10px">· se usa el '+modeLabel+'</span>'+alertText+'</div>'
+      + '<button onclick="openIndiResultadosModal(\''+encodeURIComponent(window.INDI_CURSO||'')+'\')" style="background:none;border:1px solid rgba(124,58,237,0.5);color:#a78bfa;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;flex-shrink:0">🔍 Ver detalle</button>'
+      + '</div>';
+  } else {
+    return '<div id="indiAgentBanner" style="background:rgba(255,209,102,0.12);border:1px solid rgba(255,209,102,0.4);border-radius:9px;padding:8px 14px;margin:0 0 12px;display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap">'
+      + '<span style="font-size:14px">⚠️</span>'
+      + '<div style="flex:1;min-width:200px;line-height:1.4;color:#d9a020"><strong>Sin resultados INDI cargados</strong> — este agente funciona mejor con tus resultados INDI. Cárgalos desde la pantalla Inicio.</div>'
+      + '<button onclick="_indiGoToInicioToLoad()" style="background:#ffd166;border:none;color:#1a1a1a;border-radius:7px;padding:4px 12px;font-size:11px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif;flex-shrink:0">📥 Cargar ahora</button>'
+      + '</div>';
+  }
+}
+
+// Cierra el modal de agente y lleva al panel Inicio destacando el botón de carga
+function _indiGoToInicioToLoad() {
+  var modal = document.getElementById('agentModal');
+  if (modal) modal.classList.remove('open');
+  var app = document.querySelector('.app');
+  if (app) app.classList.remove('agent-open');
+  // Volver al panel de inicio (Mis Cursos / favoritos)
+  if (typeof showPanel === 'function') {
+    if (typeof currentRole !== 'undefined' && currentRole === 'docente') {
+      showPanel('favoritos');
+    } else {
+      showPanel('favoritos');
+    }
+  }
+  // Resaltar el botón de carga INDI
+  setTimeout(function(){
+    var btn = document.getElementById('indiLoadBtn');
+    if (btn) {
+      btn.scrollIntoView({ behavior:'smooth', block:'center' });
+      var origShadow = btn.style.boxShadow;
+      btn.style.transition = 'box-shadow .3s';
+      btn.style.boxShadow = '0 0 0 4px rgba(124,58,237,0.6), 0 6px 20px rgba(124,58,237,0.4)';
+      setTimeout(function(){ btn.style.boxShadow = origShadow || ''; }, 2400);
+    }
+  }, 350);
+}
+
+// Modal no bloqueante cuando el usuario intenta usar una pregunta INDI sin datos
+function _indiShowNeedDataModal(question) {
+  var existing = document.getElementById('indiNeedDataModal');
+  if (existing) existing.remove();
+  // Guardar el agente y la pregunta para poder volver después de cargar
+  if (typeof currentAgent !== 'undefined' && currentAgent) {
+    window._indiPendingReturn = { agentId: currentAgent.id, question: question || '' };
+  }
+  var qPreview = (question||'').length > 80 ? question.substring(0,80)+'…' : (question||'');
+  var portal = document.createElement('div');
+  portal.id = 'indiNeedDataModal';
+  portal.style.cssText = 'position:fixed;inset:0;background:#00000099;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  portal.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:440px;width:100%;padding:22px 24px;box-shadow:0 24px 60px #00000099">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+    +   '<span style="font-size:26px">📊</span>'
+    +   '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:16px">Necesito los resultados INDI</div>'
+    + '</div>'
+    + (qPreview ? '<div style="font-size:11px;color:var(--muted);background:var(--surface2);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-style:italic">"'+qPreview+'"</div>' : '')
+    + '<div style="font-size:13px;color:var(--text);line-height:1.5;margin-bottom:18px">Para responder esta pregunta de forma personalizada con los datos de tu curso, primero carga los resultados INDI desde la pantalla <strong>Inicio</strong>. Solo se cargan una vez y quedan disponibles para todos los agentes que los usan.</div>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'
+    +   '<button onclick="document.getElementById(\'indiNeedDataModal\').remove()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Cancelar</button>'
+    +   '<button onclick="document.getElementById(\'indiNeedDataModal\').remove();_indiGoToInicioToLoad()" style="background:linear-gradient(135deg,#7c3aed,#4f7bff);border:none;color:#fff;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif">📥 Ir a cargar</button>'
+    + '</div>'
+    + '</div>';
+  portal.addEventListener('click', function(e){ if(e.target===portal) portal.remove(); });
+  document.body.appendChild(portal);
+}
+
+// Refresca el banner si el agente está abierto (útil tras cargar resultados)
+function _indiRefreshAgentBanner() {
+  var existing = document.getElementById('indiAgentBanner');
+  if (!existing || !window.currentAgent) return;
+  var newHtml = _indiBuildAgentBanner(window.currentAgent);
+  if (newHtml) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = newHtml;
+    existing.replaceWith(tmp.firstChild);
+  } else {
+    existing.remove();
+  }
+}
+
+// ¿Esta pregunta específica necesita los resultados INDI cargados?
+// Retorna true para preguntas analíticas/personalizadas, false para preguntas
+// administrativas o metodológicas genéricas.
+function _indiQuestionNeedsData(agente, q) {
+  if (!_indiIsAgentAware(agente)) return false;
+  if (!q) return false;
+  var qn = _indiNorm(q);
+
+  // Preguntas administrativas/setup que NO necesitan datos
+  var setupKeywords = [
+    'ingresar datos', 'cargar datos', 'subir', 'agregar evaluacion',
+    'crear instrumento', 'definir instrumento', 'configurar'
+  ];
+  if (setupKeywords.some(function(k){ return qn.indexOf(k) >= 0; })) return false;
+
+  // Keywords que indican que la pregunta usa los resultados
+  var dataKeywords = [
+    'alumno', 'estudiante', 'para cada', 'individual', 'informe', 'personalizad',
+    'patron', 'intervenci', 'agrupar', 'diferenciad', 'estrateg',
+    'logro', 'resultad', 'rendimiento', 'desempen',
+    'segun', 'basado en', 'considerando',
+    'plan anual', 'plan de', 'unidad', 'sesion',
+    'priorizar', 'nivel', 'datos'
+  ];
+  return dataKeywords.some(function(k){ return qn.indexOf(k) >= 0; });
+}
+
+// Toast de "volver al agente" después de cargar resultados
+function _indiShowReturnToAgentToast() {
+  var ret = window._indiPendingReturn;
+  if (!ret) return;
+  var existing = document.getElementById('indiReturnToast');
+  if (existing) existing.remove();
+
+  // Resolver el agente
+  var allAgents = (typeof AGENTS !== 'undefined' ? AGENTS.slice() : []);
+  if (window.customAgents) allAgents = allAgents.concat(window.customAgents);
+  var agente = allAgents.find(function(a){ return a.id === ret.agentId; });
+  if (!agente) { window._indiPendingReturn = null; return; }
+
+  var toast = document.createElement('div');
+  toast.id = 'indiReturnToast';
+  toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:linear-gradient(135deg,#7c3aed,#4f7bff);color:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 12px 36px rgba(124,58,237,0.5);z-index:10001;display:flex;align-items:center;gap:12px;max-width:380px;font-family:DM Sans,sans-serif;animation:indiToastSlide .35s ease-out';
+  toast.innerHTML =
+    '<span style="font-size:24px;flex-shrink:0">'+(agente.icon||'🤖')+'</span>'
+    + '<div style="flex:1;line-height:1.3">'
+    +   '<div style="font-weight:800;font-size:13px">Resultados listos</div>'
+    +   '<div style="font-size:11px;opacity:.95;margin-top:2px">¿Volver a <strong>'+agente.nombre+'</strong> y enviar tu pregunta?</div>'
+    + '</div>'
+    + '<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">'
+    +   '<button onclick="_indiResumeAgent()" style="background:#fff;color:#7c3aed;border:none;border-radius:7px;padding:6px 12px;font-size:11px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif;white-space:nowrap">Volver</button>'
+    +   '<button onclick="document.getElementById(\'indiReturnToast\').remove();window._indiPendingReturn=null" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:7px;padding:4px 12px;font-size:10px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif">Más tarde</button>'
+    + '</div>';
+  // Inyectar animación inline si no existe
+  if (!document.getElementById('indiToastStyles')) {
+    var st = document.createElement('style');
+    st.id = 'indiToastStyles';
+    st.textContent = '@keyframes indiToastSlide{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}';
+    document.head.appendChild(st);
+  }
+  document.body.appendChild(toast);
+
+  // Auto-cerrar después de 12s
+  setTimeout(function(){
+    var t = document.getElementById('indiReturnToast');
+    if (t) t.remove();
+  }, 12000);
+}
+
+// Reabrir el agente y prellenar la pregunta pendiente
+function _indiResumeAgent() {
+  var ret = window._indiPendingReturn;
+  if (!ret) return;
+  var t = document.getElementById('indiReturnToast');
+  if (t) t.remove();
+  window._indiPendingReturn = null;
+
+  if (typeof openAgent === 'function') {
+    openAgent(ret.agentId);
+    if (ret.question) {
+      setTimeout(function(){
+        var inp = document.getElementById('chatInput');
+        if (inp) {
+          inp.value = ret.question;
+          inp.focus();
+        }
+      }, 400);
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -8696,6 +9010,11 @@ function _indiBuildResumenBlock(curso) {
     +   '<div class="resumen-stat-row"><span style="color:var(--muted)">🔵 Esperado</span><span style="color:#4a9eff;font-weight:700">'+esp+' <span style="font-size:9px;opacity:.7">('+pct(esp)+'%)</span></span></div>'
     +   '<div class="resumen-stat-row"><span style="color:var(--muted)">🟡 Descendido</span><span class="'+(desc>0?'stat-val-warn':'stat-val-ok')+'">'+desc+' <span style="font-size:9px;opacity:.7">('+pct(desc)+'%)</span></span></div>'
     +   '<div class="resumen-stat-row"><span style="color:var(--muted)">🔴 Muy descendido</span><span class="'+(muy>0?'stat-val-crit':'stat-val-ok')+'">'+muy+' <span style="font-size:9px;opacity:.7">('+pct(muy)+'%)</span></span></div>'
+    + ((stats.withMuyDesc > 0 || stats.withDesc > 0)
+        ? '<div style="margin-top:7px;padding-top:7px;border-top:1px dashed var(--border)55;font-size:10px;color:var(--muted);line-height:1.4">'
+          + '⚠️ <strong>'+(stats.withMuyDesc + stats.withDesc)+'</strong> alumno'+((stats.withMuyDesc + stats.withDesc)===1?'':'s')+' con áreas a reforzar'
+        + '</div>'
+        : '')
     +   '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)55;text-align:center;font-size:10px;color:#a78bfa;font-weight:700">🔍 Ver base de datos →</div>'
     + '</div>';
 }
@@ -8734,12 +9053,20 @@ function _indiBuildEmptyStateCard(curso) {
     +     '<button onclick="openIndiResultadosModal(\''+encodeURIComponent(curso)+'\')" style="background:linear-gradient(135deg,#7c3aed,#4f7bff);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;font-family:\'Syne\',sans-serif;display:flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(124,58,237,0.4)">🗂️ Ver base de datos INDI</button>'
     +   '</div>'
     +   '<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:1px;margin-bottom:10px;background:var(--border)">'+bar+'</div>'
+    +   '<div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px">Nivel global (moda de evaluaciones)</div>'
     +   '<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px">'
     +     '<span style="background:rgba(62,207,142,0.15);color:#3ecf8e;border-radius:20px;padding:4px 11px;font-weight:700">🟢 Destacado: '+dest+' ('+pct(dest)+'%)</span>'
     +     '<span style="background:rgba(74,158,255,0.15);color:#4a9eff;border-radius:20px;padding:4px 11px;font-weight:700">🔵 Esperado: '+esp+' ('+pct(esp)+'%)</span>'
     +     '<span style="background:rgba(255,209,102,0.15);color:#ffd166;border-radius:20px;padding:4px 11px;font-weight:700">🟡 Descendido: '+desc+' ('+pct(desc)+'%)</span>'
     +     '<span style="background:rgba(224,82,82,0.18);color:#e05252;border-radius:20px;padding:4px 11px;font-weight:700">🔴 Muy descendido: '+muy+' ('+pct(muy)+'%)</span>'
     +   '</div>'
+    + ((stats.withMuyDesc > 0 || stats.withDesc > 0)
+        ? '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(167,139,250,0.3);display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+          + '<span style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700">⚠️ Áreas a reforzar:</span>'
+          + (stats.withMuyDesc > 0 ? '<span style="background:rgba(224,82,82,0.18);color:#e05252;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">'+stats.withMuyDesc+' alumno'+(stats.withMuyDesc===1?'':'s')+' con área muy descendida</span>' : '')
+          + (stats.withDesc > 0 ? '<span style="background:rgba(255,209,102,0.18);color:#d9a020;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">'+stats.withDesc+' con área descendida</span>' : '')
+        + '</div>'
+        : '')
     + '</div>';
 }
 
@@ -9012,10 +9339,14 @@ function _indiViewPivote(alumnos, areas) {
 function _indiViewAlumnos(alumnos) {
   return '<div style="padding:18px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">'
     + alumnos.map(function(a){
+      var nCritical = (a.criticalEvals||[]).length;
+      var critBadge = nCritical
+        ? '<span style="background:rgba(224,82,82,0.12);color:#e05252;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap">⚠️ '+nCritical+' área'+(nCritical===1?'':'s')+' a reforzar</span>'
+        : '';
       return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:12px 14px">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">'
-        +   '<div style="font-weight:700;font-size:13px;flex:1;line-height:1.3">'+a.nombre+'</div>'
-        +   _indiLevelBadge(a.nivel)
+        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">'
+        +   '<div style="font-weight:700;font-size:13px;flex:1;line-height:1.3;min-width:0">'+a.nombre+'</div>'
+        +   '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">'+_indiLevelBadge(a.nivel)+critBadge+'</div>'
         + '</div>'
         + (a.edad ? '<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+a.edad+' años · '+a.evaluations.length+' áreas evaluadas</div>' : '<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+a.evaluations.length+' áreas evaluadas</div>')
         + '<div style="display:flex;flex-direction:column;gap:4px">'
@@ -9115,7 +9446,9 @@ function _indiViewAlertas(alumnos) {
     + '</div>';
 }
 
-// Exportar resultados a CSV
+// Exportar resultados a CSV — incluye dos secciones:
+//   1) RESUMEN POR ALUMNO: nivel global + conteos + áreas críticas
+//   2) DETALLE: una fila por evaluación
 function _indiExportCsv() {
   var curso = window._indiModalState.curso;
   var rows = _indiGetRowsForCurso(curso);
@@ -9123,16 +9456,33 @@ function _indiExportCsv() {
 
   var stats = _indiClassifyAlumnos(rows);
   var nivelDe = {};
-  stats.alumnos.forEach(function(a){ nivelDe[a.nombre] = a.nivel; });
+  var criticasDe = {};
+  stats.alumnos.forEach(function(a){
+    nivelDe[a.nombre] = a.nivel;
+    var ec = (a.criticalEvals||[]).map(function(e){
+      return (e.area||'?') + (e.subarea ? '·'+e.subarea : '') + ' [' + e.resultado + ']';
+    });
+    criticasDe[a.nombre] = ec.join(' | ');
+  });
 
-  var csv = 'NOMBRE_COMPLETO,EDAD,AREA,SUBAREA,RESULTADO,NIVEL_GLOBAL_ALUMNO\n';
+  var esc = function(s){ return String(s||'').replace(/"/g,'""'); };
+  var csv = '';
+
+  // Sección 1: Resumen por alumno
+  csv += 'RESUMEN POR ALUMNO — ' + (curso||'') + '\n';
+  csv += 'NOMBRE,EDAD,NIVEL_GLOBAL,N_DESTACADO,N_ESPERADO,N_DESCENDIDO,N_MUY_DESCENDIDO,AREAS_A_REFORZAR\n';
+  stats.alumnos.forEach(function(a){
+    csv += '"'+esc(a.nombre)+'",'+(a.edad||'')+',"'+esc(a.nivel)+'",'
+        + (a.counts['Destacado']||0)+','+(a.counts['Esperado']||0)+','
+        + (a.counts['Descendido']||0)+','+(a.counts['Muy descendido']||0)+','
+        + '"'+esc(criticasDe[a.nombre])+'"\n';
+  });
+
+  csv += '\nDETALLE POR EVALUACIÓN\n';
+  csv += 'NOMBRE_COMPLETO,EDAD,AREA,SUBAREA,RESULTADO,NIVEL_GLOBAL_ALUMNO\n';
   rows.forEach(function(r){
-    var nom = (r.NOMBRE_COMPLETO||'').replace(/"/g,'""');
-    var area = (r.AREA||'').replace(/"/g,'""');
-    var sub = (r.SUBAREA||'').replace(/"/g,'""');
-    var res = (r.RESULTADO||'').replace(/"/g,'""');
-    var glb = (nivelDe[(r.NOMBRE_COMPLETO||'').trim()]||'').replace(/"/g,'""');
-    csv += '"'+nom+'",'+(r.EDAD||'')+',"'+area+'","'+sub+'","'+res+'","'+glb+'"\n';
+    var glb = nivelDe[(r.NOMBRE_COMPLETO||'').trim()]||'';
+    csv += '"'+esc(r.NOMBRE_COMPLETO)+'",'+(r.EDAD||'')+',"'+esc(r.AREA)+'","'+esc(r.SUBAREA)+'","'+esc(r.RESULTADO)+'","'+esc(glb)+'"\n';
   });
 
   var blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
@@ -9337,8 +9687,10 @@ async function sendChat(){
     _visualInstr + '\n' +
     '=== FIN ROL ABSOLUTO ===';
 
-  // ── INDI results context ──
-  var indiCtx = (typeof _indiGetContext === 'function') ? _indiGetContext() : '';
+  // ── INDI results context ── (modo detalle o resumen según el agente)
+  var indiCtx = (typeof _indiGetContextForAgent === 'function')
+    ? _indiGetContextForAgent(currentAgent)
+    : ((typeof _indiGetContext === 'function') ? _indiGetContext() : '');
 
   var systemRaw =
     agentRoleBlock +
@@ -38145,25 +38497,27 @@ function _indiRegisterFiles() {
   // Store globally so prompts can reference it
   window.INDI_FILE_CONTENT = contenidoTexto;
 
-  // Match ALL agents that involve 'analisis', 'resultado', or 'informe'
-  var keywords = ['analisis','análisis','resultado','informe'];
-  var norm = function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
-  var agents = (typeof AGENTS !== 'undefined' ? AGENTS : []);
-  console.log('[INDI] _indiRegisterFiles — total agents:', agents.length, '| names:', agents.map(function(a){return a.nombre;}).join(', '));
+  // Detección unificada: usa _indiGetAgentMode (cubre AGENTS + customAgents)
+  var allAgents = (typeof AGENTS !== 'undefined' ? AGENTS.slice() : []);
+  if (window.customAgents && window.customAgents.length) {
+    allAgents = allAgents.concat(window.customAgents);
+  }
+  console.log('[INDI] _indiRegisterFiles — total agents (built-in + custom):', allAgents.length);
   var count = 0;
-  agents.forEach(function(ag) {
+  allAgents.forEach(function(ag) {
     if (!ag||!ag.id||!ag.nombre) return;
-    var nameLow = norm(ag.nombre);
-    var match = keywords.some(function(k){ return nameLow.includes(norm(k)); });
-    if (!match) return;
+    var mode = (typeof _indiGetAgentMode === 'function') ? _indiGetAgentMode(ag) : null;
+    if (!mode) return;
     var files = AGENT_STORE.getFiles(ag.id).filter(function(f){ return !(f.name||'').startsWith('Resultados Excel'); });
-    files.unshift({ name: fileName, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true, content: contenidoTexto });
+    files.unshift({ name: fileName, ext: 'xlsx', loadedAt: new Date().toISOString(), isIndi: true, indiMode: mode, content: contenidoTexto });
     AGENT_STORE.saveFiles(ag.id, files);
     count++;
-    console.log('[INDI] Archivo registrado en agente:', ag.nombre, '| id:', ag.id);
+    console.log('[INDI] Archivo registrado en agente ('+mode+'):', ag.nombre, '| id:', ag.id);
   });
-  if (count === 0) console.warn('[INDI] No hubo match. Keywords:', keywords, '| Agentes:', agents.map(function(a){ return norm(a.nombre); }));
+  if (count === 0) console.warn('[INDI] No hubo match con _INDI_AGENT_PATTERNS. Agentes existentes:', allAgents.map(function(a){ return a.nombre; }));
   if (currentAgent && typeof renderFilesPanel === 'function') renderFilesPanel();
+  // Refresca el banner si hay un agente abierto
+  if (typeof _indiRefreshAgentBanner === 'function') _indiRefreshAgentBanner();
   showSaveToast('📊 Excel cargado en Archivos de agentes (' + count + ' agente' + (count!==1?'s':'') + ')');
 }
 
