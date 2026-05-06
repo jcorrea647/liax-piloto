@@ -23316,22 +23316,68 @@ function initMisCursosPanel() {
   renderCursoResumen();
   renderDatosCurso();
 
-  // ── Carga on-demand de INDI si no está en memoria ──
-  // Este es un fallback: si por cualquier razón _supaLoadIndiResultados no se ejecutó
-  // o no terminó cuando el usuario entra a Mi Aula, lo disparamos aquí.
-  if (typeof _supa !== 'undefined' && _supa && _supaUser
-      && (!window.INDI_RESULTS || !window.INDI_RESULTS.length)
-      && typeof _supaLoadIndiResultados === 'function'
-      && !window._indiLoadInFlight) {
-    window._indiLoadInFlight = true;
-    console.log('[INDI] Mi Aula abierto sin datos en memoria — cargando desde Supabase...');
-    _supaLoadIndiResultados().finally(function(){
-      window._indiLoadInFlight = false;
-      // Re-render una vez termina (renderCursoResumen es idempotente)
-      if (typeof renderCursoResumen === 'function') {
+  // ── WATCHDOG INDI para Mi Aula ──
+  // Si entrás directo a Mi Aula tras refrescar, _supaUser puede no estar listo todavía;
+  // o la cadena normal de carga puede aún no haber terminado. Este watchdog hace polling
+  // cada 700ms hasta 21 segundos: si en algún momento aparecen los datos en memoria O
+  // _supaUser se vuelve disponible, dispara la carga / re-renderiza Mi Aula.
+  // Mismo patrón que ya usamos en openAgent — sin cambios en la cadena de carga.
+
+  // Cancelar watchdog previo si existía
+  if (window._indiMiAulaWatchdog) { clearInterval(window._indiMiAulaWatchdog); window._indiMiAulaWatchdog = null; }
+
+  var _watchTries = 0;
+  var _watchMax = 30; // 30 × 700ms = 21 segundos
+  var _watchTriggered = false;
+
+  var _watchTick = function() {
+    _watchTries++;
+
+    // Si el usuario salió de Mi Aula, abortar
+    if (typeof currentPanel !== 'undefined' && currentPanel !== 'mis-cursos') {
+      clearInterval(window._indiMiAulaWatchdog);
+      window._indiMiAulaWatchdog = null;
+      return;
+    }
+
+    // Caso 1: ya hay datos en memoria (cualquier ruta) → re-renderizar Mi Aula y salir
+    if (window.INDI_RESULTS && window.INDI_RESULTS.length) {
+      console.log('[INDI watchdog/MiAula] Datos disponibles — re-renderizando Mi Aula.');
+      try { renderCursoResumen(); } catch(e) {}
+      clearInterval(window._indiMiAulaWatchdog);
+      window._indiMiAulaWatchdog = null;
+      return;
+    }
+
+    // Caso 2: _supaUser disponible y aún no disparamos carga → dispararla
+    if (typeof _supa !== 'undefined' && _supa
+        && typeof _supaUser !== 'undefined' && _supaUser
+        && typeof _supaLoadIndiResultados === 'function'
+        && !_watchTriggered
+        && !window._indiLoadInFlight) {
+      _watchTriggered = true;
+      window._indiLoadInFlight = true;
+      console.log('[INDI watchdog/MiAula] _supaUser listo — disparando carga (intento '+_watchTries+').');
+      _supaLoadIndiResultados().finally(function(){
+        window._indiLoadInFlight = false;
         try { renderCursoResumen(); } catch(e) {}
-      }
-    });
+      });
+    }
+
+    // Caso 3: timeout
+    if (_watchTries >= _watchMax) {
+      console.warn('[INDI watchdog/MiAula] Timeout: 21s sin datos. _supaUser:',
+        (typeof _supaUser !== 'undefined' ? !!_supaUser : 'undefined'),
+        'INDI_RESULTS:', window.INDI_RESULTS ? window.INDI_RESULTS.length : 'null');
+      clearInterval(window._indiMiAulaWatchdog);
+      window._indiMiAulaWatchdog = null;
+    }
+  };
+
+  // Solo arrancar watchdog si NO hay datos en memoria (sino no hace falta)
+  if (!window.INDI_RESULTS || !window.INDI_RESULTS.length) {
+    setTimeout(_watchTick, 0); // primer tick inmediato
+    window._indiMiAulaWatchdog = setInterval(_watchTick, 700);
   }
 }
 
