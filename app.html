@@ -14519,6 +14519,11 @@ function switchAgentPanel(panel) {
 function renderDocsPanel() {
   if (!currentAgent) return;
   const docs = AGENT_STORE.getDocs(currentAgent.id);
+  // Ordenar por fecha desc (más reciente primero) preservando el índice original
+  // para que los handlers (openDocViewer, deleteDoc, etc.) sigan apuntando al doc correcto.
+  const docsSorted = docs
+    .map((d, originalIdx) => ({ d, originalIdx }))
+    .sort((a, b) => new Date(b.d.savedAt || 0) - new Date(a.d.savedAt || 0));
   const c = COLORS[currentAgent.dim];
   document.getElementById('mBody').innerHTML = `
     <div class="ap-panel active" id="ap-docs">
@@ -14532,7 +14537,7 @@ function renderDocsPanel() {
           <div class="empty-panel-title">Sin documentos aún</div>
           <div style="font-size:12px">Los documentos que guardes desde el chat aparecerán aquí.<br>En el chat, después de una respuesta de la IA, usa el botón <strong>"💾 Guardar como documento"</strong>.</div>
         </div>` :
-        docs.map((d,i) => `
+        docsSorted.map(({ d, originalIdx: i }) => `
           <div class="doc-card">
             <div class="doc-title">📄 ${d.title}</div>
             <div class="doc-meta">
