@@ -7158,13 +7158,19 @@ function _buildChatView() {
   var qs = currentAgent.preguntas || [];
   var customQs = _getCustomPreguntas(currentAgent.id);
 
+  // Marca individual de preguntas que necesitan datos INDI
+  var _qNeedsData = function(q){
+    return (typeof _indiQuestionNeedsData === 'function') && _indiQuestionNeedsData(currentAgent, q);
+  };
+
   var gridCards = qs.map(function(q, qi) {
     var safeAttr = q.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     var safeJs   = q.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    var prefix   = _qNeedsData(q) ? '<span style="font-size:11px;margin-right:3px" title="Esta pregunta usa los resultados INDI">📊</span>' : '';
     return '<div class="agent-q-card">' +
              '<div class="agent-q-card-top" onclick="useQuestion(\'' + safeJs + '\',true)">' +
                '<span class="agent-q-dot"></span>' +
-               '<span class="agent-q-text">' + q + '</span>' +
+               '<span class="agent-q-text">' + prefix + q + '</span>' +
              '</div>' +
              '<input class="agent-q-answer q-inline-answer" data-question="' + safeAttr + '" data-qi="' + qi + '" placeholder="Responde aquí…" autocomplete="off">' +
            '</div>';
@@ -7175,9 +7181,10 @@ function _buildChatView() {
   var customCards = customQs.map(function(q, i) {
     var safeUse = q.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     var safeAgId = _agId.replace(/'/g,"\\'");
+    var prefix   = _qNeedsData(q) ? '📊 ' : '';
     return '<div class="aq-custom-card" onclick="useQuestion(\'' + safeUse + '\',true)">' +
       '<span class="aq-custom-dot"></span>' +
-      '<span style="flex:1;font-size:12px;color:var(--text)">' + q + '</span>' +
+      '<span style="flex:1;font-size:12px;color:var(--text)">' + prefix + q + '</span>' +
       '<div style="display:flex;gap:3px;flex-shrink:0" onclick="event.stopPropagation()">' +
         '<button onclick="event.stopPropagation();_editarCustomPreguntaIdx(\'' + safeAgId + '\',' + i + ')" style="background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:10px;padding:2px 5px;border-radius:5px" title="Editar">✏️</button>' +
         '<button onclick="event.stopPropagation();_deleteCustomPregunta(\'' + safeAgId + '\',' + i + ')" style="background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:10px;padding:2px 5px;border-radius:5px" title="Eliminar">✕</button>' +
@@ -7190,11 +7197,16 @@ function _buildChatView() {
       '+ Agregar mi propia pregunta' +
     '</button>';
 
+  // Banner INDI — solo si el agente es INDI-aware
+  var indiBannerHtml = (typeof _indiBuildAgentBanner === 'function') ? _indiBuildAgentBanner(currentAgent) : '';
+  var indiBannerWrapped = indiBannerHtml ? '<div style="width:100%;max-width:680px;margin:8px 0">' + indiBannerHtml + '</div>' : '';
+
   var welcomeScreen =
     '<div id="agentWelcomeScreen" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:28px 16px 12px">' +
       '<div class="agent-welcome-icon">' + currentAgent.icon + '</div>' +
       '<div class="agent-welcome-title">' + currentAgent.nombre + '</div>' +
       '<div class="agent-welcome-sub">¿Qué quieres hacer hoy?</div>' +
+      indiBannerWrapped +
       '<div class="agent-q-grid">' + gridCards + '</div>' +
       (window._userAssignmentMeta ? _injectAgentContextBanner() : '') +
       (currentAgent.id === 'v1' ? buildRecursoSelector() : '') +
@@ -8593,29 +8605,27 @@ function _indiGetContext() {
 // ══════════════════════════════════════════════════════════════
 // INDI EN AGENTES — Detección, contexto por modo, banners
 // ══════════════════════════════════════════════════════════════
-// Lista configurable de patrones (nombres normalizados sin tildes) que identifican
-// agentes INDI-aware. Se matchea por substring para que funcione con variaciones
-// de mayúsculas, prefijos como "PLANIFICACIÓN CURRICULAR:" etc.
+// Patrones de detección: cada patrón es una lista de fragmentos de palabra
+// que deben TODOS aparecer en el nombre normalizado del agente. Esto hace el
+// matching robusto a typos ("ANALIS" en lugar de "ANÁLISIS"), variaciones
+// de mayúsculas, acentos, separadores, prefijos como "PLANIFICACIÓN CURRICULAR:".
 window._INDI_AGENT_PATTERNS = {
   // Modo "detalle" — el modelo necesita info por alumno (informes individuales)
   detalle: [
-    'analisis de resultados',
-    'logros de aprendizaje',
-    'informe desempeno por alumno',
-    'informe de desempeno por alumno',
-    'informe desempeno',
-    'informe de desempeno'
+    ['analis', 'result'],            // "Análisis de Resultados", "ANALIS DE RESULTADOS", "Analizar resultados"
+    ['logros', 'aprendizaje'],       // "Logros de Aprendizaje"
+    ['informe', 'desempen'],         // "Informe Desempeño...", "Informe de Desempeño"
+    ['informe', 'alumno'],           // "Informe por Alumno", "Informe de Alumnos"
+    ['informe', 'result'],           // "Informe de Resultados"
   ],
-  // Modo "resumen" — el modelo necesita distribución agregada (planificación curricular)
+  // Modo "resumen" — el modelo necesita distribución agregada (planificación)
   resumen: [
-    'planificacion curricular plan anual',
-    'planificacion curricular plan annual',
-    'planificacion curricular unidad',
-    'plan anual',
-    'plan annual',
-    'unidad y sesion de aprendizaje',
-    'unidad de aprendizaje',
-    'sesion de aprendizaje'
+    ['plan', 'anual'],               // "Plan Anual", "Planificación Anual"
+    ['plan', 'annual'],              // "Plan Annual" (typo en inglés)
+    ['unidad', 'aprendizaje'],       // "Unidad de Aprendizaje"
+    ['unidad', 'sesion'],            // "Unidad y Sesión", "Unidad y Sesion de Aprendizaje"
+    ['planificacion', 'curricular'], // "Planificación Curricular: ..."
+    ['sesion', 'aprendizaje'],       // "Sesión de Aprendizaje"
   ]
 };
 
@@ -8623,13 +8633,17 @@ function _indiNorm(s) {
   return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
 }
 
-// Devuelve 'detalle', 'resumen' o null según el agente
+// Devuelve 'detalle', 'resumen' o null según el agente.
+// Cada patrón es un array de fragmentos; todos deben aparecer en el nombre.
 function _indiGetAgentMode(agente) {
   if (!agente || !agente.nombre) return null;
   var n = _indiNorm(agente.nombre);
   var P = window._INDI_AGENT_PATTERNS;
-  if (P.detalle.some(function(p){ return n.indexOf(p) >= 0; })) return 'detalle';
-  if (P.resumen.some(function(p){ return n.indexOf(p) >= 0; })) return 'resumen';
+  var matchPattern = function(words) {
+    return words.every(function(w){ return n.indexOf(w) >= 0; });
+  };
+  if (P.detalle.some(matchPattern)) return 'detalle';
+  if (P.resumen.some(matchPattern)) return 'resumen';
   return null;
 }
 
