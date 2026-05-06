@@ -38453,7 +38453,7 @@ async function _supaLoadIndiResultados() {
       (function _waitAndRegister(tries) {
         var agList = (typeof AGENTS !== 'undefined' ? AGENTS : []);
         if (agList.length > 0 || tries <= 0) {
-          _indiRegisterFiles();
+          _indiRegisterFiles(true); // silent — restauración de sesión, no carga nueva
         } else {
           setTimeout(function(){ _waitAndRegister(tries - 1); }, 500);
         }
@@ -38469,11 +38469,27 @@ async function _supaLoadIndiResultados() {
       setTimeout(_applyIndiBtnStateGlobal, 300);
       setTimeout(_applyIndiBtnStateGlobal, 1000);
       setTimeout(_applyIndiBtnStateGlobal, 3000);
+
+      // ── Refrescar UI dependiente de INDI (Mi Aula, banner de agente) ──
+      // Mi Aula puede haberse renderizado ANTES de que Supabase devolviera los
+      // resultados INDI. Forzamos el re-render una vez que tenemos los datos.
+      var _indiRefreshUI = function() {
+        if (typeof renderCursoResumen === 'function') {
+          try { renderCursoResumen(); } catch(e) { console.warn('[INDI] renderCursoResumen fallo:', e); }
+        }
+        if (typeof _indiRefreshAgentBanner === 'function') {
+          try { _indiRefreshAgentBanner(); } catch(e) {}
+        }
+      };
+      _indiRefreshUI();
+      // Re-intentar más tarde porque DB.alumnos / cursos pueden cargarse después
+      setTimeout(_indiRefreshUI, 500);
+      setTimeout(_indiRefreshUI, 2000);
     }
   } catch(e) { console.warn('[INDI] Error cargando resultados:', e.message); }
 }
 
-function _indiRegisterFiles() {
+function _indiRegisterFiles(silent) {
   if (!window.INDI_RESULTS || !window.INDI_RESULTS.length) return;
   var cursoNombre = window.INDI_CURSO || '';
   if (!cursoNombre && window.INDI_RESULTS[0]) {
@@ -38518,7 +38534,7 @@ function _indiRegisterFiles() {
   if (currentAgent && typeof renderFilesPanel === 'function') renderFilesPanel();
   // Refresca el banner si hay un agente abierto
   if (typeof _indiRefreshAgentBanner === 'function') _indiRefreshAgentBanner();
-  showSaveToast('📊 Excel cargado en Archivos de agentes (' + count + ' agente' + (count!==1?'s':'') + ')');
+  if (!silent) showSaveToast('📊 Excel cargado en Archivos de agentes (' + count + ' agente' + (count!==1?'s':'') + ')');
 }
 
 async function _supaSaveAlumno(alumno) {
