@@ -10029,12 +10029,22 @@ async function sendChat(){
 
   // ── SYSTEM PROMPT ─────────────────────────────────────────
   // Construir userCtx solo con usuarios relevantes al contexto activo
+  // FIX: si el docente seleccionó alumnos específicos, usar SOLO esos
+  // (la selección específica es una restricción, no una adición al curso completo).
   var _ctxCursos   = [...CTX.cursos];
   var _ctxAlumnos  = [...CTX.alumnos];
-  var _relevantAlumnos = DB.alumnos.filter(function(a){
-    return _ctxAlumnos.includes(a.id) ||
-           (_ctxCursos.length && _ctxCursos.some(function(c){ return a.esp === c || (a.curso && a.curso === c); }));
-  }).slice(0, 30);
+  var _relevantAlumnos;
+  if (_ctxAlumnos.length > 0) {
+    // Hay alumnos específicos seleccionados — usar solo esos
+    _relevantAlumnos = DB.alumnos.filter(function(a){ return _ctxAlumnos.includes(a.id); }).slice(0, 30);
+  } else if (_ctxCursos.length > 0) {
+    // Sin alumnos específicos, pero hay curso(s) — usar todos los del curso
+    _relevantAlumnos = DB.alumnos.filter(function(a){
+      return _ctxCursos.some(function(c){ return a.esp === c || (a.curso && a.curso === c); });
+    }).slice(0, 30);
+  } else {
+    _relevantAlumnos = [];
+  }
   var userCtx = _relevantAlumnos.length
     ? _relevantAlumnos.map(function(u){
         return '- ' + u.nombre + ' (' + (u.esp||u.curso||'') +
@@ -20420,6 +20430,31 @@ function applyCtxToChat() {
   renderCtxSummary();
   var note = document.getElementById('agentCtxNote');
   if (note) { var l=buildCtxLabel(); note.textContent=l; note.style.display=l!=='Sin contexto'?'block':'none'; }
+
+  // ── Actualizar la barra ctx-note del chat dinámicamente ──
+  // Esta barra se renderiza al iniciar el chat con un snapshot. Si el docente cambia
+  // la selección después, debemos reflejarlo en la barra para que vea su contexto real.
+  var chatCtxNote = document.querySelector('#chatArea .ctx-note, #mBody .ctx-note, #agentWelcomeScreen .ctx-note');
+  if (chatCtxNote && typeof currentAgent !== 'undefined' && currentAgent) {
+    var hasAnyCtx = CTX.cursos.size || CTX.asignaturas.size || CTX.alumnos.size || CTX.competencias.size;
+    if (hasAnyCtx) {
+      var selAlus = DB.alumnos.filter(function(a){ return CTX.alumnos.has(a.id); });
+      var neeAlus = selAlus.filter(function(a){ return a.nee || a.neeT; });
+      var docPills = '';
+      var _dd = (typeof _docDropData !== 'undefined') ? _docDropData : {};
+      var nCaps = Object.values(_dd.compet||{}).filter(function(v){return v;}).length;
+      if (nCaps) docPills += '<span style="background:var(--dim2);color:var(--accent2);border-radius:8px;padding:1px 8px;font-size:10px;font-weight:700">📋 '+nCaps+' capacidad'+(nCaps>1?'es':'')+'</span> ';
+      var nDesp = Object.values(_dd.desemp||{}).filter(function(v){return v;}).length;
+      if (nDesp) docPills += '<span style="background:var(--dim4);color:var(--accent4);border-radius:8px;padding:1px 8px;font-size:10px;font-weight:700">📊 '+nDesp+' desempeño'+(nDesp>1?'s':'')+'</span> ';
+
+      chatCtxNote.innerHTML = '🎯 Contexto activo: <strong>' + ([...CTX.cursos].join(', ')||'—') + '</strong>'
+        + (CTX.asignaturas.size ? ' · <strong>'+[...CTX.asignaturas].join(', ')+'</strong>' : '')
+        + (CTX.competencias.size ? ' · '+CTX.competencias.size+' competencia(s)' : '')
+        + (docPills ? ' · '+docPills : '')
+        + (CTX.alumnos.size ? ' · '+CTX.alumnos.size+' alumno(s)' : '')
+        + (neeAlus.length ? ' · <span style="color:#c084fc;font-weight:700">⚠️ '+neeAlus.length+' con NEE</span>' : '');
+    }
+  }
 }
 
 function setAgentCtx() { applyCtxToChat(); updateAgentCtxBadge(); }
