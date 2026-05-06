@@ -8358,7 +8358,38 @@ function _indiDetectBulkOperation(userMsg) {
   ];
   var matched = bulkPatterns.some(function(p){ return m.indexOf(p) >= 0; });
   if (!matched) return { isBulk: false };
-  var nAlumnos = [...new Set(window.INDI_RESULTS.map(function(r){ return r.NOMBRE_COMPLETO; }))].length;
+
+  // FIX: si el docente seleccionó alumnos específicos, contar solo esos.
+  // Sin esto, el mensaje dice "33 informes" aunque el filtro de _indiGetContext
+  // ya restringió la operación a 1 solo alumno → confunde al docente.
+  var nAlumnos;
+  try {
+    if (typeof CTX !== 'undefined' && CTX.alumnos && CTX.alumnos.size > 0
+        && typeof DB !== 'undefined' && DB.alumnos) {
+      var nombresSelec = new Set(
+        DB.alumnos
+          .filter(function(a){ return CTX.alumnos.has(a.id); })
+          .map(function(a){ return (a.nombre||'').trim().toLowerCase(); })
+      );
+      if (nombresSelec.size > 0) {
+        var rowsFiltered = window.INDI_RESULTS.filter(function(r){
+          return nombresSelec.has((r.NOMBRE_COMPLETO||'').trim().toLowerCase());
+        });
+        if (rowsFiltered.length > 0) {
+          nAlumnos = [...new Set(rowsFiltered.map(function(r){ return r.NOMBRE_COMPLETO; }))].length;
+        }
+      }
+    }
+  } catch(e) {}
+
+  // Si no aplicó filtro (sin selección, o sin match), usar el total del curso
+  if (typeof nAlumnos === 'undefined') {
+    nAlumnos = [...new Set(window.INDI_RESULTS.map(function(r){ return r.NOMBRE_COMPLETO; }))].length;
+  }
+
+  // Si quedó 1 solo alumno, no es realmente "bulk" — devolver isBulk:false para no mostrar mensaje de masivo
+  if (nAlumnos <= 1) return { isBulk: false };
+
   // Estimación honesta basada en informes detallados (~250-400 palabras por alumno)
   var estMin = Math.max(1, Math.round(nAlumnos * 3 / 60));
   var estMax = Math.max(2, Math.round(nAlumnos * 5 / 60));
