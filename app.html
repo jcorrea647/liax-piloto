@@ -7042,6 +7042,24 @@ function openAgent(id, autoPrompt, sessionToRestore){
   }
   currentAgentPanel = 'chat';
 
+  // ── Cargar historial del agente desde Supabase si no está en memoria ──
+  // Lazy: solo cargo el agente actual, no todos. Si ya hay sesiones en memoria
+  // (porque ya cargamos antes), no las re-cargo. Si la pestaña historial está
+  // abierta cuando llegan los datos, la re-renderizo.
+  if (typeof _supaLoadSesionesAgente === 'function'
+      && typeof _supaUser !== 'undefined' && _supaUser
+      && AGENT_STORE._hist[id] && AGENT_STORE._hist[id].length === 0) {
+    _supaLoadSesionesAgente(id).then(function(sesiones) {
+      if (sesiones && sesiones.length) {
+        AGENT_STORE._hist[id] = sesiones;
+        // Si la pestaña historial está visible, re-renderizar
+        if (currentAgent && currentAgent.id === id && currentAgentPanel === 'historial') {
+          if (typeof renderHistoryPanel === 'function') renderHistoryPanel();
+        }
+      }
+    });
+  }
+
   // Update modal header
   const c = COLORS[currentAgent.dim] || {bg:'var(--surface2)',text:'var(--text)',border:'var(--border)'};
   document.getElementById('mIcon').style.background = c.bg;
@@ -15554,8 +15572,12 @@ function loadHistSession(i) {
 }
 
 function clearHistory() {
-  if (!confirm('¿Borrar todo el historial de este agente?')) return;
+  if (!confirm('¿Borrar todo el historial de este agente? Esta acción borra también las sesiones guardadas en el servidor.')) return;
   AGENT_STORE.saveHistory(currentAgent.id, []);
+  // Borrar también de Supabase
+  if (typeof _supaDeleteSesionesAgente === 'function' && typeof _supaUser !== 'undefined' && _supaUser) {
+    _supaDeleteSesionesAgente(currentAgent.id);
+  }
   renderHistoryPanel();
 }
 
@@ -15580,7 +15602,16 @@ startChat = function() {
 const _origCloseModal = closeModal;
 closeModal = function() {
   // Save history before closing if there's a conversation
-  if (currentAgent && chatHistory.length > 1) saveHistorySession();
+  if (currentAgent && chatHistory.length > 1) {
+    saveHistorySession(); // memoria local — sincronizo después con Supabase
+    // Guardar en Supabase la sesión recién agregada (es la primera del array)
+    if (typeof _supaSaveSesion === 'function') {
+      var hist = AGENT_STORE.getHistory(currentAgent.id);
+      if (hist && hist.length) {
+        _supaSaveSesion(currentAgent.id, currentAgent.nombre, hist[0]);
+      }
+    }
+  }
   _origCloseModal.apply(this, arguments);
   currentAgentPanel = 'chat';
 };
@@ -23909,8 +23940,48 @@ function renderHistorialGlobal() {
   if (!container) return;
   var q = (document.getElementById('histGlobalSearch')?.value || '').toLowerCase();
 
+  // ── Pre-cargar sesiones de Supabase para todos los agentes (una sola vez por sesión de usuario) ──
+  // Esto cubre el caso de un docente que abre Historial Global tras refrescar la página,
+  // sin haber abierto cada agente individualmente. Evita re-disparar si ya cargamos.
+  if (typeof _supaUser !== 'undefined' && _supaUser
+      && typeof _supaLoadSesionesAgente === 'function'
+      && !window._supaSesionesPrecargadas) {
+    window._supaSesionesPrecargadas = true;
+    var allAgentsToLoad = (typeof AGENTS !== 'undefined' ? AGENTS.slice() : []);
+    if (window.customAgents) allAgentsToLoad = allAgentsToLoad.concat(window.customAgents);
+    var pending = allAgentsToLoad.length;
+    if (pending > 0) {
+      console.log('[Sesiones] Pre-cargando sesiones de '+pending+' agentes para Historial Global...');
+      allAgentsToLoad.forEach(function(ag) {
+        if (!ag || !ag.id) { pending--; return; }
+        // Si ya hay sesiones en memoria, saltar
+        if (AGENT_STORE._hist[ag.id] && AGENT_STORE._hist[ag.id].length > 0) { pending--; return; }
+        _supaLoadSesionesAgente(ag.id).then(function(sesiones){
+          if (sesiones && sesiones.length) AGENT_STORE._hist[ag.id] = sesiones;
+        }).finally(function(){
+          pending--;
+          if (pending <= 0) {
+            console.log('[Sesiones] Pre-carga global terminada — re-renderizando.');
+            renderHistorialGlobal();
+          }
+        });
+      });
+      // Mostrar un loading mientras tanto
+      container.innerHTML =
+        '<div style="text-align:center;padding:56px 24px;color:var(--muted)">' +
+          '<div style="font-size:32px;margin-bottom:12px;display:inline-block;animation:indiSpin 1.2s linear infinite">⏳</div>' +
+          '<div style="font-size:13px">Cargando historial…</div>' +
+        '</div>';
+      return; // El re-render lo hace finally
+    }
+  }
+
   var allSessions = [];
-  AGENTS.forEach(function(agent) {
+  // Recorrer TODOS los agentes (built-in + custom) que tengan sesiones
+  var agentsToScan = (typeof AGENTS !== 'undefined' ? AGENTS.slice() : []);
+  if (window.customAgents) agentsToScan = agentsToScan.concat(window.customAgents);
+  agentsToScan.forEach(function(agent) {
+    if (!agent || !agent.id) return;
     var hist = AGENT_STORE.getHistory(agent.id) || [];
     hist.forEach(function(s, i) {
       allSessions.push(Object.assign({}, s, {
@@ -39071,6 +39142,146 @@ async function _supaSaveAlumno(alumno) {
       user_id: _supaUser.id,
     });
   } catch(e) { console.warn('[Supabase] Error saving alumno:', e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// PERSISTENCIA DE SESIONES DE AGENTE EN SUPABASE
+// Tabla: agent_sesiones (creada por el usuario en Supabase)
+// Limite: 50 sesiones por agente y usuario
+// Se guarda solo al cerrar el modal del agente (closeModal)
+// ══════════════════════════════════════════════════════════════
+
+// Guarda UNA sesión en Supabase (UPSERT por id) y mantiene el límite de 50.
+// Recibe el objeto de sesión que ya está en AGENT_STORE._hist[agentId][0].
+async function _supaSaveSesion(agentId, agentNombre, sesion) {
+  if (!_supaUser || !_supa) {
+    console.warn('[Sesiones] Sin _supaUser, no se sincroniza sesión');
+    return;
+  }
+  if (!sesion || !sesion.messages || !sesion.messages.length) return;
+
+  // Generar un id estable: si la sesión no tiene id, asignarle uno basado en savedAt + agente
+  if (!sesion.id) {
+    sesion.id = 'sesion_' + (sesion.savedAt ? new Date(sesion.savedAt).getTime() : Date.now()) + '_' + agentId;
+  }
+
+  try {
+    var row = {
+      id:           sesion.id,
+      user_id:      _supaUser.id,
+      agent_id:     agentId,
+      agent_nombre: agentNombre || '',
+      title:        sesion.title || '',
+      first_msg:    sesion.firstMsg || '',
+      messages:     sesion.messages,
+      saved_at:     sesion.savedAt || new Date().toISOString(),
+      updated_at:   new Date().toISOString()
+    };
+    var res = await _supa.from('agent_sesiones').upsert(row);
+    if (res.error) {
+      console.warn('[Sesiones] Error guardando en Supabase:', res.error.message);
+      if (typeof showSaveToast === 'function') {
+        showSaveToast('⚠️ Sesión guardada localmente, no se sincronizó al servidor');
+      }
+      return;
+    }
+    console.log('[Sesiones] Sesión guardada en Supabase:', sesion.id, '— agente:', agentNombre);
+
+    // Mantener máx 50 sesiones por agente — borrar las más viejas si excedo
+    var countRes = await _supa.from('agent_sesiones')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', _supaUser.id)
+      .eq('agent_id', agentId);
+    if (!countRes.error && countRes.count > 50) {
+      var excess = countRes.count - 50;
+      var oldRes = await _supa.from('agent_sesiones')
+        .select('id')
+        .eq('user_id', _supaUser.id)
+        .eq('agent_id', agentId)
+        .order('saved_at', { ascending: true })
+        .limit(excess);
+      if (oldRes.data && oldRes.data.length) {
+        var idsToDelete = oldRes.data.map(function(r){ return r.id; });
+        await _supa.from('agent_sesiones').delete().in('id', idsToDelete);
+        console.log('[Sesiones] Borradas '+idsToDelete.length+' sesiones antiguas (limite 50)');
+      }
+    }
+  } catch(e) {
+    console.warn('[Sesiones] Excepción guardando sesión:', e.message);
+    if (typeof showSaveToast === 'function') {
+      showSaveToast('⚠️ Sesión guardada localmente, no se sincronizó al servidor');
+    }
+  }
+}
+
+// Carga las sesiones de un agente desde Supabase (orden: más reciente primero)
+async function _supaLoadSesionesAgente(agentId) {
+  if (!_supaUser || !_supa) return [];
+  try {
+    var res = await _supa.from('agent_sesiones')
+      .select('*')
+      .eq('user_id', _supaUser.id)
+      .eq('agent_id', agentId)
+      .order('saved_at', { ascending: false })
+      .limit(50);
+    if (res.error) {
+      console.warn('[Sesiones] Error cargando sesiones:', res.error.message);
+      return [];
+    }
+    var sesiones = (res.data||[]).map(function(r){
+      return {
+        id:        r.id,
+        title:     r.title || '',
+        firstMsg:  r.first_msg || '',
+        messages:  r.messages || [],
+        savedAt:   r.saved_at || new Date().toISOString()
+      };
+    });
+    console.log('[Sesiones] Cargadas '+sesiones.length+' sesiones de Supabase para agente '+agentId);
+    return sesiones;
+  } catch(e) {
+    console.warn('[Sesiones] Excepción cargando sesiones:', e.message);
+    return [];
+  }
+}
+
+// Borra TODAS las sesiones de un agente del usuario actual en Supabase
+async function _supaDeleteSesionesAgente(agentId) {
+  if (!_supaUser || !_supa) return false;
+  try {
+    var res = await _supa.from('agent_sesiones')
+      .delete()
+      .eq('user_id', _supaUser.id)
+      .eq('agent_id', agentId);
+    if (res.error) {
+      console.warn('[Sesiones] Error borrando sesiones:', res.error.message);
+      return false;
+    }
+    console.log('[Sesiones] Sesiones del agente '+agentId+' borradas de Supabase');
+    return true;
+  } catch(e) {
+    console.warn('[Sesiones] Excepción borrando sesiones:', e.message);
+    return false;
+  }
+}
+
+// Borra UNA sesión específica de Supabase (por id)
+async function _supaDeleteSesion(sesionId) {
+  if (!_supaUser || !_supa || !sesionId) return false;
+  try {
+    var res = await _supa.from('agent_sesiones')
+      .delete()
+      .eq('user_id', _supaUser.id)
+      .eq('id', sesionId);
+    if (res.error) {
+      console.warn('[Sesiones] Error borrando sesión:', res.error.message);
+      return false;
+    }
+    return true;
+  } catch(e) {
+    console.warn('[Sesiones] Excepción borrando sesión:', e.message);
+    return false;
+  }
 }
 
 async function _supaSaveAlumnosBatch(alumnos) {
