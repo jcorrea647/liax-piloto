@@ -8950,6 +8950,8 @@ function _indiGetContextForAgent(agente) {
 function _indiBuildAgentBanner(agente) {
   if (!_indiIsAgentAware(agente)) return '';
   var mode = _indiGetAgentMode(agente);
+
+  // Caso A: ya hay datos en memoria
   if (_indiHasData()) {
     var stats = _indiClassifyAlumnos(window.INDI_RESULTS);
     var alerts = (stats.withMuyDesc||0) + (stats.withDesc||0);
@@ -8960,13 +8962,145 @@ function _indiBuildAgentBanner(agente) {
       + '<div style="flex:1;min-width:200px;line-height:1.4"><strong style="color:#a78bfa">Resultados INDI cargados</strong> — '+stats.total+' alumnos · '+(window.INDI_CURSO||'curso')+' <span style="color:var(--muted);font-size:10px">· se usa el '+modeLabel+'</span>'+alertText+'</div>'
       + '<button onclick="openIndiResultadosModal(\''+encodeURIComponent(window.INDI_CURSO||'')+'\')" style="background:none;border:1px solid rgba(124,58,237,0.5);color:#a78bfa;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;flex-shrink:0">🔍 Ver detalle</button>'
       + '</div>';
-  } else {
-    return '<div id="indiAgentBanner" style="background:rgba(255,209,102,0.12);border:1px solid rgba(255,209,102,0.4);border-radius:9px;padding:8px 14px;margin:0 0 12px;display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap">'
-      + '<span style="font-size:14px">⚠️</span>'
-      + '<div style="flex:1;min-width:200px;line-height:1.4;color:#d9a020"><strong>Sin resultados INDI cargados</strong> — este agente funciona mejor con tus resultados INDI. Cárgalos desde la pantalla Inicio.</div>'
-      + '<button onclick="_indiGoToInicioToLoad()" style="background:#ffd166;border:none;color:#1a1a1a;border-radius:7px;padding:4px 12px;font-size:11px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif;flex-shrink:0">📥 Cargar ahora</button>'
+  }
+
+  // Caso B: no hay datos. Si hay sesión Supabase, intentar cargar opportunísticamente.
+  // Esto cubre el caso refresh: el banner mismo dispara la carga apenas se renderiza.
+  var hasSupaSession = (typeof _supa !== 'undefined' && _supa
+                       && typeof _supaUser !== 'undefined' && _supaUser);
+  if (hasSupaSession && !window._indiLoadInFlight && typeof _supaLoadIndiResultados === 'function') {
+    console.log('[INDI banner] Renderizando sin datos pero hay sesión Supabase — disparando carga.');
+    window._indiLoadInFlight = true;
+    // setTimeout 0 para que el banner se inserte primero y luego dispare la carga
+    setTimeout(function(){
+      _supaLoadIndiResultados().finally(function(){
+        window._indiLoadInFlight = false;
+        console.log('[INDI banner] Carga terminada — refrescando banner. Datos en memoria:', _indiHasData());
+        if (typeof _indiRefreshAgentBanner === 'function') {
+          try { _indiRefreshAgentBanner(); } catch(e){ console.warn('[INDI banner] refresh fallo:', e); }
+        }
+      });
+    }, 0);
+  }
+
+  // Si hay carga en curso, mostrar estado "Cargando" para feedback visual
+  if (window._indiLoadInFlight) {
+    return '<div id="indiAgentBanner" style="background:rgba(124,58,237,0.10);border:1px solid rgba(124,58,237,0.3);border-radius:9px;padding:8px 14px;margin:0 0 12px;display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap">'
+      + '<span style="font-size:14px;display:inline-block;animation:indiSpin 1.2s linear infinite">⏳</span>'
+      + '<div style="flex:1;min-width:200px;line-height:1.4;color:#a78bfa"><strong>Cargando resultados INDI…</strong> <span style="color:var(--muted);font-size:10px">— recuperando los datos del servidor</span></div>'
+      + '<style>@keyframes indiSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>'
       + '</div>';
   }
+
+  // Caso C: no hay datos y no hay sesión Supabase aún. Banner amarillo con dos acciones:
+  // (1) "Recuperar de servidor" — fuerza la carga (espera _supaUser si hace falta)
+  // (2) "Cargar Excel" — flujo manual original (Inicio → subir archivo)
+  return '<div id="indiAgentBanner" style="background:rgba(255,209,102,0.12);border:1px solid rgba(255,209,102,0.4);border-radius:9px;padding:10px 14px;margin:0 0 12px;font-size:12px">'
+    + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+    +   '<span style="font-size:14px">⚠️</span>'
+    +   '<div style="flex:1;min-width:200px;line-height:1.4;color:#d9a020"><strong>Sin resultados INDI cargados</strong> — si ya los cargaste antes, prueba recuperarlos del servidor.</div>'
+    +   '<button onclick="_indiForceLoadFromServer()" style="background:#ffd166;border:none;color:#1a1a1a;border-radius:7px;padding:4px 12px;font-size:11px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif;flex-shrink:0">🔄 Recuperar del servidor</button>'
+    +   '<button onclick="_indiGoToInicioToLoad()" style="background:none;border:1px solid #ffd16688;color:#d9a020;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;flex-shrink:0">📥 Cargar Excel</button>'
+    + '</div>'
+    + '<div id="indiBannerDiag" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(0,0,0,0.05);border-radius:6px;font-size:10px;color:var(--muted);font-family:monospace;line-height:1.5;max-height:140px;overflow-y:auto"></div>'
+    + '</div>';
+}
+
+// Fuerza la recuperación de resultados INDI desde Supabase con diagnóstico visible.
+// Útil cuando el flujo automático falla (sesión tarda, rol no detectado, etc.)
+function _indiForceLoadFromServer() {
+  var diag = document.getElementById('indiBannerDiag');
+  var log = function(msg) {
+    console.log('[INDI force]', msg);
+    if (diag) {
+      diag.style.display = 'block';
+      diag.innerHTML += msg + '<br>';
+      diag.scrollTop = diag.scrollHeight;
+    }
+  };
+
+  log('🔄 Iniciando recuperación...');
+
+  // Verificar sesión Supabase
+  if (typeof _supa === 'undefined' || !_supa) {
+    log('❌ Cliente Supabase no disponible. Refresca la página.');
+    return;
+  }
+  log('✓ Cliente Supabase OK');
+
+  // Esperar _supaUser hasta 10 segundos si no está listo
+  var attempts = 0;
+  var maxAttempts = 20; // 20 × 500ms = 10s
+  var waitForUser = function() {
+    if (typeof _supaUser !== 'undefined' && _supaUser) {
+      log('✓ Usuario autenticado: ' + (_supaUser.email || _supaUser.id));
+      doLoad();
+      return;
+    }
+    attempts++;
+    if (attempts >= maxAttempts) {
+      log('❌ Sesión de usuario no se estableció en 10s.');
+      log('   Esto suele indicar que la sesión expiró. Sale e ingresa de nuevo.');
+      return;
+    }
+    log('⏳ Esperando sesión... (intento ' + attempts + '/' + maxAttempts + ')');
+    setTimeout(waitForUser, 500);
+  };
+
+  var doLoad = function() {
+    log('📡 Consultando indi_resultados para user_id=' + _supaUser.id + '...');
+    _supa.from('indi_resultados').select('*').eq('user_id', _supaUser.id).then(function(res){
+      if (res.error) {
+        log('❌ Error de BD: ' + res.error.message);
+        log('   Código: ' + (res.error.code||'?') + ' | Hint: ' + (res.error.hint||'-'));
+        return;
+      }
+      var data = res.data || [];
+      log('✓ Query exitosa — registros: ' + data.length);
+      if (data.length === 0) {
+        log('⚠️ La tabla devolvió 0 registros para tu usuario.');
+        log('   Posibles causas:');
+        log('   • Los datos se guardaron con otro user_id');
+        log('   • Política RLS está filtrándolos');
+        log('   • Aún no se cargaron — usa "Cargar Excel"');
+        return;
+      }
+      // Poblar window.INDI_RESULTS y refrescar
+      // Campos reales en BD: nombre_alumno, curso_nombre, edad, area, subarea, resultado
+      window.INDI_RESULTS = data.map(function(r){
+        // El curso_nombre puede venir como "RAYITOS A" — separar curso/letra si tiene espacio
+        var cursoFull = (r.curso_nombre||'').trim();
+        var lastSpace = cursoFull.lastIndexOf(' ');
+        var curso = cursoFull, letra = '';
+        if (lastSpace > 0 && cursoFull.length - lastSpace <= 3) {
+          curso = cursoFull.substring(0, lastSpace);
+          letra = cursoFull.substring(lastSpace+1);
+        }
+        return {
+          NOMBRE_COMPLETO: r.nombre_alumno || r.alumno_nombre || '',
+          EDAD: r.edad || '',
+          AREA: r.area || '',
+          SUBAREA: r.subarea || '',
+          RESULTADO: r.resultado || '',
+          CURSO: curso,
+          LETRA: letra,
+          COLEGIO: r.colegio || '',
+          MAESTRA: r.maestra || ''
+        };
+      });
+      window.INDI_CURSO = (data[0].curso_nombre||'').trim();
+      var alumnos = [...new Set(window.INDI_RESULTS.map(function(r){return r.NOMBRE_COMPLETO;}))];
+      log('✓ Cargados '+data.length+' registros, '+alumnos.length+' alumnos del curso '+window.INDI_CURSO);
+      log('🎉 Refrescando banner...');
+      setTimeout(function(){
+        if (typeof _indiRefreshAgentBanner === 'function') _indiRefreshAgentBanner();
+      }, 300);
+    }).catch(function(e){
+      log('❌ Excepción: ' + e.message);
+    });
+  };
+
+  waitForUser();
 }
 
 // Cierra el modal de agente y lleva al panel Inicio destacando el botón de carga
