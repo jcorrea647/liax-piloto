@@ -42829,54 +42829,6 @@ if (!dataLoaded) {
 </div>
 
 
-<!-- ══════════════ MODAL PREVISUALIZACIÓN — Genera Recursos ══════════════ -->
-<div class="prev-overlay" id="prevRecursoModal">
-  <div class="prev-box">
-    <!-- Header -->
-    <div class="prev-head">
-      <span style="font-size:20px" id="prevRecIcon">📄</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-family:Syne,sans-serif;font-weight:800;font-size:14px" id="prevRecTitulo">Previsualización</div>
-        <div style="font-size:10px;color:var(--muted)" id="prevRecMeta">Revisa la estructura antes de generar</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="prevAgregarEscena()" style="background:var(--surface2);border:1px solid var(--border);color:var(--accent2);border-radius:7px;padding:5px 12px;cursor:pointer;font-size:11px;font-weight:700;font-family:DM Sans,sans-serif">+ Agregar escena</button>
-        <button onclick="prevConfirmarGenerar()" style="background:var(--accent1);border:none;color:#fff;border-radius:7px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:700;font-family:DM Sans,sans-serif">✨ Generar recurso completo</button>
-        <button onclick="closePrevRecurso()" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">✕</button>
-      </div>
-    </div>
-    <!-- Body -->
-    <div class="prev-body">
-      <!-- Left: grid de escenas -->
-      <div class="prev-left" id="prevEscenasGrid">
-        <div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">
-          <div style="font-size:32px;margin-bottom:8px">⏳</div>
-          <div style="font-size:13px">Generando borrador...</div>
-        </div>
-      </div>
-      <!-- Right: panel de edición -->
-      <div class="prev-right">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)">✏️ Editar escena seleccionada</div>
-        <div id="prevEditPanel" style="font-size:12px;color:var(--muted)">Haz clic en una escena para editarla</div>
-        <div style="margin-top:auto;padding-top:12px;border-top:1px solid var(--border)">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:8px">⚙️ Ajustes globales</div>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <label style="font-size:11px;color:var(--text);display:flex;align-items:center;gap:8px;cursor:pointer">
-              <input type="range" id="prevTextLen" min="1" max="3" value="2" style="flex:1" oninput="prevUpdateTextLen(this.value)">
-              <span id="prevTextLenLabel" style="white-space:nowrap;font-size:10px">Texto: medio</span>
-            </label>
-            <label style="font-size:11px;color:var(--text);display:flex;align-items:center;gap:8px;cursor:pointer">
-              <input type="range" id="prevImgDensity" min="1" max="3" value="2" style="flex:1" oninput="prevUpdateImgDensity(this.value)">
-              <span id="prevImgDensityLabel" style="white-space:nowrap;font-size:10px">Imágenes: todas</span>
-            </label>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
 <!-- ══════════════ MODAL ANOTACIÓN ══════════════ -->
 <div class="modal-overlay" id="anotacionModal">
   <div class="modal-box" style="max-width:520px">
@@ -42992,6 +42944,55 @@ if (!dataLoaded) {
       🏆 Ranking por probabilidad de alerta — los alumnos con mayor riesgo aparecen primero
     </div>
     <div id="listaAlumnosBody" style="padding:16px 20px;max-height:72vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- ══════════════ MODAL PREVISUALIZACIÓN — Genera Recursos ══════════════ -->
+<!-- Insertado al final del body (no dentro de otros modales) para que no
+     quede anidado en contenedores ocultos que lo hagan invisible. -->
+<div class="prev-overlay" id="prevRecursoModal">
+  <div class="prev-box">
+    <!-- Header -->
+    <div class="prev-head">
+      <span style="font-size:20px" id="prevRecIcon">📄</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-family:Syne,sans-serif;font-weight:800;font-size:14px" id="prevRecTitulo">Previsualización</div>
+        <div style="font-size:10px;color:var(--muted)" id="prevRecMeta">Revisa la estructura antes de generar</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="prevAgregarEscena()" style="background:var(--surface2);border:1px solid var(--border);color:var(--accent2);border-radius:7px;padding:5px 12px;cursor:pointer;font-size:11px;font-weight:700;font-family:DM Sans,sans-serif">+ Agregar escena</button>
+        <button onclick="prevConfirmarGenerar()" style="background:var(--accent1);border:none;color:#fff;border-radius:7px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:700;font-family:DM Sans,sans-serif">✨ Generar recurso completo</button>
+        <button onclick="closePrevRecurso()" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">✕</button>
+      </div>
+    </div>
+    <!-- Body -->
+    <div class="prev-body">
+      <!-- Left: grid de escenas -->
+      <div class="prev-left" id="prevEscenasGrid">
+        <div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">
+          <div style="font-size:32px;margin-bottom:8px">⏳</div>
+          <div style="font-size:13px">Generando borrador...</div>
+        </div>
+      </div>
+      <!-- Right: panel de edición -->
+      <div class="prev-right">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)">✏️ Editar escena seleccionada</div>
+        <div id="prevEditPanel" style="font-size:12px;color:var(--muted)">Haz clic en una escena para editarla</div>
+        <div style="margin-top:auto;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:8px">⚙️ Ajustes globales</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="font-size:11px;color:var(--text);display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="range" id="prevTextLen" min="1" max="3" value="2" style="flex:1" oninput="prevUpdateTextLen(this.value)">
+              <span id="prevTextLenLabel" style="white-space:nowrap;font-size:10px">Texto: medio</span>
+            </label>
+            <label style="font-size:11px;color:var(--text);display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="range" id="prevImgDensity" min="1" max="3" value="2" style="flex:1" oninput="prevUpdateImgDensity(this.value)">
+              <span id="prevImgDensityLabel" style="white-space:nowrap;font-size:10px">Imágenes: todas</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
