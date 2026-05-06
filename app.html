@@ -7884,15 +7884,140 @@ function removeAttach(idx, chipEl) {
 }
 
 function useQuestion(q,autoSend=false){
-  // Si esta pregunta específica necesita datos INDI Y no están cargados, mostrar modal
+  // ── 1. Si esta pregunta específica necesita datos INDI Y no están cargados, mostrar modal ──
   if (typeof currentAgent !== 'undefined' && currentAgent
       && typeof _indiQuestionNeedsData === 'function' && _indiQuestionNeedsData(currentAgent, q)
       && typeof _indiHasData === 'function' && !_indiHasData()) {
     if (typeof _indiShowNeedDataModal === 'function') _indiShowNeedDataModal(q);
     return;
   }
+
+  // ── 2. Para preguntas de planificación, verificar que el contexto pedagógico esté completo ──
+  // (Área Curricular, Competencias, Capacidades, Edad, Desempeño)
+  if (typeof currentAgent !== 'undefined' && currentAgent
+      && typeof _planQuestionNeedsContext === 'function'
+      && _planQuestionNeedsContext(currentAgent, q)) {
+    var missing = (typeof _planGetMissingContext === 'function') ? _planGetMissingContext() : [];
+    if (missing.length > 0) {
+      _planShowNeedContextModal(q, missing);
+      return;
+    }
+  }
+
   const inp=document.getElementById('chatInput');
   if(inp){inp.value=q; if(autoSend)sendChat();}
+}
+
+// ══════════════════════════════════════════════════════════════
+// VERIFICACIÓN DE CONTEXTO PEDAGÓGICO PARA AGENTES DE PLANIFICACIÓN
+// ══════════════════════════════════════════════════════════════
+// Algunos agentes (UNIDAD Y SESIÓN, PLAN ANUAL, etc.) tienen preguntas que
+// SOLO tienen sentido si el docente seleccionó previamente: Área, Competencia,
+// Capacidades, Edad, Desempeño. Si falta algo, mostramos un modal explicativo
+// que le dice al docente qué seleccionar antes de avanzar.
+
+// ¿La pregunta actual del agente requiere contexto pedagógico completo?
+function _planQuestionNeedsContext(agente, q) {
+  if (!agente || !agente.nombre || !q) return false;
+  var an = (agente.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  var qn = (q||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  // Solo aplica a agentes de planificación curricular
+  var isPlanAgent = (an.indexOf('planificacion') >= 0 && (an.indexOf('plan anual') >= 0 || an.indexOf('unidad') >= 0 || an.indexOf('sesion') >= 0))
+                 || (an.indexOf('plan anual') >= 0)
+                 || (an.indexOf('unidad y sesion') >= 0);
+  if (!isPlanAgent) return false;
+  // Las preguntas que GENERAN contenido necesitan contexto. Las que SETUP o explican no.
+  var generationKeywords = [
+    'planifica', 'planificar', 'disena', 'disenar', 'crea', 'crear',
+    'genera', 'generar', 'elabora', 'elaborar', 'redact',
+    'sesion', 'sesiones', 'unidad didactica', 'plan anual',
+    'situacion significativa', 'situacion de aprendizaje',
+    'priorizacion', 'priorizar', 'priorice'
+  ];
+  // Excluir setup (no requiere contexto)
+  var setupKeywords = ['ingresar', 'configurar', 'definir', 'que es', 'como funciona', 'explicame'];
+  if (setupKeywords.some(function(k){ return qn.indexOf(k) >= 0; })) return false;
+  return generationKeywords.some(function(k){ return qn.indexOf(k) >= 0; });
+}
+
+// Devuelve lista de campos del contexto pedagógico que están vacíos
+function _planGetMissingContext() {
+  var missing = [];
+  // Área Curricular (CTX.asignaturas)
+  if (!CTX || !CTX.asignaturas || CTX.asignaturas.size === 0) {
+    missing.push({ id:'asignatura', label:'📖 Área Curricular', desc:'Selecciona el área curricular sobre la que vas a planificar' });
+  }
+  // Competencias (CTX.competencias)
+  if (!CTX || !CTX.competencias || CTX.competencias.size === 0) {
+    missing.push({ id:'competencia', label:'🎯 Competencias', desc:'Elige al menos una competencia del área seleccionada' });
+  }
+  // Capacidades (_docDropData.compet con al menos un nivel asignado)
+  var hasCapacidad = false;
+  if (typeof _docDropData !== 'undefined' && _docDropData && _docDropData.compet) {
+    hasCapacidad = Object.values(_docDropData.compet).some(function(v){ return !!v; });
+  }
+  if (!hasCapacidad) {
+    missing.push({ id:'capacidad', label:'📋 Capacidades', desc:'Asigna al menos una capacidad con su nivel correspondiente' });
+  }
+  // EDAD (_docDropData.edad)
+  if (typeof _docDropData === 'undefined' || !_docDropData || !_docDropData.edad) {
+    missing.push({ id:'edad', label:'🎂 EDAD', desc:'Indica la edad del alumno o grupo' });
+  }
+  // Desempeño (_docDropData.desemp con al menos un nivel asignado)
+  var hasDesemp = false;
+  if (typeof _docDropData !== 'undefined' && _docDropData && _docDropData.desemp) {
+    hasDesemp = Object.values(_docDropData.desemp).some(function(v){ return !!v; });
+  }
+  if (!hasDesemp) {
+    missing.push({ id:'desempeno', label:'📊 Desempeño', desc:'Marca el nivel de desempeño del alumno (requiere edad seleccionada primero)' });
+  }
+  return missing;
+}
+
+// Modal explicativo que indica qué falta seleccionar antes de la pregunta
+function _planShowNeedContextModal(question, missing) {
+  var existing = document.getElementById('planNeedContextModal');
+  if (existing) existing.remove();
+  var qPreview = (question||'').length > 100 ? question.substring(0,100)+'…' : (question||'');
+  var listHtml = missing.map(function(m){
+    return '<li style="margin:8px 0;padding:10px 12px;background:var(--surface2);border-radius:8px;border-left:3px solid #ffd166">'
+      + '<div style="font-weight:700;color:var(--text);font-size:13px">'+m.label+'</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+m.desc+'</div>'
+      + '</li>';
+  }).join('');
+  var portal = document.createElement('div');
+  portal.id = 'planNeedContextModal';
+  portal.style.cssText = 'position:fixed;inset:0;background:#00000099;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  portal.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:520px;width:100%;padding:22px 24px;box-shadow:0 24px 60px #00000099;max-height:90vh;overflow-y:auto">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+    +   '<span style="font-size:26px">📋</span>'
+    +   '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:16px">Necesito el contexto pedagógico</div>'
+    + '</div>'
+    + (qPreview ? '<div style="font-size:11px;color:var(--muted);background:var(--surface2);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-style:italic">"'+qPreview+'"</div>' : '')
+    + '<div style="font-size:13px;color:var(--text);line-height:1.5;margin-bottom:14px">Para que esta planificación sea útil y específica, primero debes definir el contexto en la barra superior. Falta seleccionar:</div>'
+    + '<ul style="list-style:none;padding:0;margin:0 0 18px">' + listHtml + '</ul>'
+    + '<div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:14px">💡 Encontrarás los selectores en la <strong>barra de Contexto</strong> en la parte superior de la pantalla. Una vez seleccionados, vuelve a hacer clic en esta pregunta.</div>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'
+    +   '<button onclick="document.getElementById(\'planNeedContextModal\').remove()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">Cerrar</button>'
+    +   '<button onclick="document.getElementById(\'planNeedContextModal\').remove();_planScrollToContextBar()" style="background:linear-gradient(135deg,#7c3aed,#4f7bff);border:none;color:#fff;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif">📋 Ir a seleccionar contexto</button>'
+    + '</div>'
+    + '</div>';
+  portal.addEventListener('click', function(e){ if(e.target===portal) portal.remove(); });
+  document.body.appendChild(portal);
+}
+
+// Hace scroll al banner de contexto y lo destaca con un pulso visual
+function _planScrollToContextBar() {
+  var bar = document.querySelector('#ctxAsigLabel') || document.querySelector('[id^="ctxAsig"]');
+  if (!bar) bar = document.querySelector('.docente-ctx-bar') || document.querySelector('[id*="contexto"]');
+  if (!bar) return;
+  var container = bar.closest('div[style*="display:flex"]') || bar.parentElement || bar;
+  container.scrollIntoView({ behavior:'smooth', block:'center' });
+  var origShadow = container.style.boxShadow;
+  container.style.transition = 'box-shadow .3s';
+  container.style.boxShadow = '0 0 0 4px rgba(124,58,237,0.6), 0 6px 20px rgba(124,58,237,0.4)';
+  container.style.borderRadius = '8px';
+  setTimeout(function(){ container.style.boxShadow = origShadow || ''; }, 2400);
 }
 
 function formatMsg(text) {
