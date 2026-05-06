@@ -9968,9 +9968,13 @@ async function sendChat(){
 
   // Memory context hints — shown as assistant bubble before AI responds
   // Usa memCtx ya calculado arriba — no llamar buildMemoryContext dos veces
+  // IMPORTANTE: el bloque [NORMATIVA LEGAL Y REGLAMENTOS] se inyecta al system prompt
+  // pero NO debe mostrarse en pantalla — el docente no necesita verlo, solo el agente.
   try {
     var _memCtxStr = memCtx;
     if (_memCtxStr) {
+      // Eliminar bloque normativa visual (sigue yendo al system prompt vía memCtx en línea 10117)
+      _memCtxStr = _memCtxStr.replace(/\n*\[NORMATIVA LEGAL Y REGLAMENTOS\][\s\S]*?\[FIN NORMATIVA\]\n*/g, '');
       var _MEM1 = '[LIAX MEMORIA]', _MEM2 = '[FIN MEMORIA]';
       var _mi1  = _memCtxStr.indexOf(_MEM1);
       var _mi2  = _memCtxStr.indexOf(_MEM2);
