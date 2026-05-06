@@ -8586,7 +8586,14 @@ function _indiGetContext() {
     if (r.CURSO) alumnos[nom].curso = r.CURSO;
     if (r.LETRA) alumnos[nom].letra = r.LETRA;
   });
-  var lines = ['=== RESULTADOS INDI CARGADOS ==='];
+  var lines = [
+    '=== RESULTADOS INDI CARGADOS — DATOS REALES DEL CURSO ===',
+    'INSTRUCCIÓN OBLIGATORIA: Tienes acceso a los resultados INDI reales de este curso. ÚSALOS DIRECTAMENTE para responder.',
+    '- NO digas que no tienes datos, NO pidas que se carguen, NO inventes alumnos: TODA la información está aquí abajo.',
+    '- Cita nombres específicos de alumnos cuando corresponda.',
+    '- Genera análisis, informes y recomendaciones basados en estos datos concretos, no en información hipotética.',
+    ''
+  ];
   var meta = rows[0];
   if (meta.COLEGIO) lines.push('Colegio: ' + meta.COLEGIO);
   if (meta.CURSO)   lines.push('Curso: ' + meta.CURSO + (meta.LETRA ? ' ' + meta.LETRA : ''));
@@ -8598,7 +8605,9 @@ function _indiGetContext() {
     lines.push('• ' + nom + (a.edad ? ' (' + a.edad + ' años)' : '') + ':');
     a.areas.forEach(function(ar){ lines.push('  - ' + ar); });
   });
+  lines.push('');
   lines.push('=== FIN RESULTADOS INDI ===');
+  lines.push('RECORDATORIO FINAL: Cuando el docente pida un informe, análisis, priorización o recomendaciones, basa tu respuesta 100% en los datos de arriba. No los ignores.');
   return lines.join('\n');
 }
 
@@ -8658,7 +8667,14 @@ function _indiGetContextResumen() {
   var stats = (typeof _indiClassifyAlumnos === 'function') ? _indiClassifyAlumnos(rows) : null;
   if (!stats) return _indiGetContext();
 
-  var lines = ['=== RESUMEN INDI DEL CURSO (datos para planificar) ==='];
+  var lines = [
+    '=== RESUMEN INDI DEL CURSO — DATOS REALES PARA PLANIFICAR ===',
+    'INSTRUCCIÓN OBLIGATORIA: Tienes la distribución real de niveles INDI de este curso. ÚSALA DIRECTAMENTE para tu planificación.',
+    '- NO digas que no tienes datos, NO pidas más información: la distribución del curso está abajo.',
+    '- Prioriza contenidos según las áreas marcadas como [AREA PRIORITARIA].',
+    '- Propón agrupamientos concretos basados en los porcentajes de cada nivel.',
+    ''
+  ];
   var meta = rows[0] || {};
   if (meta.COLEGIO) lines.push('Colegio: ' + meta.COLEGIO);
   lines.push('Curso: ' + (window.INDI_CURSO || ''));
@@ -8703,6 +8719,7 @@ function _indiGetContextResumen() {
   lines.push('');
   lines.push('USA ESTA DISTRIBUCION PARA PRIORIZAR CONTENIDOS, AGRUPAMIENTOS Y APOYOS DIFERENCIADOS EN TU PLANIFICACION.');
   lines.push('=== FIN RESUMEN INDI ===');
+  lines.push('RECORDATORIO FINAL: Cuando el docente pida un plan anual, unidad o sesión, basa tu propuesta 100% en la distribución de arriba. Refleja las áreas prioritarias en los objetivos y actividades.');
   return lines.join('\n');
 }
 
@@ -9719,6 +9736,13 @@ async function sendChat(){
     datosCtx +
     interAgentCtx +
     '\n\n=== RECUERDA: eres ' + currentAgent.nombre + '. Tu rol absoluto está definido arriba. No lo abandones. ===' +
+    // Recordatorio INDI: si el agente está cargado y tiene data, refuérzalo al final
+    ((typeof _indiGetAgentMode === 'function'
+      && _indiGetAgentMode(currentAgent)
+      && typeof _indiHasData === 'function'
+      && _indiHasData())
+      ? '\n=== INSTRUCCIÓN FINAL — DATOS INDI DISPONIBLES ===\nLos RESULTADOS INDI de este curso están cargados en este mismo prompt (búscalos arriba bajo "RESULTADOS INDI" o "RESUMEN INDI"). Tu respuesta DEBE basarse en esos datos reales. NUNCA digas que no los tienes. NUNCA pidas que el docente los cargue. NUNCA inventes alumnos o resultados ficticios.\n=== FIN INSTRUCCIÓN FINAL ==='
+      : '') +
     // ── Instrucción clave: usar contexto activo, no preguntar lo que ya está definido ──
     (function() {
       var dd = (typeof _docDropData !== 'undefined') ? _docDropData : {};
@@ -9768,21 +9792,32 @@ async function sendChat(){
       return instrLines.join('\n');
     })();
 
-  // ── Limitar tamaño del system prompt — máx ~12.000 chars ──
-  // Si supera ese límite, recortar interAgentCtx y datosCtx (menos críticos)
-  var MAX_SYSTEM = 12000;
+  // ── Limitar tamaño del system prompt ──
+  // CRÍTICO: cuando hay datos INDI cargados, indiCtx puede pesar 10k+ chars (33 alumnos
+  // × 10 áreas). NUNCA truncar indiCtx — el modelo lo necesita para responder bien.
+  // Si hay que truncar, descartar primero contextos menos críticos (rag, mem, interAgent).
+  var MAX_SYSTEM = 24000;
   var system = systemRaw;
   if (systemRaw.length > MAX_SYSTEM) {
+    var _indiReminder = ((typeof _indiGetAgentMode === 'function'
+      && _indiGetAgentMode(currentAgent)
+      && typeof _indiHasData === 'function'
+      && _indiHasData())
+      ? '\n=== INSTRUCCIÓN FINAL — DATOS INDI DISPONIBLES ===\nLos RESULTADOS INDI de este curso están cargados en este mismo prompt (búscalos arriba bajo "RESULTADOS INDI" o "RESUMEN INDI"). Tu respuesta DEBE basarse en esos datos reales. NUNCA digas que no los tienes. NUNCA pidas que el docente los cargue. NUNCA inventes alumnos o resultados ficticios.\n=== FIN INSTRUCCIÓN FINAL ==='
+      : '');
     system =
       agentRoleBlock +
       STYLE_RULES +
+      (indiCtx ? '\n\n' + indiCtx : '') +  // INDI siempre se preserva
       (window._aluCtxExtra || '') +
       (userCtx ? '\n\nALUMNOS EN CONTEXTO ACTIVO:\n' + userCtx : '') +
       classCtx +
       ajusteCtx +
-      // Truncar datos y memoria si el prompt es muy largo
+      // Truncar datos no esenciales si el prompt es muy largo
       (datosCtx ? datosCtx.slice(0, 800) : '') +
-      '\n\n=== RECUERDA: eres ' + currentAgent.nombre + '. Tu rol absoluto está definido arriba. No lo abandones. ===';
+      '\n\n=== RECUERDA: eres ' + currentAgent.nombre + '. Tu rol absoluto está definido arriba. No lo abandones. ===' +
+      _indiReminder;
+    console.log('[INDI] System prompt truncado (>'+MAX_SYSTEM+' chars). indiCtx preservado:', indiCtx ? indiCtx.length+' chars' : 'sin INDI');
   }
 
   // Build content array (multimodal if files present)
