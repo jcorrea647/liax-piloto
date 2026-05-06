@@ -7004,6 +7004,27 @@ function openAgent(id, autoPrompt, sessionToRestore){
   currentAgent = AGENTS.find(a=>a.id===id) || (window.customAgents||[]).find(a=>a.id===id);
   if(!currentAgent) return;
 
+  // ── Carga on-demand de INDI si el agente es INDI-aware y no hay datos en memoria ──
+  // Cubre el caso del refresh: usuario entra directo al agente antes de que
+  // _supaLoadIndiResultados haya terminado (o haya arrancado, si el rol tardó en setearse).
+  // Sin esto, el banner muestra "Sin resultados" hasta que el usuario visita Mi Aula.
+  if (typeof _indiIsAgentAware === 'function' && _indiIsAgentAware(currentAgent)
+      && typeof _indiHasData === 'function' && !_indiHasData()
+      && typeof _supa !== 'undefined' && _supa
+      && typeof _supaUser !== 'undefined' && _supaUser
+      && typeof _supaLoadIndiResultados === 'function'
+      && !window._indiLoadInFlight) {
+    window._indiLoadInFlight = true;
+    console.log('[INDI] Agente INDI-aware abierto sin datos en memoria — cargando desde Supabase...');
+    _supaLoadIndiResultados().finally(function(){
+      window._indiLoadInFlight = false;
+      // Refrescar el banner del agente cuando lleguen los datos
+      if (typeof _indiRefreshAgentBanner === 'function') {
+        try { _indiRefreshAgentBanner(); } catch(e) {}
+      }
+    });
+  }
+
   // Store session to restore — used below after modal setup
   window._pendingSessionRestore = sessionToRestore || null;
 
@@ -8967,6 +8988,20 @@ function _indiShowNeedDataModal(question) {
 
 // Refresca el banner si el agente está abierto (útil tras cargar resultados)
 function _indiRefreshAgentBanner() {
+  // Si la welcome screen del agente está visible, re-renderizar TODO _buildChatView
+  // para que también se actualicen los marcadores 📊 en las tarjetas de preguntas,
+  // no solo el banner. Esto cubre el caso de carga on-demand al refrescar.
+  var welcomeScreen = document.getElementById('agentWelcomeScreen');
+  if (welcomeScreen && window.currentAgent && typeof _buildChatView === 'function') {
+    try {
+      _buildChatView();
+      console.log('[INDI] Welcome view del agente re-renderizada con datos INDI.');
+      return;
+    } catch(e) {
+      console.warn('[INDI] _buildChatView fallo, fallback a refrescar solo banner:', e);
+    }
+  }
+  // Fallback: refrescar solo el banner (caso de la vista de chat con pills)
   var existing = document.getElementById('indiAgentBanner');
   if (!existing || !window.currentAgent) return;
   var newHtml = _indiBuildAgentBanner(window.currentAgent);
